@@ -87,14 +87,14 @@ var $DEBUG_TIME = 8;
 
 //# The following patterns were generated with eg/naive
 //$Default_Lexer = qr/(?![[(\\]).(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\\(?:[bABCEGLQUXZ]|[lu].|(?:[^\w]|[aefnrtdDwWsS]|c.|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}})|N\{\w+\}|[Pp](?:\{\w+\}|.))(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?)|\[.*?(?<!\\)\](?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\(.*?(?<!\\)\)(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?/; # ]) restore equilibrium
-var $Default_Lexer = qr/(?![[(\\]).(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\\(?:[bABCEGLQUXZ]|[lu].|(?:[^\w]|[aefnrtdDwWsS]|c.|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}})|N\{\w+\}|[Pp](?:\{\w+\}|.))(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?)|\[.*?(?<!\\)\](?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\(.*?(?<!\\)\)(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?/; # ]) restore equilibrium
+var $Default_Lexer = '(?![[(\\]).(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\\(?:[bABCEGLQUXZ]|[lu].|(?:[^\w]|[aefnrtdDwWsS]|c.|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}})|N\{\w+\}|[Pp](?:\{\w+\}|.))(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?)|\[.*?(?<!\\)\](?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\(.*?(?<!\\)\)(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?'; //# ]) restore equilibrium
 
 //$Single_Char   = qr/^(?:\\(?:[aefnrtdDwWsS]|c.|[^\w\/{|}-]|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}}))|[^\$^])$/;
-var $Single_Char   = qr/^(?:\\(?:[aefnrtdDwWsS]|c.|[^\w\/{|}-]|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}}))|[^\$^])$/;
+var $Single_Char   = '^(?:\\(?:[aefnrtdDwWsS]|c.|[^\w\/{|}-]|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}}))|[^\$^])$';
 
 //# the pattern to return when nothing has been added (and thus not match anything)
 //$Always_Fail = "^\\b\0";
-var $Always_Fail = "^\\b\0";
+var $Always_Fail = '^\\b\0';
 
 /*
 =head1 METHODS
@@ -460,15 +460,15 @@ function _fastlex($record){
 //    my $modifier        = q{(?:[*+?]\\??|\\{(?:\\d+(?:,\d*)?|,\d+)\\}\\??)?};
     $modifier        = "/(?:[*+?]\\??|\\{(?:\\d+(?:,\d*)?|,\d+)\\}\\??)?/";
 //    my $class_matcher   = qr/\[(?:\[:[a-z]+:\]|\\?.)*?\]/;
-    $class_matcher   = "/\[(?:\[:[a-z]+:\]|\\?.)*?\]/";
+    $class_matcher   = "\[(?:\[:[a-z]+:\]|\\?.)*?\]";
 //    my $paren_matcher   = qr/\(.*?(?<!\\)\)$modifier/;
-    $paren_matcher   = "/\(.*?(?<!\\)\){$modifier}/";
+    $paren_matcher   = "\(.*?(?<!\\)\){$modifier}";
 //    my $misc_matcher    = qr/(?:(c)(.)|(0)(\d{2}))($modifier)/;
-    $misc_matcher    = "/(?:(c)(.)|(0)(\d{2}))({$modifier})/";
+    $misc_matcher    = "(?:(c)(.)|(0)(\d{2}))({$modifier})";
 //    my $regular_matcher = qr/([^\\[(])($modifier)/;
-    $regular_matcher = "/([^\\[(])({$modifier})/";
+    $regular_matcher = "([^\\[(])({$modifier})";
 //    my $qm_matcher      = qr/(\\?.)/;
-    $qm_matcher      = '/(\\?.)/';
+    $qm_matcher      = '(\\?.)';
 
 //    my $matcher = $regular_matcher;
     $matcher = $regular_matcher;
@@ -860,7 +860,7 @@ function _lex($record){
                         $qm = $pregNum[1];
 //                        # switch to a more precise lexer to quotemeta individual characters
 //                        $re = qr/\\?./;
-                        $re = "/\\?./";
+                        $re = "\\?.";
 //                    }
                     }
 //                    else {
@@ -1539,8 +1539,8 @@ function _build_re($str) {
 //            : qr/$str/
 //        ;
         $this->re = strlen($this->flags)
-             ? "/(?{$this->flags}:{$str})/"
-             : "/{$str}/"
+             ? "(?{$this->flags}:{$str})"
+             : "{$str}"
              ;
 //    }
     }
@@ -1552,8 +1552,8 @@ function _build_re($str) {
 //            : qr/$str/
 //        ;
         $this->re = strlen($this->flags)
-            ? "/(?{$this->flags}:{$str})/"
-            : "/{$str}/";
+            ? "(?{$this->flags}:{$str})"
+            : "{$str}";
         ;
 //    }
     }
