@@ -1845,9 +1845,12 @@ in this total.
 
 =cut
 */
-sub stats_add {
-    my $self = shift;
-    return $self->{stats_add} || 0;
+//sub stats_add {
+//    my $self = shift;
+function stats_add() {
+//    return $self->{stats_add} || 0;
+    return $this->stats_add || 0;
+//}
 }
 /*
 =item stats_dup
@@ -1860,9 +1863,12 @@ C<a-b>) which map to the same result.
 
 =cut
 */
-sub stats_dup {
-    my $self = shift;
-    return $self->{stats_dup} || 0;
+//sub stats_dup {
+//    my $self = shift;
+function stats_dup() {
+//    return $self->{stats_dup} || 0;
+    return $this->stats_dup || 0;
+//}
 }
 /*
 =item stats_raw
@@ -1874,9 +1880,12 @@ count as 4 bytes.
 
 =cut
 */
-sub stats_raw {
-    my $self = shift;
-    return $self->{stats_raw} || 0;
+//sub stats_raw {
+//    my $self = shift;
+function stats_raw() {
+//    return $self->{stats_raw} || 0;
+    return $this->stats_raw || 0;
+//}
 }
 /*
 =item stats_cooked
@@ -1891,9 +1900,12 @@ stored, for a total of 4 bytes.
 
 =cut
 */
-sub stats_cooked {
-    my $self = shift;
-    return $self->{stats_cooked} || 0;
+//sub stats_cooked {
+//    my $self = shift;
+function stats_cooked() {
+//    return $self->{stats_cooked} || 0;
+    return $this->stats_cooked || 0;
+//}
 }
 /*
 =item stats_length
@@ -1906,9 +1918,12 @@ additional (C<(?-xism...>) fluff added by the compilation.
 
 =cut
 */
-sub stats_length {
-    my $self = shift;
-    return (defined $self->{str} and $self->{str} ne $Always_Fail) ? length $self->{str} : 0;
+//sub stats_length {
+//    my $self = shift;
+function stats_length() {
+//    return (defined $self->{str} and $self->{str} ne $Always_Fail) ? length $self->{str} : 0;
+    return ( isset($this->str) && $this->str < $this->Always_Fail) ? strlen($this->str) : 0;
+//}
 }
 /*
 =item dup_warn(NUMBER|CODEREF)
@@ -1936,10 +1951,14 @@ to the object in question, and the lexed pattern.
 
 =cut
 */
-sub dup_warn {
-    my $self = shift;
-    $self->{dup_warn} = defined($_[0]) ? $_[0] : 1;
-    return $self;
+//sub dup_warn {
+//    my $self = shift;
+function dup_warn($p = 1) {
+//    $self->{dup_warn} = defined($_[0]) ? $_[0] : 1;
+    $this->dup_warn = $p1;
+//    return $self;
+    return $this;
+//}
 }
 /*
 =back
@@ -1987,10 +2006,14 @@ to 0 to disable.
 
 =cut
 */
-sub anchor_word_begin {
-    my $self = shift;
-    $self->{anchor_word_begin} = defined($_[0]) ? $_[0] : 1;
-    return $self;
+//sub anchor_word_begin {
+//    my $self = shift;
+function anchor_word_begin($p1 = 1) {
+//    $self->{anchor_word_begin} = defined($_[0]) ? $_[0] : 1;
+    $this->anchor_word_begin = $p1;
+//    return $self;
+    return $this;
+//}
 }
 /*
 =item anchor_word_end
@@ -2005,10 +2028,14 @@ to 0 to disable.
 
 =cut
 */
-sub anchor_word_end {
-    my $self = shift;
-    $self->{anchor_word_end} = defined($_[0]) ? $_[0] : 1;
-    return $self;
+//sub anchor_word_end {
+//    my $self = shift;
+function anchor_word_end($p1 = 1) {
+//    $self->{anchor_word_end} = defined($_[0]) ? $_[0] : 1;
+    $this->anchor_word_end = $p1;
+//    return $self;
+    return $this;
+//}
 }
 /*
 =item anchor_word
@@ -2024,11 +2051,15 @@ to 0 to disable.
 
 =cut
 */
-sub anchor_word {
-    my $self  = shift;
-    my $state = shift;
-    $self->anchor_word_begin($state)->anchor_word_end($state);
-    return $self;
+//sub anchor_word {
+//    my $self  = shift;
+//    my $state = shift;
+function anchor_word($state) {
+//    $self->anchor_word_begin($state)->anchor_word_end($state);
+    $this->anchor_word_begin($state)->anchor_word_end($state);
+//    return $self;
+    return $this;
+//}
 }
 /*
 =item anchor_line_begin
@@ -2043,10 +2074,14 @@ to 0 to disable.
 
 =cut
 */
-sub anchor_line_begin {
-    my $self = shift;
-    $self->{anchor_line_begin} = defined($_[0]) ? $_[0] : 1;
-    return $self;
+//sub anchor_line_begin {
+//    my $self = shift;
+function anchor_line_begin($p1 = 1) {
+//    $self->{anchor_line_begin} = defined($_[0]) ? $_[0] : 1;
+    $this->anchor_line_begin = $p1;
+//    return $self;
+    return $this;
+//}
 }
 /*
 =item anchor_line_end
@@ -2060,10 +2095,14 @@ to 0 to disable.
 
 =cut
 */
-sub anchor_line_end {
-    my $self = shift;
-    $self->{anchor_line_end} = defined($_[0]) ? $_[0] : 1;
-    return $self;
+//sub anchor_line_end {
+//    my $self = shift;
+function anchor_line_end($p1 = 1) {
+//    $self->{anchor_line_end} = defined($_[0]) ? $_[0] : 1;
+    $this->anchor_line_end = $p1;
+//    return $self;
+    return $this;
+//}
 }
 /*
 =item anchor_line
@@ -2079,11 +2118,15 @@ to 0 to disable.
 
 =cut
 */
-sub anchor_line {
-    my $self  = shift;
-    my $state = shift;
-    $self->anchor_line_begin($state)->anchor_line_end($state);
-    return $self;
+//sub anchor_line {
+//    my $self  = shift;
+//    my $state = shift;
+function anchor_line($state) {
+//    $self->anchor_line_begin($state)->anchor_line_end($state);
+    $this->anchor_line_begin($state)->anchor_line_end($state);
+//    return $self;
+    return $this;
+//}
 }
 /*
 =item anchor_string_begin
@@ -2096,10 +2139,14 @@ to 0 to disable.
 
 =cut
 */
-sub anchor_string_begin {
-    my $self = shift;
-    $self->{anchor_string_begin} = defined($_[0]) ? $_[0] : 1;
-    return $self;
+//sub anchor_string_begin {
+//    my $self = shift;
+function anchor_string_begin($p1 = 1) {
+//    $self->{anchor_string_begin} = defined($_[0]) ? $_[0] : 1;
+    $this->anchor_string_begin = $p1;
+//    return $self;
+    return $this;
+//}
 }
 /*
 =item anchor_string_end
@@ -2113,10 +2160,15 @@ to 0 to disable.
 
 =cut
 */
-sub anchor_string_end {
-    my $self = shift;
-    $self->{anchor_string_end} = defined($_[0]) ? $_[0] : 1;
-    return $self;
+//sub anchor_string_end {
+//    my $self = shift;
+function anchor_string_end($p1 = 1) {
+//    $self->{anchor_string_end} = defined($_[0]) ? $_[0] : 1;
+    $this->anchor_string_end = $p1;
+
+//    return $self;
+    return $this;
+//}
 }
 /*
 =item anchor_string_end_absolute
@@ -2487,10 +2539,14 @@ You can examine the C<eg/naive> script as a starting point.
 
 =cut
 */
-sub lex {
-    my $self = shift;
-    $self->{lex} = qr($_[0]);
-    return $self;
+//sub lex {
+//    my $self = shift;
+function lex($lex) {
+//    $self->{lex} = qr($_[0]);
+    $this->lex = $lex;
+//    return $self;
+    return $this;
+//}
 }
 /*
 =item reduce(0|1)
@@ -2649,17 +2705,20 @@ function _path($obj) {
 
 # -- the heart of the matter
 
-$have_Storable = do {
-    eval {
-        require Storable;
-        import Storable 'dclone';
-    };
-    $@ ? 0 : 1;
-};
-
-sub _path_clone {
-    $have_Storable ? dclone($_[0]) : _path_copy($_[0]);
-}
+////// PHPÇÃèÍçá clone ÇégÇ§ÇÃÇ≈éñé¿è„åƒÇŒÇÍÇ»Ç¢
+// PHPÇ»ÇÁ clone Ç≈Ç‚ÇÈÇ◊Çµ
+//
+//$have_Storable = do {
+//    eval {
+//        require Storable;
+//        import Storable 'dclone';
+//    };
+//    $@ ? 0 : 1;
+//};
+//
+//sub _path_clone {
+//    $have_Storable ? dclone($_[0]) : _path_copy($_[0]);
+//}
 
 sub _path_copy {
     my $path = shift;
