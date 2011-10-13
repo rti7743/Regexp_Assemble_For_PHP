@@ -2625,6 +2625,18 @@ function perl_push($array , $target)
        return $array[] = $target;
     }
 }
+//perl の sort phpのsort関数はC言語と同じ自己破壊のクソ仕様なんで・・・
+function perl_sort($array , $function = NULL)
+{
+    if ($function == NULL) {
+       sort($array);
+       return $array;
+    }
+    else { 
+       usort($array , $function);
+       return $array;
+    }
+}
 
 
 //sub _path {
@@ -3474,8 +3486,7 @@ function _do_reduce($path, $ctx) {
 //        }
 //        @$path
 //    ;
-    $_temp_path = $path;
-    usort($_temp_path , function($a,$b){
+    $_temp_path = perl_sort($path , function($a,$b){
             $scalar_count_a = 0 ; array_map($a , function($_) use($scalar_count_a){ $scalar_count_a += is_array($_) ? 1 : 0 } );
             $scalar_count_b = 0 ; array_map($b , function($_) use($scalar_count_b){ $scalar_count_b += is_array($_) ? 1 : 0 } );
             if ($scalar_count_a > $scalar_count_b) {
@@ -3805,9 +3816,7 @@ function _make_class() {
     }
 
 //    my $class = join( '' => sort keys %set );
-    $_temp_set = array_keys($set);
-    sort($_temp_set);
-    $class = join('' , $_temp_set);
+    $class = join('' , perl_sort(array_keys($set)) );
 //    $class =~ s/0123456789/\\d/ and $class eq '\\d' and return $class;
     if ( preg_match('/0123456789/u',$class) ) {
         $class = preg_replace('/0123456789/u' , '\\d' , $class);
@@ -3875,16 +3884,16 @@ function _combine($type) {
     }
 
     if( count($short) == 1 ) {
-        $long = usort($long , $this->_re_sort );
+        $long = perl_push( perl_sort($long , $this->_re_sort ) , $sort );
     }
     else if ( count($short) > 1 ) {
         //# yucky but true
-        usort($long, $this->_re_sort);
-        $combine = [ $this->_make_class($short),  $long );
+        ;
+        $combine = perl_push( $this->_make_class($short),  perl_sort($long, $this->_re_sort) );
         $long = $combine;
     }
     else {
-        usort($long, $this->_re_sort);
+        $long = perl_sort($long, $this->_re_sort);
     }
     $_temp_do = join( '|', $long );
     
@@ -3898,25 +3907,53 @@ function _combine($type) {
 //}
 }
 
-sub _combine_new {
-    my $self = shift;
-    my( @short, @long );
-    push @{ /^$Single_Char$/ ? \@short : \@long}, $_ for @_;
-    if( @short == 1 and @long == 0 ) {
+//sub _combine_new {
+//    my $self = shift;
+function _combine_new() {
+//    my( @short, @long );
+//    push @{ /^$Single_Char$/ ? \@short : \@long}, $_ for @_;
+    $short = [];
+    $long = [];
+    foreach(func_get_args() as $_) {
+        if (preg_match("/^$this->Single_Char$/",$_)) {
+            $short[] = $_;
+        }
+        else {
+           $long[] = $_;
+        }
+    }
+
+//    if( @short == 1 and @long == 0 ) {
+    if( count($short) == 1 && count($long) == 0 ) {
+//        return $short[0];
         return $short[0];
+//    }
     }
-    elsif( @short > 1 and @short == @_ ) {
-        return _make_class($self, @short);
+//    elsif( @short > 1 and @short == @_ ) {
+    else if( count($short) > 1 and (join('|',$short) == join('|',func_get_args()) ) ) {
+//        return _make_class($self, @short);
+        return $this->_make_class($short);
+//    }
     }
+//    else {
     else {
+//        return '(?:'
+//            . join( '|' =>
+//                @short > 1
+//                    ? ( _make_class($self, @short), sort _re_sort @long)
+//                    : ( (sort _re_sort( @long )), @short )
+//            )
+//        . ')';
         return '(?:'
-            . join( '|' =>
-                @short > 1
-                    ? ( _make_class($self, @short), sort _re_sort @long)
-                    : ( (sort _re_sort( @long )), @short )
+            . join( '|' ,
+                count($short) > 1
+                    ? perl_push( $this->_make_class($short), $this->perl_sort($long, $this->_re_sort) )
+                    : perl_push( (perl_sort($long,$this->_re_sort) , $short ) )
             )
         . ')';
+//    }
     }
+//}
 }
 
 sub _re_path {
@@ -4260,9 +4297,7 @@ function _node_eq($p1 , $p2 = NULL) {
 //            and
 //        _re_path(undef, [$_[0]] ) eq _re_path(undef, [$_[1]] );
         if ( count($p1) == count($p2) ) {
-            $ap1 = array_keys($p1); sort($ap1);
-            $ap2 = array_keys($p2); sort($ap2);
-            if (join('',$p1) === join('',$p2)) {
+            if (join('',perl_sort(array_keys($p1)) ) === join('',perl_sort(array_keys($p2)) )) {
                 if ( $this->_re_path( NULL , $p1 ) && $this->_re_path( NULL , $p2 ) ) {
                       return true;
                 }
@@ -4363,9 +4398,7 @@ function _dump_node($node) {
 //    my $n;
     $n = NULL;
 //    for $n (sort keys %$node) {
-    $keys = array_keys($node);
-    sort($keys);
-    foreach( $keys as $n) {
+    foreach( perl_sort(array_keys($node))  as $n) {
 //        $dump .= ' ' if $nr++;
         if ($nr++) {
            $dump .= $nr;
