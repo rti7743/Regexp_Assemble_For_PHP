@@ -4212,6 +4212,7 @@ function _re_path_pretty($in,$arg) {
 //                        }
 //                        sort _re_sort @$path
 //                    );
+//ƒRƒR‚ç‚Ö‚ñ‚Å‚ ‚«‚½.
                       $pathtemp = $this->_re_sort($path);
                       sort($pathtemp);
                       foreach($pathtemp as $_){
@@ -4732,3 +4733,4 @@ it under the same terms as Perl itself.
 'The Lusty Decadent Delights of Imperial Pompeii';
 __END__
 */
+}
