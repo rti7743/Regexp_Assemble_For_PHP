@@ -968,7 +968,7 @@ function _lex($record){
 //        $debug and print "#   add remaining <$remain> case=<$case> qm=<$qm>\n";
         if ($debug){	echo "#   add remaining <$remain> case=<$case> qm=<$qm>\n";	}
 //        push @path, $remain;
-        $path = perl_push($path, $remain);
+        $path = Regexp_Assemble::Regexp_Assemble::perl_push($path, $remain);
 //    }
     }
 //    $debug and print "# _lex out <@path>\n";
@@ -2616,7 +2616,7 @@ function _debug($flg) {
 # -- helpers
 
 //perl の push をエミュレーションする.
-function perl_push($array , $target)
+static function perl_push($array , $target)
 {
     if ( is_array($target) ){
        return array_merge($array , $target );
@@ -2626,7 +2626,7 @@ function perl_push($array , $target)
     }
 }
 //perl の sort phpのsort関数はC言語と同じ自己破壊のクソ仕様なんで・・・
-function perl_sort($array , $function = NULL)
+static function perl_sort($array , $function = NULL)
 {
     if ($function == NULL) {
        sort($array);
@@ -2853,7 +2853,7 @@ function _insert_path($list , $debug , $in) {
 //        if( $offset >= @$path ) {
         if( $offset >= count($path) ) {
 //            push @$path, { $token => [ $token, @in ], '' => undef };
-            $path = perl_push($path,  [ $token => [ $token, $in ], '' => NULL ] );
+            $path = Regexp_Assemble::Regexp_Assemble::perl_push($path,  [ $token => [ $token, $in ], '' => NULL ] );
 //            $debug and print "#   added remaining @{[_dump($path)]}\n";
             if ($debug) { echo "#   added remaining @{[_dump($path)]}\n"; }
 //            last;
@@ -2991,7 +2991,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                        ref($token) ? _dump($token) : $token, "\n";
                     if ( $debug ){ echo "#  identical nodes in sub_path ". (is_array($token) ? $this->_dump($token) : $token) . "\n"; }
 //                    push @$new_path, shift(@$old_path);
-                    $new_path = perl_push($new_path, array_shift($old_path) );
+                    $new_path = Regexp_Assemble::perl_push($new_path, array_shift($old_path) );
 //                    $token = shift @_;
                     $token = array_shift($_args);
 //                }
@@ -3036,7 +3036,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                    }
                     }
 //                    push @$new_path, $new;
-                    $new_path = perl_push( $new_path , $new );
+                    $new_path = Regexp_Assemble::perl_push( $new_path , $new );
 //                }
                 }
 //                $path_end->[0]{$token_key} = $new_path;
@@ -3119,7 +3119,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                $debug and print "#   convert opt @{[_dump($new)]}\n";
                 if ( $debug ) { echo "#   convert opt @{[_dump($new)]}\n"; }
 //                push @$path, $new;
-                $path = perl_push($path , $new );
+                $path = Regexp_Assemble::perl_push($path , $new );
 //            }
             }
 //        }
@@ -3154,7 +3154,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                ''         => undef,
 //                $token_key => [ $token, @_ ],
 //            };
-            $path = perl_push( $path , [
+            $path = Regexp_Assemble::perl_push( $path , [
                   '' => NULL,
                   $token_key => [ $token, $_args ]
                 ]
@@ -3486,7 +3486,7 @@ function _do_reduce($path, $ctx) {
 //        }
 //        @$path
 //    ;
-    $_temp_path = perl_sort($path , function($a,$b){
+    $_temp_path = Regexp_Assemble::perl_sort($path , function($a,$b){
             $scalar_count_a = 0 ; array_map($a , function($_) use($scalar_count_a){ $scalar_count_a += is_array($_) ? 1 : 0 } );
             $scalar_count_b = 0 ; array_map($b , function($_) use($scalar_count_b){ $scalar_count_b += is_array($_) ? 1 : 0 } );
             if ($scalar_count_a > $scalar_count_b) {
@@ -3523,7 +3523,7 @@ function _do_reduce($path, $ctx) {
 //    push @$common, shift @$path while( ref($path->[0]) ne 'HASH' );
 //これでいいんかな？
     while( is_array($path[0]) ) {
-        $common = perl_push($common, array_shift($path));
+        $common = Regexp_Assemble::perl_push($common, array_shift($path));
     }
 
 //    my $tail = scalar( @$path ) > 1 ? [@$path] : $path->[0];
@@ -3591,9 +3591,9 @@ function _slide_tail($head,$tail,$path,$ctx) {
 //        shift @$slide_path;
         array_shift($slide_path);
 //        push @$slide_path, $slide;
-        $slide_path = perl_push( $slide_path, $slide);
+        $slide_path = Regexp_Assemble::perl_push( $slide_path, $slide);
 //        push @$head, $slide;
-        $head = perl_push( $head, $slide);
+        $head = Regexp_Assemble::perl_push( $head, $slide);
 //    }
     }
 //    $debug and print "# $indent| slide path ", _dump($slide_path), "\n";
@@ -3646,7 +3646,7 @@ function _unrev_path($path, $ctx) {
 //            : ref($p) eq 'ARRAY' ? _unrev_path($p, _descend($ctx) )
 //            : $p
 //        ;
-          $new = perl_push($new ,  
+          $new = Regexp_Assemble::perl_push($new ,  
                      (is_array($p) ? $this->_unrev_node($p, $this->_descend($ctx) ) : $p)
           );
 //    }
@@ -3777,7 +3777,7 @@ function _make_class() {
 //            $_ =~ /^$re$/ and push @delete, $_ for keys %set;
             foreach( array_keys($set) as $_) {
                  if ( preg_match("/^{$re}$/u" , $_) ) {
-                      $delete = perl_push($delete , $_);
+                      $delete = Regexp_Assemble::perl_push($delete , $_);
                  }
             }
 //            delete @set{@delete} if @delete;
@@ -3816,7 +3816,7 @@ function _make_class() {
     }
 
 //    my $class = join( '' => sort keys %set );
-    $class = join('' , perl_sort(array_keys($set)) );
+    $class = join('' , Regexp_Assemble::perl_sort(array_keys($set)) );
 //    $class =~ s/0123456789/\\d/ and $class eq '\\d' and return $class;
     if ( preg_match('/0123456789/u',$class) ) {
         $class = preg_replace('/0123456789/u' , '\\d' , $class);
@@ -3884,16 +3884,18 @@ function _combine($type) {
     }
 
     if( count($short) == 1 ) {
-        $long = perl_push( perl_sort($long , $this->_re_sort ) , $sort );
+        $long = Regexp_Assemble::perl_push( 
+               Regexp_Assemble::perl_sort($long , $this->_re_sort ) , $sort );
     }
     else if ( count($short) > 1 ) {
         //# yucky but true
         ;
-        $combine = perl_push( $this->_make_class($short),  perl_sort($long, $this->_re_sort) );
+        $combine = Regexp_Assemble::perl_push( $this->_make_class($short),  
+                                Regexp_Assemble::perl_sort($long, $this->_re_sort) );
         $long = $combine;
     }
     else {
-        $long = perl_sort($long, $this->_re_sort);
+        $long = Regexp_Assemble::perl_sort($long, $this->_re_sort);
     }
     $_temp_do = join( '|', $long );
     
@@ -3947,8 +3949,10 @@ function _combine_new() {
         return '(?:'
             . join( '|' ,
                 count($short) > 1
-                    ? perl_push( $this->_make_class($short), $this->perl_sort($long, $this->_re_sort) )
-                    : perl_push( (perl_sort($long,$this->_re_sort) , $short ) )
+                    ? Regexp_Assemble::perl_push( 
+                          $this->_make_class($short), $this->Regexp_Assemble::perl_sort($long, $this->_re_sort) )
+                    : Regexp_Assemble::perl_push( 
+                          Regexp_Assemble::perl_sort($long,$this->_re_sort) , $short )
             )
         . ')';
 //    }
@@ -4297,7 +4301,11 @@ function _node_eq($p1 , $p2 = NULL) {
 //            and
 //        _re_path(undef, [$_[0]] ) eq _re_path(undef, [$_[1]] );
         if ( count($p1) == count($p2) ) {
-            if (join('',perl_sort(array_keys($p1)) ) === join('',perl_sort(array_keys($p2)) )) {
+            if (
+                join('',Regexp_Assemble::perl_sort(array_keys($p1)) ) 
+                 === 
+                join('',Regexp_Assemble::perl_sort(array_keys($p2)) 
+            )) {
                 if ( $this->_re_path( NULL , $p1 ) && $this->_re_path( NULL , $p2 ) ) {
                       return true;
                 }
@@ -4398,7 +4406,7 @@ function _dump_node($node) {
 //    my $n;
     $n = NULL;
 //    for $n (sort keys %$node) {
-    foreach( perl_sort(array_keys($node))  as $n) {
+    foreach( Regexp_Assemble::perl_sort(array_keys($node))  as $n) {
 //        $dump .= ' ' if $nr++;
         if ($nr++) {
            $dump .= $nr;
