@@ -3486,179 +3486,319 @@ function _reduce_node($node, $ctx) {
     $optional = $this->_remove_optional($node);
 //    $debug and print "#$indent _reduce_node $ctx->{depth} in @{[_dump($node)]} opt=$optional\n";
     if ($debug) { echo "#$indent _reduce_node $ctx->{depth} in @{[_dump($node)]} opt=$optional\n"; }
-////‚±‚±‚©‚ç KOKOKARA
-    if( $optional and scalar keys %$node == 1 ) {
-        my $path = (values %$node)[0];
-        if( not grep { ref($_) eq 'HASH' } @$path ) {
-            # if we have removed an optional, and there is only one path
-            # left then there is nothing left to compare. Because of the
-            # optional it cannot participate in any further reductions.
-            # (unless we test for equality among sub-trees).
-            my $result = {
-                ''         => undef,
-                $path->[0] => $path
+//    if( $optional and scalar keys %$node == 1 ) {
+    if( $optional and count($node) == 1 ) {
+//        my $path = (values %$node)[0];
+        my $path = (array_values($node))[0];
+//        if( not grep { ref($_) eq 'HASH' } @$path ) {
+        if( ! perl_grep(function($_) { return is_array($_); } ,$path ) ) {
+//            # if we have removed an optional, and there is only one path
+//            # left then there is nothing left to compare. Because of the
+//            # optional it cannot participate in any further reductions.
+//            # (unless we test for equality among sub-trees).
+//            my $result = {
+//                ''         => undef,
+//                $path->[0] => $path
+//            };
+            $result = {
+                ''         => NULL,
+                $path[0] => $path
             };
-            $debug and print "#$indent| fast fail @{[_dump($result)]}\n";
-            return [], $result;
+//            $debug and print "#$indent| fast fail @{[_dump($result)]}\n";
+            if ( $debug ){ echo "#$indent| fast fail @{[_dump($result)]}\n"; }
+//            return [], $result;
+            return $result;
+//        }
         }
+//    }
     }
 
-    my( $fail, $reduce ) = _scan_node( $node, _descend($ctx) );
+//    my( $fail, $reduce ) = _scan_node( $node, _descend($ctx) );
+    list( $fail, $reduce ) = $this->_scan_node( $node, $this->_descend($ctx) );
 
-    $debug and print "#$indent|_scan_node done opt=$optional reduce=@{[_dump($reduce)]} fail=@{[_dump($fail)]}\n";
+//    $debug and print "#$indent|_scan_node done opt=$optional reduce=@{[_dump($reduce)]} fail=@{[_dump($fail)]}\n";
+    if ($debug) { echo "#$indent|_scan_node done opt=$optional reduce=@{[_dump($reduce)]} fail=@{[_dump($fail)]}\n"; }
 
-    # We now perform tail reduction on each of the nodes in the reduce
-    # hash. If we have only one key, we know we will have a successful
-    # reduction (since everything that was inserted into the node based
-    # on the value of the last token of each path all mapped to the same
-    # value).
+//    # We now perform tail reduction on each of the nodes in the reduce
+//    # hash. If we have only one key, we know we will have a successful
+//    # reduction (since everything that was inserted into the node based
+//    # on the value of the last token of each path all mapped to the same
+//    # value).
 
-    if( @$fail == 0 and keys %$reduce == 1 and not $optional) {
-        # every path shares a common path
-        my $path = (values %$reduce)[0];
-        my ($common, $tail) = _do_reduce( $path, _descend($ctx) );
-        $debug and print "#$indent|_reduce_node  $ctx->{depth} common=@{[_dump($common)]} tail=", _dump($tail), "\n";
-        return( $common, $tail );
+//    if( @$fail == 0 and keys %$reduce == 1 and not $optional) {
+    if( count($fail) == 0 and count($reduce) == 1 and ( ! $optional ) ) {
+//        # every path shares a common path
+//        my $path = (values %$reduce)[0];
+        $path = (array_values(%$reduce))[0];
+//        my ($common, $tail) = _do_reduce( $path, _descend($ctx) );
+        list ($common, $tail) = $this->_do_reduce( $path, $this->_descend($ctx) );
+//        $debug and print "#$indent|_reduce_node  $ctx->{depth} common=@{[_dump($common)]} tail=", _dump($tail), "\n";
+        if ( $debug ){ print "#$indent|_reduce_node  $ctx->{depth} common=@{[_dump($common)]} tail=", $this->_dump($tail), "\n"; }
+//        return( $common, $tail );
+        return array_merge( $common, $tail );
+//    }
     }
 
-    # this node resulted in a list of paths, game over
-    $ctx->{indent} = $indent;
-    return _reduce_fail( $reduce, $fail, $optional, _descend($ctx) );
+//    # this node resulted in a list of paths, game over
+//    $ctx->{indent} = $indent;
+    $ctx->indent = $indent;
+//    return _reduce_fail( $reduce, $fail, $optional, _descend($ctx) );
+    return $this->_reduce_fail( $reduce, $fail, $optional, $this->_descend($ctx) );
+//}
 }
 
-sub _reduce_fail {
-    my( $reduce, $fail, $optional, $ctx ) = @_;
-    my( $debug, $depth, $indent ) = @{$ctx}{qw(debug depth indent)};
-    my %result;
-    $result{''} = undef if $optional;
-    my $p;
-    for $p (keys %$reduce) {
-        my $path = $reduce->{$p};
-        if( scalar @$path == 1 ) {
-            $path = $path->[0];
-            $debug and print "#$indent| -simple opt=$optional unrev @{[_dump($path)]}\n";
-            $path = _unrev_path($path, _descend($ctx) );
-            $result{_node_key($path->[0])} = $path;
+//sub _reduce_fail {
+//    my( $reduce, $fail, $optional, $ctx ) = @_;
+function _reduce_fail($reduce, $fail, $optional, $ctx) {
+//    my( $debug, $depth, $indent ) = @{$ctx}{qw(debug depth indent)};
+    $debug  = $ctx->debug;
+    $depth  = $ctx->depth;
+    $indent = $ctx->indent;
+//    my %result;
+    $result = [];
+//    $result{''} = undef if $optional;
+    if (!$optional) {
+        $result[''] = NULL;
+    }
+//    my $p;
+//    for $p (keys %$reduce) {
+    foreach(array_keys($reduce) as $p ){
+//        my $path = $reduce->{$p};
+        $path = $reduce[$p];
+//        if( scalar @$path == 1 ) {
+        if( count($path) == 1 ) {
+//            $path = $path->[0];
+            $path = $path[0];
+//            $debug and print "#$indent| -simple opt=$optional unrev @{[_dump($path)]}\n";
+            if ( $debug ) { print "#$indent| -simple opt=$optional unrev @{[_dump($path)]}\n"; }
+//            $path = _unrev_path($path, _descend($ctx) );
+            $path = $this->_unrev_path($path, $this->_descend($ctx) );
+//            $result{_node_key($path->[0])} = $path;
+            $result[ $this->_node_key($path[0]) ] = $path;
+//        }
         }
+//        else {
         else {
-            $debug and print "#$indent| _do_reduce(@{[_dump($path)]})\n";
-            my ($common, $tail) = _do_reduce( $path, _descend($ctx) );
+//            $debug and print "#$indent| _do_reduce(@{[_dump($path)]})\n";
+            if ( $debug ){ echo "#$indent| _do_reduce(@{[_dump($path)]})\n"; }
+//            my ($common, $tail) = _do_reduce( $path, _descend($ctx) );
+            list ($common, $tail) = $this->_do_reduce( $path, $this->_descend($ctx) );
+//            $path = [
+//                (
+//                    ref($tail) eq 'HASH'
+//                        ? _unrev_node($tail, _descend($ctx) )
+//                        : _unrev_path($tail, _descend($ctx) )
+//                ),
+//                @{_unrev_path($common, _descend($ctx) )}
+//            ];
             $path = [
                 (
-                    ref($tail) eq 'HASH'
-                        ? _unrev_node($tail, _descend($ctx) )
-                        : _unrev_path($tail, _descend($ctx) )
+                    is_array($tail)
+                        ? $this->_unrev_node($tail, $this->_descend($ctx) )
+                        : $this->_unrev_path($tail, $this->_descend($ctx) )
                 ),
-                @{_unrev_path($common, _descend($ctx) )}
+                $this->_unrev_path($common, $this->_descend($ctx) )
             ];
-            $debug and print "#$indent| +reduced @{[_dump($path)]}\n";
-            $result{_node_key($path->[0])} = $path;
+//            $debug and print "#$indent| +reduced @{[_dump($path)]}\n";
+            if ( $debug ) { echo  "#$indent| +reduced @{[_dump($path)]}\n"; }
+//            $result{_node_key($path->[0])} = $path;
+            $result[ $this->_node_key($path[0]) ] = $path;
+//        }
         }
+//    }
     }
-    my $f;
-    for $f( @$fail ) {
-        $debug and print "#$indent| +fail @{[_dump($f)]}\n";
-        $result{$f->[0]} = $f;
+//    my $f;
+//    for $f( @$fail ) {
+    foreach($fail as $f )  {
+//        $debug and print "#$indent| +fail @{[_dump($f)]}\n";
+        if ( $debug ) { echo "#$indent| +fail @{[_dump($f)]}\n"; }
+//        $result{$f->[0]} = $f;
+        $result[$f[0]] = $f;
     }
-    $debug and print "#$indent _reduce_fail $depth fail=@{[_dump(\%result)]}\n";
-    return ( [], \%result );
+//    $debug and print "#$indent _reduce_fail $depth fail=@{[_dump(\%result)]}\n";
+    if ( $debug ){ echo "#$indent _reduce_fail $depth fail=@{[_dump(\%result)]}\n"; }
+//    return ( [], \%result );
+    return $result;
+//}
 }
 
-sub _scan_node {
-    my( $node, $ctx ) = @_;
-    my $indent = ' ' x $ctx->{depth};
-    my $debug  =       $ctx->{debug};
+//sub _scan_node {
+//    my( $node, $ctx ) = @_;
+function _scan_node( $node, $ctx ) {
+//    my $indent = ' ' x $ctx->{depth};
+    $indent = ' ' x $ctx->depth;
+//    my $debug  =       $ctx->{debug};
+    $debug  =       $ctx->debug;
 
-    # For all the paths in the node, reverse them. If the first token
-    # of the path is a scalar, push it onto an array in a hash keyed by
-    # the value of the scalar.
-    #
-    # If it is a node, call _reduce_node on this node beforehand. If we
-    # get back a common head, all of the paths in the subnode shared a
-    # common tail. We then store the common part and the remaining node
-    # of paths (which is where the paths diverged from the end and install
-    # this into the same hash. At this point both the common and the tail
-    # are in reverse order, just as simple scalar paths are.
-    #
-    # On the other hand, if there were no common path returned then all
-    # the paths of the sub-node diverge at the end character. In this
-    # case the tail cannot participate in any further reductions and will
-    # appear in forward order.
-    #
-    # certainly the hurgliest function in the whole file :(
+//    # For all the paths in the node, reverse them. If the first token
+//    # of the path is a scalar, push it onto an array in a hash keyed by
+//    # the value of the scalar.
+//    #
+//    # If it is a node, call _reduce_node on this node beforehand. If we
+//    # get back a common head, all of the paths in the subnode shared a
+//    # common tail. We then store the common part and the remaining node
+//    # of paths (which is where the paths diverged from the end and install
+//    # this into the same hash. At this point both the common and the tail
+//    # are in reverse order, just as simple scalar paths are.
+//    #
+//    # On the other hand, if there were no common path returned then all
+//    # the paths of the sub-node diverge at the end character. In this
+//    # case the tail cannot participate in any further reductions and will
+//    # appear in forward order.
+//    #
+//    # certainly the hurgliest function in the whole file :(
+//
+//    # $debug = 1 if $depth >= 8;
+//    my @fail;
+    $fail = [];
+//    my %reduce;
+    $reduce = [];
 
-    # $debug = 1 if $depth >= 8;
-    my @fail;
-    my %reduce;
+//    my $n;
+//    for $n(
+//        map { substr($_, index($_, '#')+1) }
+//        sort
+//        map {
+//            join( '|' =>
+//                scalar(grep {ref($_) eq 'HASH'} @{$node->{$_}}),
+//                _node_offset($node->{$_}),
+//                scalar @{$node->{$_}},
+//            )
+//            . "#$_"
+//        }
+//    keys %$node ) {
 
-    my $n;
-    for $n(
-        map { substr($_, index($_, '#')+1) }
-        sort
-        map {
-            join( '|' =>
-                scalar(grep {ref($_) eq 'HASH'} @{$node->{$_}}),
-                _node_offset($node->{$_}),
-                scalar @{$node->{$_}},
-            )
-            . "#$_"
+      $_temp_map = [];
+      foreach ( array_keys($node) as $_ ) {
+          $_temp_map[] =  join( '|' ,
+               array_merge(
+                    $this->scalar( perl_grep( function($__){ return is_array($__); } , $node[$_] ) ) , 
+                    $this->_node_offset($node[$_]}),
+                    $node[$_]
+               )
+          ) . $_;
+      }
+      $n = [];
+      foreach ( perl_sort($_temp_map) as $_ ) {
+        $n = substr($_, strpos($_, '#')+1);
+
+//        my( $end, @path ) = reverse @{$node->{$n}};
+        $end = $node[0];
+        $path = array_reverse($node[$n]);
+
+//        if( ref($end) ne 'HASH' ) {
+        if ( ! is_array($end) ) {
+//            $debug and print "# $indent|_scan_node push reduce ($end:@{[_dump(\@path)]})\n";
+            if ($debug) { echo "# $indent|_scan_node push reduce ($end:@{[_dump(\@path)]})\n"; }
+//            push @{$reduce{$end}}, [ $end, @path ];
+            perl_push( $reduce[$end] , [ $end, $path ] )
+//        }
         }
-    keys %$node ) {
-        my( $end, @path ) = reverse @{$node->{$n}};
-        if( ref($end) ne 'HASH' ) {
-            $debug and print "# $indent|_scan_node push reduce ($end:@{[_dump(\@path)]})\n";
-            push @{$reduce{$end}}, [ $end, @path ];
-        }
+//        else {
         else {
-            $debug and print "# $indent|_scan_node head=", _dump(\@path), ' tail=', _dump($end), "\n";
-            my $new_path;
-            # deal with sing, singing => s(?:ing)?ing
-            if( keys %$end == 2 and exists $end->{''} ) {
-                my ($key, $opt_path) = each %$end;
-                ($key, $opt_path) = each %$end if $key eq '';
-                $opt_path = [reverse @{$opt_path}];
-                $debug and print "# $indent| check=", _dump($opt_path), "\n";
-                my $end = { '' => undef, $opt_path->[0] => [@$opt_path] };
-                my $head = [];
-                my $path = [@path];
-                ($head, my $slide, $path) = _slide_tail( $head, $end, $path, $ctx );
-                if( @$head ) {
-                    $new_path = [ @$head, $slide, @$path ];
+//            $debug and print "# $indent|_scan_node head=", _dump(\@path), ' tail=', _dump($end), "\n";
+            if ( $debug ) { echo "# $indent|_scan_node head=", _dump(\@path), ' tail=', _dump($end), "\n"; }
+//            my $new_path;
+            $new_path = NULL;
+//            # deal with sing, singing => s(?:ing)?ing
+//            if( keys %$end == 2 and exists $end->{''} ) {
+            if( count($end) == 2 and isset( $end[''] ) ) {
+//                my ($key, $opt_path) = each %$end;
+                list($key, $opt_path) = each($end);
+//                ($key, $opt_path) = each %$end if $key eq '';
+                if ($key == '') {
+                    list($key, $opt_path) = each($end);
                 }
+//                $opt_path = [reverse @{$opt_path}];
+                $opt_path = [ array_reverse($opt_path) ];
+//                $debug and print "# $indent| check=", _dump($opt_path), "\n";
+                if ($debug) { echo "# $indent| check=", _dump($opt_path), "\n"; }
+//                my $end = { '' => undef, $opt_path->[0] => [@$opt_path] };
+                $end = [ '' => NULL, $opt_path[0] => [ $opt_path ] ];
+//                my $head = [];
+                $head = [];
+//                my $path = [@path];
+                $path = [ $path ];
+//                ($head, my $slide, $path) = _slide_tail( $head, $end, $path, $ctx );
+                list($head, my $slide, $path) = $this->_slide_tail( $head, $end, $path, $ctx );
+//                if( @$head ) {
+                if( count($head) ) {
+//                    $new_path = [ @$head, $slide, @$path ];
+                    $new_path = [ $head, $slide, $path ];
+//                }
+                }
+//            }
             }
+//            if( $new_path ) {
             if( $new_path ) {
-                $debug and print "# $indent|_scan_node slid=", _dump($new_path), "\n";
-                push @{$reduce{$new_path->[0]}}, $new_path;
+//                $debug and print "# $indent|_scan_node slid=", _dump($new_path), "\n";
+                if ( $debug ) { echo "# $indent|_scan_node slid=", _dump($new_path), "\n"; }
+//                push @{$reduce{$new_path->[0]}}, $new_path;
+                perl_push( $reduce[$new_path[0]], $new_path );
+//            }
             }
+//            else {
             else {
-                my( $common, $tail ) = _reduce_node( $end, _descend($ctx) );
-                    if( not @$common ) {
-                    $debug and print "# $indent| +failed $n\n";
-                    push @fail, [reverse(@path), $tail];
+//                my( $common, $tail ) = _reduce_node( $end, _descend($ctx) );
+                list( $common, $tail ) = $this->_reduce_node( $end, $this->_descend($ctx) );
+//                    if( not @$common ) {
+                    if( ! count($common) ) {
+//                    $debug and print "# $indent| +failed $n\n";
+                    if ( $debug ) { echo  "# $indent| +failed $n\n"; }
+//                    push @fail, [reverse(@path), $tail];
+                    perl_push( $fail, [ array_reverse($path), $tail ] );
+//                }
                 }
+//                else {
                 else {
-                    my $path = [@path];
-                    $debug and print "# $indent|_scan_node ++recovered common=@{[_dump($common)]} tail=",
-                        _dump($tail), " path=@{[_dump($path)]}\n";
-                    if( ref($tail) eq 'HASH'
-                        and keys %$tail == 2
+//                    my $path = [@path];
+                    $path = [ $path ];
+//                    $debug and print "# $indent|_scan_node ++recovered common=@{[_dump($common)]} tail=",
+//                        _dump($tail), " path=@{[_dump($path)]}\n";
+                    if ( $debug ) { echo  "# $indent|_scan_node ++recovered common=@{[_dump($common)]} tail=",
+                        $this->_dump($tail), " path=@{[_dump($path)]}\n"; }
+//                    if( ref($tail) eq 'HASH'
+//                        and keys %$tail == 2
+//                    ) {
+                    if( is_array( $tail ) 
+                        and count($tail) == 2
                     ) {
-                        if( exists $tail->{''} ) {
-                            ($common, $tail, $path) = _slide_tail( $common, $tail, $path, $ctx );
+//                        if( exists $tail->{''} ) {
+                        if( isset( $tail[''] ) {
+//                            ($common, $tail, $path) = _slide_tail( $common, $tail, $path, $ctx );
+                            list($common, $tail, $path) = $this->_slide_tail( $common, $tail, $path, $ctx );
+//                        }
                         }
+//                    }
                     }
-                    push @{$reduce{$common->[0]}}, [
-                        @$common, 
-                        (ref($tail) eq 'HASH' ? $tail : @$tail ),
-                        @$path
-                    ];
+//                    push @{$reduce{$common->[0]}}, [
+//                        @$common, 
+//                        (ref($tail) eq 'HASH' ? $tail : @$tail ),
+//                        @$path
+//                    ];
+                    perl_push( $reduce[$common[0]], 
+                        [
+                          $common , 
+                          $tail , 
+                          $path
+                        ]
+                    );
+//                }
                 }
+//            }
             }
+//        }
         }
+
+//    }
     }
-    $debug and print
-        "# $indent|_scan_node counts: reduce=@{[scalar keys %reduce]} fail=@{[scalar @fail]}\n";
-    return( \@fail, \%reduce );
+//    $debug and print
+//        "# $indent|_scan_node counts: reduce=@{[scalar keys %reduce]} fail=@{[scalar @fail]}\n";
+    if ( $debug ) { echo 
+        "# $indent|_scan_node counts: reduce=@{[scalar keys %reduce]} fail=@{[scalar @fail]}\n"; }
+//    return( \@fail, \%reduce );
+    return array_merge( $fail, $reduce );
+//}
 }
 
 //sub _do_reduce {
