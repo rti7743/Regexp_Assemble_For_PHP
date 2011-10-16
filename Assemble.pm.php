@@ -4024,7 +4024,7 @@ function _unrev_node($node, $ctx ) {
 //    $optional = _remove_optional($node);
     $optional = $this->_remove_optional($node);
 //    $debug and print "# ${indent}unrev node in ", _dump($node), " opt=$optional\n";
-    if ( $debug ){ echo "# ${indent}unrev node in ". $this->_dump($node). " opt=$optional\n";
+    if ( $debug ){ echo "# ${indent}unrev node in ". $this->_dump($node). " opt=$optional\n"; }
 //    my $new;
     $new = NULL;
 //    $new->{''} = undef if $optional;
@@ -4996,5 +4996,349 @@ function _dump_node($node) {
     return $dump . '}';
 //}
 }
+/*
+=back
 
+=head1 DIAGNOSTICS
+
+  "Cannot pass a C<refname> to Default_Lexer"
+
+You tried to replace the default lexer pattern with an object
+instead of a scalar. Solution: You probably tried to call
+C<< $obj->Default_Lexer >>. Call the qualified class method instead
+C<Regexp::Assemble::Default_Lexer>.
+
+  "filter method not passed a coderef"
+
+  "pre_filter method not passed a coderef"
+
+A reference to a subroutine (anonymous or otherwise) was expected.
+Solution: read the documentation for the C<filter> method.
+
+  "duplicate pattern added: /.../"
+
+The C<dup_warn> attribute is active, and a duplicate pattern was
+added (well duh!). Solution: clean your data.
+
+  "cannot open [file] for input: [reason]"
+
+The C<add_file> method was unable to open the specified file for
+whatever reason. Solution: make sure the file exists and the script
+has the required privileges to read it.
+
+=head1 NOTES
+
+This module has been tested successfully with a range of versions
+of perl, from 5.005_03 to 5.9.3. Use of 5.6.0 is not recommended.
+
+The expressions produced by this module can be used with the PCRE
+library.
+
+Remember to "double up" your backslashes if the patterns are
+hard-coded as constants in your program. That is, you should
+literally C<add('a\\d+b')> rather than C<add('a\d+b')>. It
+usually will work either way, but it's good practice to do so.
+
+Where possible, supply the simplest tokens possible. Don't add
+C<X(?-\d+){2})Y> when C<X-\d+-\d+Y> will do. The reason is that
+if you also add C<X\d+Z> the resulting assembly changes
+dramatically: C<X(?:(?:-\d+){2}Y|-\d+Z)> I<versus>
+C<X-\d+(?:-\d+Y|Z)>. Since R::A doesn't perform enough analysis,
+it won't "unroll" the C<{2}> quantifier, and will fail to notice
+the divergence after the first C<-d\d+>.
+
+Furthermore, when the string 'X-123000P' is matched against the
+first assembly, the regexp engine will have to backtrack over each
+alternation (the one that ends in Y B<and> the one that ends in Z)
+before determining that there is no match. No such backtracking
+occurs in the second pattern: as soon as the engine encounters the
+'P' in the target string, neither of the alternations at that point
+(C<-\d+Y> or C<Z>) could succeed and so the match fails.
+
+C<Regexp::Assemble> does, however, know how to build character
+classes. Given C<a-b>, C<axb> and C<a\db>, it will assemble these
+into C<a[-\dx]b>. When C<-> (dash) appears as a candidate for a
+character class it will be the first character in the class. When
+C<^> (circumflex) appears as a candidate for a character class it
+will be the last character in the class.
+
+It also knows about meta-characters than can "absorb" regular
+characters. For instance, given C<X\d> and C<X5>, it knows that
+C<5> can be represented by C<\d> and so the assembly is just C<X\d>.
+The "absorbent" meta-characters it deals with are C<.>, C<\d>, C<\s>
+and C<\W> and their complements. It will replace C<\d>/C<\D>,
+C<\s>/C<\S> and C<\w>/C<\W> by C<.> (dot), and it will drop C<\d>
+if C<\w> is also present (as will C<\D> in the presence of C<\W>).
+
+C<Regexp::Assemble> deals correctly with C<quotemeta>'s propensity
+to backslash many characters that have no need to be. Backslashes on
+non-metacharacters will be removed. Similarly, in character classes,
+a number of characters lose their magic and so no longer need to be
+backslashed within a character class. Two common examples are C<.>
+(dot) and C<$>. Such characters will lose their backslash.
+
+At the same time, it will also process C<\Q...\E> sequences. When
+such a sequence is encountered, the inner section is extracted and
+C<quotemeta> is applied to the section. The resulting quoted text
+is then used in place of the original unquoted text, and the C<\Q>
+and C<\E> metacharacters are thrown away. Similar processing occurs
+with the C<\U...\E> and C<\L...\E> sequences. This may have surprising
+effects when using a dispatch table. In this case, you will need
+to know exactly what the module makes of your input. Use the C<lexstr>
+method to find out what's going on:
+
+  $pattern = join( '', @{$re->lexstr($pattern)} );
+
+If all the digits 0..9 appear in a character class, C<Regexp::Assemble>
+will replace them by C<\d>. I'd do it for letters as well, but
+thinking about accented characters and other glyphs hurts my head.
+
+In an alternation, the longest paths are chosen first (for example,
+C<horse|bird|dog>). When two paths have the same length, the path
+with the most subpaths will appear first. This aims to put the
+"busiest" paths to the front of the alternation. For example, the
+list C<bad>, C<bit>, C<few>, C<fig> and C<fun> will produce the
+pattern C<(?:f(?:ew|ig|un)|b(?:ad|it))>. See F<eg/tld> for a
+real-world example of how alternations are sorted. Once you have
+looked at that, everything should be crystal clear.
+
+When tracking is in use, no reduction is performed. nor are 
+character classes formed. The reason is that it is
+too difficult to determine the original pattern afterwards. Consider the
+two patterns C<pale> and C<palm>. These should be reduced to
+C<pal[em]>. The final character matches one of two possibilities.
+To resolve whether it matched an C<'e'> or C<'m'> would require
+keeping track of the fact that the pattern finished up in a character
+class, which would the require a whole lot more work to figure out
+which character of the class matched. Without character classes
+it becomes much easier. Instead, C<pal(?:e|m)> is produced, which
+lets us find out more simply where we ended up.
+
+Similarly, C<dogfood> and C<seafood> should form C<(?:dog|sea)food>.
+When the pattern is being assembled, the tracking decision needs
+to be made at the end of the grouping, but the tail of the pattern
+has not yet been visited. Deferring things to make this work correctly
+is a vast hassle. In this case, the pattern becomes merely
+C<(?:dogfood|seafood>. Tracked patterns will therefore be bulkier than
+simple patterns.
+
+There is an open bug on this issue:
+
+L<http://rt.perl.org/rt3/Ticket/Display.html?id=32840>
+
+If this bug is ever resolved, tracking would become much easier to
+deal with (none of the C<match> hassle would be required - you could
+just match like a regular RE and it would Just Work).
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<perlre>
+
+General information about Perl's regular expressions.
+
+=item L<re>
+
+Specific information about C<use re 'eval'>.
+
+=item Regex::PreSuf
+
+C<Regex::PreSuf> takes a string and chops it itself into tokens of
+length 1. Since it can't deal with tokens of more than one character,
+it can't deal with meta-characters and thus no regular expressions.
+Which is the main reason why I wrote this module.
+
+=item Regexp::Optimizer
+
+C<Regexp::Optimizer> produces regular expressions that are similar to
+those produced by R::A with reductions switched off. It's biggest
+drawback is that it is exponentially slower than Regexp::Assemble on
+very large sets of patterns.
+
+=item Regexp::Parser
+
+Fine grained analysis of regular expressions.
+
+=item Regexp::Trie
+
+Funnily enough, this was my working name for C<Regexp::Assemble>
+during its developement. I changed the name because I thought it
+was too obscure. Anyway, C<Regexp::Trie> does much the same as
+C<Regexp::Optimizer> and C<Regexp::Assemble> except that it runs
+much faster (according to the author). It does not recognise
+meta characters (that is, 'a+b' is interpreted as 'a\+b').
+
+=item Text::Trie
+
+C<Text::Trie> is well worth investigating. Tries can outperform very
+bushy (read: many alternations) patterns.
+
+=item Tree::Trie
+
+C<Tree::Trie> is another module that builds tries. The algorithm that
+C<Regexp::Assemble> uses appears to be quite similar to the
+algorithm described therein, except that C<R::A> solves its
+end-marker problem without having to rewrite the leaves.
+
+=back
+
+=head1 LIMITATIONS
+
+C<Regexp::Assemble> does not attempt to find common substrings. For
+instance, it will not collapse C</cabababc/> down to C</c(?:ab){3}c/>.
+If there's a module out there that performs this sort of string
+analysis I'd like to know about it. But keep in mind that the
+algorithms that do this are very expensive: quadratic or worse.
+
+C<Regexp::Assemble> does not interpret meta-character modifiers.
+For instance, if the following two patterns are
+given: C<X\d> and C<X\d+>, it will not determine that C<\d> can be
+matched by C<\d+>. Instead, it will produce C<X(?:\d|\d+)>. Along
+a similar line of reasoning, it will not determine that C<Z> and
+C<Z\d+> is equivalent to C<Z\d*> (It will produce C<Z(?:\d+)?>
+instead).
+
+You cannot remove a pattern that has been added to an object. You'll
+just have to start over again. Adding a pattern is difficult enough,
+I'd need a solid argument to convince me to add a C<remove> method.
+If you need to do this you should read the documentation for the
+C<clone> method.
+
+C<Regexp::Assemble> does not (yet)? employ the C<(?E<gt>...)>
+construct.
+
+The module does not produce POSIX-style regular expressions. This
+would be quite easy to add, if there was a demand for it.
+
+=head1 BUGS
+
+Patterns that generate look-ahead assertions sometimes produce
+incorrect patterns in certain obscure corner cases. If you
+suspect that this is occurring in your pattern, disable
+lookaheads.
+
+Tracking doesn't really work at all with 5.6.0. It works better
+in subsequent 5.6 releases. For maximum reliability, the use of
+a 5.8 release is strongly recommended. Tracking barely works with
+5.005_04. Of note, using C<\d>-style meta-characters invariably
+causes panics. Tracking really comes into its own in Perl 5.10.
+
+If you feed C<Regexp::Assemble> patterns with nested parentheses,
+there is a chance that the resulting pattern will be uncompilable
+due to mismatched parentheses (not enough closing parentheses). This
+is normal, so long as the default lexer pattern is used. If you want
+to find out which pattern among a list of 3000 patterns are to blame
+(speaking from experience here), the F<eg/debugging> script offers
+a strategy for pinpointing the pattern at fault. While you may not
+be able to use the script directly, the general approach is easy to
+implement.
+
+The algorithm used to assemble the regular expressions makes extensive
+use of mutually-recursive functions (that is, A calls B, B calls
+A, ...) For deeply similar expressions, it may be possible to provoke
+"Deep recursion" warnings.
+
+The module has been tested extensively, and has an extensive test
+suite (that achieves close to 100% statement coverage), but you
+never know...  A bug may manifest itself in two ways: creating a
+pattern that cannot be compiled, such as C<a\(bc)>, or a pattern
+that compiles correctly but that either matches things it shouldn't,
+or doesn't match things it should. It is assumed that Such problems
+will occur when the reduction algorithm encounters some sort of
+edge case. A temporary work-around is to disable reductions:
+
+  my $pattern = $assembler->reduce(0)->re;
+
+A discussion about implementation details and where bugs might lurk
+appears in the README file. If this file is not available locally,
+you should be able to find a copy on the Web at your nearest CPAN
+mirror.
+
+Seriously, though, a number of people have been using this module to
+create expressions anywhere from 140Kb to 600Kb in size, and it seems to
+be working according to spec. Thus, I don't think there are any serious
+bugs remaining.
+
+If you are feeling brave, extensive debugging traces are available to
+figure out where assembly goes wrong.
+
+Please report all bugs at
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Regexp-Assemble>
+
+Make sure you include the output from the following two commands:
+
+  perl -MRegexp::Assemble -le 'print $Regexp::Assemble::VERSION'
+  perl -V
+
+There is a mailing list for the discussion of C<Regexp::Assemble>.
+Subscription details are available at
+L<http://listes.mongueurs.net/mailman/listinfo/regexp-assemble>.
+
+=head1 ACKNOWLEDGEMENTS
+
+This module grew out of work I did building access maps for Postfix,
+a modern SMTP mail transfer agent. See L<http://www.postfix.org/>
+for more information. I used Perl to build large regular expressions
+for blocking dynamic/residential IP addresses to cut down on spam
+and viruses. Once I had the code running for this, it was easy to
+start adding stuff to block really blatant spam subject lines, bogus
+HELO strings, spammer mailer-ids and more...
+
+I presented the work at the French Perl Workshop in 2004, and the
+thing most people asked was whether the underlying mechanism for
+assembling the REs was available as a module. At that time it was
+nothing more that a twisty maze of scripts, all different. The
+interest shown indicated that a module was called for. I'd like to
+thank the people who showed interest. Hey, it's going to make I<my>
+messy scripts smaller, in any case.
+
+Thomas Drugeon was a valuable sounding board for trying out
+early ideas. Jean Forget and Philippe Blayo looked over an early
+version. H.Merijn Brandt stopped over in Paris one evening, and
+discussed things over a few beers.
+
+Nicholas Clark pointed out that while what this module does
+(?:c|sh)ould be done in perl's core, as per the 2004 TODO, he
+encouraged me to continue with the development of this module. In
+any event, this module allows one to gauge the difficulty of
+undertaking the endeavour in C. I'd rather gouge my eyes out with
+a blunt pencil.
+
+Paul Johnson settled the question as to whether this module should
+live in the Regex:: namespace, or Regexp:: namespace. If you're
+not convinced, try running the following one-liner:
+
+  perl -le 'print ref qr//'
+
+Philippe Bruhat found a couple of corner cases where this module
+could produce incorrect results. Such feedback is invaluable,
+and only improves the module's quality.
+
+=head1 AUTHOR
+
+David Landgren
+
+Copyright (C) 2004-2011. All rights reserved.
+
+  http://www.landgren.net/perl/
+
+If you use this module, I'd love to hear about what you're using
+it for. If you want to be informed of updates, send me a note.
+
+You can look at the latest working copy in the following
+Subversion repository:
+
+  http://svnweb.mongueurs.net/Regexp-Assemble
+
+=head1 LICENSE
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+=cut
+
+'The Lusty Decadent Delights of Imperial Pompeii';
+__END__
+*/
 }
