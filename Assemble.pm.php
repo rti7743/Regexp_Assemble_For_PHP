@@ -66,8 +66,8 @@ function perl_sort($function , $array = NULL)
 //package Regexp::Assemble;
 class Regexp_Assemble{
 
-var $_path = [];
-var $debug = 1;
+var $path = [];
+var $debug = 255;
 var $indent = 0;
 
 var $track = 0;
@@ -82,7 +82,8 @@ var $anchor_word_end = 0;
 var $anchor_line_end = 0;
 var $anchor_string_end = 0;
 var $anchor_string_end_absolute = 0;
-var $flags = 0;
+var $flags = '';
+var $fold_meta_pairs = 0;
 
 //use vars qw/$VERSION $have_Storable $Current_Lexer $Default_Lexer $Single_Char $Always_Fail/;
 //$VERSION = '0.35';
@@ -158,7 +159,8 @@ var $DEBUG_TIME = 8;
 var $Default_Lexer = '(?![[(\\]).(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\\(?:[bABCEGLQUXZ]|[lu].|(?:[^\w]|[aefnrtdDwWsS]|c.|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}})|N\{\w+\}|[Pp](?:\{\w+\}|.))(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?)|\[.*?(?<!\\)\](?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\(.*?(?<!\\)\)(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?'; //# ]) restore equilibrium
 
 //$Single_Char   = qr/^(?:\\(?:[aefnrtdDwWsS]|c.|[^\w\/{|}-]|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}}))|[^\$^])$/;
-var $Single_Char   = '^(?:\\(?:[aefnrtdDwWsS]|c.|[^\w\/{|}-]|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}}))|[^\$^])$';
+//var $Single_Char   = '(?:\\(?:[aefnrtdDwWsS]|c.|[^\w\/{|}-]|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}}))|[^\$^])';
+var $Single_Char   = '(?:\\\\(?:[aefnrtdDwWsS]|c.|[^\w\/{|}-]|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}}))|[^\$^])';
 
 //# the pattern to return when nothing has been added (and thus not match anything)
 //$Always_Fail = "^\\b\0";
@@ -1077,8 +1079,8 @@ function add(){
 //        ;
           $list = 
               preg_match("/[+*?(\\\[{]/u" ,$record ) ? //# }]) restore equilibrium
-              ($this->lex ? $this->_lex($record) : $self->_fastlex($record) )
-              : preg_split("//u" ,$record );
+              ($this->lex ? $this->_lex($record) : $this->_fastlex($record) )
+              : preg_split("//u" ,$record , -1 , PREG_SPLIT_NO_EMPTY);
 
 //        next if $self->{filter} and not $self->{filter}->(@$list);
           if ( isset($this->filter) && ! $this->filter($list) ) {
@@ -1227,9 +1229,8 @@ function _insertr() {
 //    my $dup    = $self->{stats_dup} || 0;
     $args = func_get_args();
     $dup    = isset($this->stats_dup) ? $this->stats_dup : 0;
-
 //    $self->{path} = $self->_insert_path( $self->_path, $self->_debug(DEBUG_ADD), $_[0] );
-    $this->path = $this->_insert_path( $this->_path, $this->_debug($this->DEBUG_ADD), $args[0] );
+    $this->path = $this->_insert_path( $this->path, $this->_debug($this->DEBUG_ADD), $args[0] );
 
 //    if( not defined $self->{stats_dup} or $dup == $self->{stats_dup} ) {
     if ( !isset($this->stats_dup) || $dup == $this->stats_dup ) {
@@ -1438,7 +1439,7 @@ function as_string() {
 //            $self->{mlist}  = [];
             $this->mlist  = [];
 //            $self->{str}    = _re_path_track($self, $self->_path, '', '');
-            $this->str    = $this->_re_path_track($this->_path, '', '');
+            $this->str    = $this->_re_path_track($this->path, '', '');
 //        }
         }
 //        else {
@@ -1459,19 +1460,19 @@ function as_string() {
 //                $arg->{depth} = 0;
                 $arg['depth'] = 0;
 //                $self->{str}  = _re_path_pretty($self, $self->_path, $arg);
-                $this->str  = $this->_re_path_pretty($this->_path, $arg);
+                $this->str  = $this->_re_path_pretty($this->path, $arg);
 //            }
             }
 //            elsif( $self->{lookahead} ) {
             else if( $this->lookahead ) {
 //                $self->{str}  = _re_path_lookahead($self, $self->_path);
-                $this->str  = $this->_re_path_lookahead($this->_path);
+                $this->str  = $this->_re_path_lookahead($this->path);
 //            }
             }
 //            else {
             else {
 //                $self->{str}  = _re_path($self, $self->_path);
-                $this->str  = $this->_re_path($this->_path);
+                $this->str  = $this->_re_path($this->path);
 //            }
             }
 //        }
@@ -1572,10 +1573,10 @@ C<match> and C<matched> methods must be used instead, see below.
 */
 //sub re {
 //    my $self = shift;
-function re() {
+function re($args = [] ) {
 //    $self->_build_re($self->as_string(@_)) unless defined $self->{re};
     if (!$this->re) {
-        $this->_build_re($this->as_string(func_get_args()));
+        $this->_build_re($this->as_string($args));
     }
 //    return $self->{re};
     return $this->re;
@@ -1608,8 +1609,8 @@ function _build_re($str) {
 //            : qr/$str/
 //        ;
         $this->re = strlen($this->flags)
-             ? "(?{$this->flags}:{$str})"
-             : "{$str}"
+             ? "/(?{$this->flags}:{$str})/"
+             : "/{$str}/"
              ;
 //    }
     }
@@ -1621,8 +1622,8 @@ function _build_re($str) {
 //            : qr/$str/
 //        ;
         $this->re = strlen($this->flags)
-            ? "(?{$this->flags}:{$str})"
-            : "{$str}";
+            ? "/(?{$this->flags}:{$str})/"
+            : "/{$str}/";
         ;
 //    }
     }
@@ -2390,7 +2391,7 @@ to interpret the results is left as an exercise to the reader.
 //sub dump {
 function dump($p1) {
 //    return _dump($_[0]->_path);
-    return $this->_dump($p1->_path);
+    return $this->_dump($p1->path);
 //}
 }
 
@@ -2446,13 +2447,10 @@ modifier is also set).
 */
 //sub fold_meta_pairs {
 //    my $self = shift;
-function fold_meta_pairs($p1 = 1) {
 //    $self->{fold_meta_pairs} = defined($_[0]) ? $_[0] : 1;
-    $this->fold_meta_pairs = $p1;
 //    return $self;
-    return $this;
 //}
-}
+
 /*
 =item indent(NUMBER)
 
@@ -2467,13 +2465,9 @@ When called without a parameter, no indenting is performed.
 */
 //sub indent {
 //    my $self = shift;
-function indent($p1 = 0) {
 //    $self->{indent} = defined($_[0]) ? $_[0] : 0;
-    $this->indent = $p1;
 //    return $self;
-    return $this;
 //}
-}
 
 /*
 =item lookahead(0|1)
@@ -3283,7 +3277,7 @@ function _reduce() {
     }
 
 //    my ($head, $tail) = _reduce_path( $self->_path, $context );
-    list($head, $tail) = $this->_reduce_path( $this->_path, $context );
+    list($head, $tail) = $this->_reduce_path( $this->path, $context );
 //    $context->{debug} and print "# final head=", _dump($head), ' tail=', _dump($tail), "\n";
     if ( $context->debug ) { echo "# final head=", $this->_dump($head), ' tail=', $this->_dump($tail), "\n"; }
 //    if( !@$head ) {
@@ -3867,7 +3861,7 @@ function _do_reduce($path, $ctx) {
     }
 
 //    $path = $ra->_path;
-    $path = $ra->_path;
+    $path = $ra->path;
 //    my $common = [];
     $common = [];
 //    push @$common, shift @$path while( ref($path->[0]) ne 'HASH' );
@@ -4085,10 +4079,10 @@ function _descend($ctx) {
 
 //sub _make_class {
 //    my $self = shift;
-function _make_class() {
+function _make_class($args) {
 //    my %set = map { ($_,1) } @_;
     $set = [];
-    foreach( func_get_args() as $_ ){
+    foreach( $args as $_ ){
        $set[$_] = 1;
     }
 //    delete $set{'\\d'} if exists $set{'\\w'};
@@ -4295,10 +4289,9 @@ function _combine_new($args) {
 
 //sub _re_path {
 //    my $self = shift;
-function _re_path() {
+function _re_path($_args) {
 //    # in shorter assemblies, _re_path() is the second hottest
 //    # routine. after insert(), so make it fast.
-    $_args = func_get_args();
 
 //    if ($self->{unroll_plus}) {
     if ($this->unroll_plus) {
@@ -4371,6 +4364,9 @@ function _re_path() {
 //    if ( ! perl_grep( function($_){ return count($_); } $_args) ) {
 //        return join( '', $_args );
 //    }
+    if ( ! perl_grep( function($_){ return !is_array($_); } , $_args) ) {
+        return join( '', $_args );
+    }
 
 //    my $p;
 //    return join '', map {
@@ -5322,6 +5318,6 @@ __END__
 
 $a = new Regexp_Assemble();
 $a->add("123");
-$a->add("134");
+$a->add("567");
 $str = $a->re();
 var_dump($str);
