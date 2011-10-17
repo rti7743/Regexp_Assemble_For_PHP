@@ -21,7 +21,11 @@ function _re_sort($a,$b) {
     }
 
     // $a == $b
-    return strcmp( join('|' , $a) , join('|' , $b) );
+    return strcmp( 
+          is_array($a) ? join('|' , $a) : $a 
+          ,
+          is_array($b) ? join('|' , $b) : $b 
+    );
 //}
 }
 
@@ -2365,7 +2369,8 @@ Calling C<debug> with no arguments turns debugging off.
 function debug($p1 = 0) {
    $this->debug = $p1;
 //    if ($self->_debug(DEBUG_TIME)) {
-      if ($this->_debug(DEBUG_TIME)) {
+//      if ($this->_debug(DEBUG_TIME)) {
+      if (0) { //とりあえず
 //        # hmm, debugging time was switched on after instantiation
 //        $self->_init_time_func;
         $this->_init_time_func;
@@ -2791,7 +2796,7 @@ function _insert_path($list , $debug , $in) {
 //    }
     }
 //    $debug and print "# _insert_path @{[_dump(\@in)]} into @{[_dump($list)]}\n";
-    if ($debug) { echo "# _insert_path @{[_dump(\@in)]} into @{[_dump($list)]}\n"; }
+    if ($debug) { echo "# _insert_path ".$this->_dump($in)." into ".$this->_dump($list)."\n"; }
 //    my $path   = $list;
     $path = $list;
 //    my $offset = 0;
@@ -2834,7 +2839,7 @@ function _insert_path($list , $debug , $in) {
 //        if( ref($path->[$offset]) eq 'HASH' ) {
         if ( is_array($path[$offset]) ) {
 //            $debug and print "#   at (off=$offset len=@{[scalar @$path]}) ", _dump($path->[$offset]), "\n";
-            if ($debug) { echo "#   at (off=$offset len=@{[scalar @$path]}) ", $this->_dump($path[$offset]), "\n"; }
+            if ($debug) { echo "#   at (off=$offset len=".count($path).",". $this->_dump($path[$offset]). "\n"; }
 //            my $node = $path->[$offset];
             $node = $path[$offset];
 //            if( exists( $node->{$token} )) {
@@ -2858,7 +2863,7 @@ function _insert_path($list , $debug , $in) {
 //                else {
                 else {
 //                    $debug and print "#   descend key=$token @{[_dump($node->{$token})]}\n";
-                    if ( $debug ) { echo "#   descend key=$token @{[_dump($node->{$token})]}\n"; }
+                    if ( $debug ) { echo "#   descend key=$token .".$this->_dump($node[$token])."\n"; }
 //                    $path   = $node->{$token};
                     $path   = $node[$token];
 //                    $offset = 0;
@@ -2873,7 +2878,7 @@ function _insert_path($list , $debug , $in) {
 //            else {
             else {
 //                $debug and print "#   add path ($token:@{[_dump(\@in)]}) into @{[_dump($path)]} at off=$offset to end=@{[scalar $#$path]}\n";
-                if ($debug) { echo "#   add path ($token:@{[_dump(\@in)]}) into @{[_dump($path)]} at off=$offset to end=@{[scalar $#$path]}\n"; }
+                if ($debug) { echo "#   add path ($token:.".$this->_dump($in)." into ".$this->_dump($path)." at off=$offset to end=@".count($path)."\n"; }
 //                if( $offset == $#$path ) {
                 if ( $offset == count($path)  ) {
 //                    $node->{$token} = [ $token, @in ];
@@ -2893,7 +2898,7 @@ function _insert_path($list , $debug , $in) {
 //                    splice( @$path, $offset, @$path - $offset, $new );
                     array_splice( $path, $offset, count($path) - $offset, $new );
 //                    $debug and print "#   fused node=@{[_dump($new)]} path=@{[_dump($path)]}\n";
-                    if ($debug) { echo "#   fused node=@{[_dump($new)]} path=@{[_dump($path)]}\n"; }
+                    if ($debug) { echo "#   fused node=".$this->_dump($new)." path=".$this->_dump($path)."\n"; }
 //                }
                 }
 //                last;
@@ -2934,7 +2939,7 @@ function _insert_path($list , $debug , $in) {
 //            push @$path, { $token => [ $token, @in ], '' => undef };
             $path = perl_push($path,  [ $token => [ $token, $in ], '__@UNDEF@__' => NULL ] );
 //            $debug and print "#   added remaining @{[_dump($path)]}\n";
-            if ($debug) { echo "#   added remaining @{[_dump($path)]}\n"; }
+            if ($debug) { echo "#   added remaining ".$this->_dump($path)."\n"; }
 //            last;
             break;
 //        }
@@ -2957,8 +2962,12 @@ function _insert_path($list , $debug , $in) {
             $_temp_path[ $path[$offset] ] = array_slice($path , $offset);
             array_splice($path, $offset, count($path)-$offset,$_temp_path);
 
+//var_dump($path);
+//            $path = [ [ "1" => [1 , 2, 3] , "4"=>[4,5,6] ] ];
+//var_dump($path);
+
 //            $debug and print "#   path=@{[_dump($path)]}\n";
-            if ( $debug ){ echo  "#   path=@{[".$this->_dump($path)."]}\n"; }
+            if ( $debug ){ echo  "#   path=".$this->_dump($path)."\n"; }
 //            last;
             break;
 //        }
@@ -3033,7 +3042,7 @@ function _insert_node($path,$offset,$token,$debug) {
     $token_key = $this->_re_path($token);
 //    $debug and print "#  insert node(@{[_dump($token)]}:@{[_dump(\@_)]}) (key=$token_key)",
 //        " at path=@{[_dump($path_end)]}\n";
-    if ($debug) { echo "#  insert node(@{[_dump($token)]}:@{[_dump(\@_)]}) (key=$token_key)" . " at path=@{[_dump($path_end)]}\n"; }
+    if ($debug) { echo "#  insert node(".$this->_dump($token).":".$this->_dump($_args).") (key=$token_key)" . " at path=".$this->_dump($path_end)."\n"; }
 //    if( ref($path_end->[0]) eq 'HASH' ) {
     if ( is_array($path_end[0]) ) {
 //        if( exists($path_end->[0]{$token_key}) ) {
@@ -3051,7 +3060,7 @@ function _insert_node($path,$offset,$token,$debug) {
                     $token_key => [ $token, $_args ]
                 ];
 //                $debug and print "#   +bifurcate new=@{[_dump($new)]}\n";
-                if ($debug){ echo "#   +bifurcate new=@{[_dump($new)]}\n"; }
+                if ($debug){ echo "#   +bifurcate new=".$this->_dump($new)."\n"; }
 //                splice( @$path, $offset, @$path_end, $new );
                 array_splice( $path, $offset, count($path_end), $new );
 //            }
@@ -3090,13 +3099,13 @@ function _insert_node($path,$offset,$token,$debug) {
                             $token_key => [$token, $_args ]
                         ];
 //                        $debug and print "#  insert_node(bifurc) n=@{[_dump([$new])]}\n";
-                        if ($debug) { echo "#  insert_node(bifurc) n=@{[_dump([$new])]}\n"; }
+                        if ($debug) { echo "#  insert_node(bifurc) n=".$this->_dump($new)."\n"; }
 //                    }
                     }
 //                    else {
                     else {
 //                        $debug and print "#  insert $token into old path @{[_dump($old_path)]}\n";
-                        if ( $debug ) { echo "#  insert $token into old path @{[_dump($old_path)]}\n"; };
+                        if ( $debug ) { echo "#  insert $token into old path ".$this->_dump($old_path)."\n"; };
 //                        if( @$old_path ) {
                         if( is_array($old_path) && count($old_path) ) {
 //                            $new = ($self->_insert_path( $old_path, $debug, [$token] ))->[0];
@@ -3119,7 +3128,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                $path_end->[0]{$token_key} = $new_path;
                 $path_end[0][$token_key] = $new_path;
 //                $debug and print "#   +_insert_node result=@{[_dump($path_end)]}\n";
-                if ($debug) { echo "#   +_insert_node result=@{[_dump($path_end)]}\n"; }
+                if ($debug) { echo "#   +_insert_node result=".$this->_dump($path_end)."\n"; }
 //                splice( @$path, $offset, @$path_end, @$path_end );
                 array_splice( $path, $offset, count($path_end), $path_end );
 //            }
@@ -3137,7 +3146,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                    $token_key => [ $token, @_ ],
 //                };
 //                $debug and print "#   path->node1 at $path_key/$token_key @{[_dump($new)]}\n";
-                if ( $debug ){ echo "#   path->node1 at $path_key/$token_key @{[_dump($new)]}\n"; }
+                if ( $debug ){ echo "#   path->node1 at $path_key/$token_key ".$this->_dump($new)."\n"; }
 //                splice( @$path, $offset, @$path_end, $new );
                 array_splice( $path, $offset, count($path_end), $new );
 //            }
@@ -3159,7 +3168,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //            while( @$path_end and _node_eq( $path_end->[0], $token )) {
             while( is_array($path_end) && $this->_node_eq( $path_end[0], $token )) {
 //                $debug and print "#  identical nodes @{[_dump([$token])]}\n";
-                if ($debug) { echo "#  identical nodes @{[_dump([$token])]}\n"; }
+                if ($debug) { echo "#  identical nodes ".$this->_dump($token)."\n"; }
 //                shift @$path_end;
                 array_shift( $path_end );
 //                $token = shift @_;
@@ -3171,15 +3180,15 @@ function _insert_node($path,$offset,$token,$debug) {
 //            if( @$path_end ) {
             if( is_array($path_end) ) {
 //                $debug and print "#   insert at $offset $token:@{[_dump(\@_)]} into @{[_dump($path_end)]}\n";
-                if ($debug) { echo "#   insert at $offset $token:@{[_dump(\@_)]} into @{[_dump($path_end)]}\n"; }
+                if ($debug) { echo "#   insert at $offset $token:".$this->_dump($_args)." into ".$this->_dump($path_end)."\n"; }
 //                $path_end = $self->_insert_path( $path_end, $debug, [$token, @_] );
                 $path_end = $this->_insert_path( $path_end, $debug, [$token, $_args] );
 //                $debug and print "#   got off=$offset s=@{[scalar @_]} path_add=@{[_dump($path_end)]}\n";
-                if ($debug) { echo "#   got off=$offset s=@{[scalar @_]} path_add=@{[_dump($path_end)]}\n"; }
+                if ($debug) { echo "#   got off=$offset s=".count($_args)." path_add=".$this->_dump($path_end)."\n"; }
 //                splice( @$path, $offset, @$path - $offset, @$path_end );
                 array_splice( $path, $offset, count($path) - $offset, $path_end );
 //                $debug and print "#   got final=@{[_dump($path)]}\n";
-                if ( $debug ){ echo "#   got final=@{[_dump($path)]}\n"; }
+                if ( $debug ){ echo "#   got final=".$this->_dump($path)."\n"; }
 //            }
             }
 //            else {
@@ -3195,7 +3204,7 @@ function _insert_node($path,$offset,$token,$debug) {
                     $token_key => [ $token, $_args ],
                 ];
 //                $debug and print "#   convert opt @{[_dump($new)]}\n";
-                if ( $debug ) { echo "#   convert opt @{[_dump($new)]}\n"; }
+                if ( $debug ) { echo "#   convert opt ".$this->_dump($new)."\n"; }
 //                push @$path, $new;
                 $path = perl_push($path , $new );
 //            }
@@ -3217,17 +3226,17 @@ function _insert_node($path,$offset,$token,$debug) {
                 $token_key   => [ $token, $_args ]
             ];
 //            $debug and print "#   atom->node @{[_dump($new)]}\n";
-            if ( $debug ){ echo "#   atom->node @{[_dump($new)]}\n"; }
+            if ( $debug ){ echo "#   atom->node ".$this->_dump($new)."\n"; }
 //            splice( @$path, $offset, @$path_end, $new );
             array_splice( $path, $offset, count($path_end), $new );
 //            $debug and print "#   out=@{[_dump($path)]}\n";
-            if ( $debug ) { echo "#   out=@{[_dump($path)]}\n"; }
+            if ( $debug ) { echo "#   out=".$this->_dump($path)."\n"; }
 //        }
         }
 //        else {
         else {
 //            $debug and print "#   add opt @{[_dump([$token,@_])]} via $token_key\n";
-            if ( $debug ) { echo "#   add opt @{[_dump([$token,@_])]} via $token_key\n"; }
+            if ( $debug ) { echo "#   add opt ".$this->_dump([$token,$_args])." via $token_key\n"; }
 //            push @$path, {
 //                ''         => undef,
 //                $token_key => [ $token, @_ ],
@@ -3385,7 +3394,7 @@ function _reduce_path($path, $ctx) {
 //            if( @$head ) {
             if ( count($head) ) {
 //                $debug and print "#$indent| push $p leaves @{[_dump($path)]}\n";
-                if ( $debug ) { echo "#$indent| push $p leaves @{[_dump($path)]}\n"; }
+                if ( $debug ) { echo "#$indent| push $p leaves ".$this->_dump($path)."\n"; }
 //                push @$tail, $p;
                 $tail = perl_push($tail , $p);
 //            }
@@ -3423,7 +3432,7 @@ function _reduce_path($path, $ctx) {
 //        while( my ($key, $path) = each %{$tail->[0]} ) {
         foreach( $tail[0] as $key => $path ) {
 //            $debug and print "#$indent| scan k=$key p=@{[_dump($path)]}\n";
-            if ($debug) { echo "#$indent| scan k=$key p=@{[_dump($path)]}\n"; }
+            if ($debug) { echo "#$indent| scan k=$key p=".$this->_dump($path)."\n"; }
 //            next unless $path;
             if (! $path ) {
                 continue;
@@ -3457,7 +3466,7 @@ function _reduce_path($path, $ctx) {
 //    }
     }
 //    $debug and print "#$indent _reduce_path $ctx->{depth} out head=", _dump($head), ' tail=', _dump($tail), "\n";
-    if ($debug) { echo "#$indent _reduce_path $ctx->{depth} out head=", _dump($head), ' tail=', _dump($tail), "\n"; }
+    if ($debug) { echo "#$indent _reduce_path $ctx->{depth} out head=", $this->_dump($head), ' tail=', $this->_dump($tail), "\n"; }
 //    return ($head, $tail);
     return array_merge($head, $tail);
 //}
@@ -3473,7 +3482,7 @@ function _reduce_node($node, $ctx) {
 //    my $optional = _remove_optional($node);
     $optional = $this->_remove_optional($node);
 //    $debug and print "#$indent _reduce_node $ctx->{depth} in @{[_dump($node)]} opt=$optional\n";
-    if ($debug) { echo "#$indent _reduce_node $ctx->{depth} in @{[_dump($node)]} opt=$optional\n"; }
+    if ($debug) { echo "#$indent _reduce_node $ctx->{depth} in " . $this->_dump($node) ." opt=$optional\n"; }
 //    if( $optional and scalar keys %$node == 1 ) {
     if( $optional and count($node) == 1 ) {
 //        my $path = (values %$node)[0];
@@ -3494,7 +3503,7 @@ function _reduce_node($node, $ctx) {
                 $path[0] => $path
             ];
 //            $debug and print "#$indent| fast fail @{[_dump($result)]}\n";
-            if ( $debug ){ echo "#$indent| fast fail @{[_dump($result)]}\n"; }
+            if ( $debug ){ echo "#$indent| fast fail ".$this->_dump($result)."\n"; }
 //            return [], $result;
             return $result;
 //        }
@@ -3506,7 +3515,7 @@ function _reduce_node($node, $ctx) {
     list( $fail, $reduce ) = $this->_scan_node( $node, $this->_descend($ctx) );
 
 //    $debug and print "#$indent|_scan_node done opt=$optional reduce=@{[_dump($reduce)]} fail=@{[_dump($fail)]}\n";
-    if ($debug) { echo "#$indent|_scan_node done opt=$optional reduce=@{[_dump($reduce)]} fail=@{[_dump($fail)]}\n"; }
+    if ($debug) { echo "#$indent|_scan_node done opt=$optional reduce=".$this->_dump($reduce)." fail=".$this->_dump($fail)."\n"; }
 
 //    # We now perform tail reduction on each of the nodes in the reduce
 //    # hash. If we have only one key, we know we will have a successful
@@ -3523,7 +3532,7 @@ function _reduce_node($node, $ctx) {
 //        my ($common, $tail) = _do_reduce( $path, _descend($ctx) );
         list ($common, $tail) = $this->_do_reduce( $path, $this->_descend($ctx) );
 //        $debug and print "#$indent|_reduce_node  $ctx->{depth} common=@{[_dump($common)]} tail=", _dump($tail), "\n";
-        if ( $debug ){ echo "#$indent|_reduce_node  $ctx[depth] common=@{[_dump($common)]} tail=", $this->_dump($tail), "\n"; }
+        if ( $debug ){ echo "#$indent|_reduce_node  $ctx[depth] common=".$this->_dump($common)." tail=", $this->_dump($tail), "\n"; }
 //        return( $common, $tail );
         return array_merge( $common, $tail );
 //    }
@@ -3560,7 +3569,7 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
 //            $path = $path->[0];
             $path = $path[0];
 //            $debug and print "#$indent| -simple opt=$optional unrev @{[_dump($path)]}\n";
-            if ( $debug ) { print "#$indent| -simple opt=$optional unrev @{[_dump($path)]}\n"; }
+            if ( $debug ) { print "#$indent| -simple opt=$optional unrev ".$this->_dump($path)."\n"; }
 //            $path = _unrev_path($path, _descend($ctx) );
             $path = $this->_unrev_path($path, $this->_descend($ctx) );
 //            $result{_node_key($path->[0])} = $path;
@@ -3570,7 +3579,7 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
 //        else {
         else {
 //            $debug and print "#$indent| _do_reduce(@{[_dump($path)]})\n";
-            if ( $debug ){ echo "#$indent| _do_reduce(@{[_dump($path)]})\n"; }
+            if ( $debug ){ echo "#$indent| _do_reduce(".$this->_dump($path)."\n"; }
 //            my ($common, $tail) = _do_reduce( $path, _descend($ctx) );
             list ($common, $tail) = $this->_do_reduce( $path, $this->_descend($ctx) );
 //            $path = [
@@ -3590,7 +3599,7 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
                 $this->_unrev_path($common, $this->_descend($ctx) )
             ];
 //            $debug and print "#$indent| +reduced @{[_dump($path)]}\n";
-            if ( $debug ) { echo  "#$indent| +reduced @{[_dump($path)]}\n"; }
+            if ( $debug ) { echo  "#$indent| +reduced ".$this->_dump($path)."\n"; }
 //            $result{_node_key($path->[0])} = $path;
             $result[ $this->_node_key($path[0]) ] = $path;
 //        }
@@ -3601,12 +3610,12 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
 //    for $f( @$fail ) {
     foreach($fail as $f )  {
 //        $debug and print "#$indent| +fail @{[_dump($f)]}\n";
-        if ( $debug ) { echo "#$indent| +fail @{[_dump($f)]}\n"; }
+        if ( $debug ) { echo "#$indent| +fail ".$this->_dump($f)."\n"; }
 //        $result{$f->[0]} = $f;
         $result[$f[0]] = $f;
     }
 //    $debug and print "#$indent _reduce_fail $depth fail=@{[_dump(\%result)]}\n";
-    if ( $debug ){ echo "#$indent _reduce_fail $depth fail=@{[_dump(\%result)]}\n"; }
+    if ( $debug ){ echo "#$indent _reduce_fail $depth fail=".$this->_dump($result)."\n"; }
 //    return ( [], \%result );
     return $result;
 //}
@@ -3679,7 +3688,7 @@ function _scan_node( $node, $ctx ) {
 //        if( ref($end) ne 'HASH' ) {
         if ( ! is_array($end) ) {
 //            $debug and print "# $indent|_scan_node push reduce ($end:@{[_dump(\@path)]})\n";
-            if ($debug) { echo "# $indent|_scan_node push reduce ($end:@{[_dump(\@path)]})\n"; }
+            if ($debug) { echo "# $indent|_scan_node push reduce ($end:".$this->_dump($path).")\n"; }
 //            push @{$reduce{$end}}, [ $end, @path ];
             perl_push( $reduce[$end] , [ $end, $path ] );
 //        }
@@ -3745,8 +3754,8 @@ function _scan_node( $node, $ctx ) {
                     $path = [ $path ];
 //                    $debug and print "# $indent|_scan_node ++recovered common=@{[_dump($common)]} tail=",
 //                        _dump($tail), " path=@{[_dump($path)]}\n";
-                    if ( $debug ) { echo  "# $indent|_scan_node ++recovered common=@{[_dump($common)]} tail=",
-                        $this->_dump($tail), " path=@{[_dump($path)]}\n"; }
+                    if ( $debug ) { echo  "# $indent|_scan_node ++recovered common=".$this->_dump($common)." tail=",
+                        $this->_dump($tail), " path=".$this->_dump($path)."\n"; }
 //                    if( ref($tail) eq 'HASH'
 //                        and keys %$tail == 2
 //                    ) {
@@ -3803,7 +3812,7 @@ function _do_reduce($path, $ctx) {
 //    $ra->debug($debug);
     $ra->debug($debug);
 //    $debug and print "# $indent| do @{[_dump($path)]}\n";
-    if ($debug) { echo "# $indent| do @{[_dump($path)]}\n"; }
+    if ($debug) { echo "# $indent| do ".$this->_dump($path)."\n"; }
 //    $ra->_insertr( $_ ) for
 //        # When nodes come into the picture, we have to be careful
 //        # about how we insert the paths into the assembly.
@@ -3873,7 +3882,7 @@ function _do_reduce($path, $ctx) {
     $tail = ( count($path) > 1 ) ? $path : $path[0];
 
 //    $debug and print "# $indent| _do_reduce common=@{[_dump($common)]} tail=@{[_dump($tail)]}\n";
-   if ($debug){ echo "# $indent| _do_reduce common=@{[_dump($common)]} tail=@{[_dump($tail)]}\n"; }
+   if ($debug){ echo "# $indent| _do_reduce common=@".$this->_dump($common)." tail=".$this->_dump($tail)."\n"; }
 //    return ($common, $tail);
    return [ $common, $tail ];
 //}
@@ -4951,10 +4960,15 @@ function _dump_node($node) {
 //    my $n;
     $n = NULL;
 //    for $n (sort keys %$node) {
+//echo "++";
+//var_dump($node);
+//echo "--";
+//var_dump(perl_sort(array_keys($node)));
+//die;
     foreach( perl_sort(array_keys($node))  as $n) {
 //        $dump .= ' ' if $nr++;
         if ($nr++) {
-           $dump .= $nr;
+           $dump .= ' ';
         }
 //        # Devel::Cover shows this to test to be redundant
 //        # $dump .= ( $n eq '' and not defined $node->{$n} )
@@ -4963,9 +4977,9 @@ function _dump_node($node) {
 //            : ($n =~ /^[\x00-\x1f]$/ ? _pretty_dump($n) : $n)
 //                . "=>" . _dump($node->{$n})
 //        ;
-        $dump .= $n == ''
+        $dump .= $n === '__@UNDEF@__'
             ? '*'
-            : ( preg_match('/^[\x00-\x1f]$/u',$n)  ? $this->_pretty_dump($n) : $n)
+            : ( preg_match('/^[\x00-\x1f]$/u',$n)  ? $this->_pretty_dump($n) : $n )
                 . "=>" . $this->_dump($node[$n])
         ;
 //    }
@@ -5321,8 +5335,11 @@ __END__
 */
 }
 
+
+
 $a = new Regexp_Assemble();
+$a->debug(255);
 $a->add("123");
-$a->add("567");
+$a->add("456");
 $str = $a->re();
 var_dump($str);
