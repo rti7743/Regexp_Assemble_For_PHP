@@ -1,12 +1,61 @@
 <?php
 /*
-perl ÇÃ regexp::Assemble Ç PHP Ç…à⁄êAÇµÇƒÇ¢Ç‹Ç∑ÅB
-Ç‹ÇæÇ‹Çæà⁄êAíÜÇ≈Ç∑ÅBìÆÇ´Ç‹ÇπÇÒÅB
+perl „ÅÆ regexp::Assemble „Çí PHP „Å´ÁßªÊ§ç„Åó„Å¶„ÅÑ„Åæ„Åô„ÄÇ
+„Åæ„Å†„Åæ„Å†ÁßªÊ§ç‰∏≠„Åß„Åô„ÄÇÂãï„Åç„Åæ„Åõ„Çì„ÄÇ
 
-perl ÇÃÉãÅ[É`ÉìÇ∆1çsÇ√Ç¬ëŒñÛÇÇ‚Ç¡ÇƒÇ¢Ç‹Ç∑ÅB
-ä‘à·Ç¡ÇƒÇ¢ÇÈèäÅAÇΩÇ≠Ç≥ÇÒÇ†ÇÈÇ∆évÇ§ÇÃÇ≈ÅAéËèïÇØÇÇ®äËÇ¢ÇµÇ‹Ç∑ÅB
+perl „ÅÆ„É´„Éº„ÉÅ„É≥„Å®1Ë°å„Å•„Å§ÂØæË®≥„Çí„ÇÑ„Å£„Å¶„ÅÑ„Åæ„Åô„ÄÇ
+ÈñìÈÅï„Å£„Å¶„ÅÑ„ÇãÊâÄ„ÄÅ„Åü„Åè„Åï„Çì„ÅÇ„Çã„Å®ÊÄù„ÅÜ„ÅÆ„Åß„ÄÅÊâãÂä©„Åë„Çí„ÅäÈ°ò„ÅÑ„Åó„Åæ„Åô„ÄÇ
 
 */
+
+//sub _re_sort {
+function _re_sort($a,$b) {
+//    return length $b <=> length $a || $a cmp $b
+    $_temp_len_a = count($a);
+    $_temp_len_b = count($b);
+    if ( $_temp_len_b > $_temp_len_a ) {
+        return 1;
+    }
+    else if ( $_temp_len_b < $_temp_len_a ) {
+        return -1;
+    }
+
+    // $a == $b
+    return strcmp( join('|' , $a) , join('|' , $b) );
+//}
+}
+
+//perl „ÅÆ push „Çí„Ç®„Éü„É•„É¨„Éº„Ç∑„Éß„É≥„Åô„Çã.
+function perl_push($array , $target)
+{
+    if ( is_array($target) ){
+       return array_merge($array , $target );
+    }
+    else {
+       return $array[] = $target;
+    }
+}
+
+//perl„ÅÆgrep„Å´Áõ∏ÂΩì„Åô„ÇãÈñ¢Êï∞
+//array_filter „Å£„Å¶ array_map „Å®„Ç≥„Éº„É´„Éê„ÉÉ„ÇØ„ÅåÈÄÜ„Å™„Çì„ÅßÁµ±‰∏Ä„Åó„Å¶„Åä„Åè„ÄÇ„ÇÅ„Çì„Å©„ÅÑ„Åã„Çâ„ÄÇ
+function perl_grep($function , $array) {
+    return array_filter($array , $function);
+}
+
+//perl „ÅÆ sort php„ÅÆsortÈñ¢Êï∞„ÅØCË®ÄË™û„Å®Âêå„ÅòËá™Â∑±Á†¥Â£ä„ÅÆ„ÇØ„ÇΩ‰ªïÊßò„Å™„Çì„Åß„Éª„Éª„Éª
+function perl_sort($function , $array = NULL)
+{
+    if ($array === NULL) {
+       //array„ÅåÁúÅÁï•„Åï„Çå„ÅüÂ†¥Âêà„ÄÅ Á¨¨‰∏ÄÂºïÊï∞„Åå array„Å´„Å™„Çã„ÄÇ
+       sort($function);
+       return $function;
+    }
+    else { 
+       usort($array , $function);
+       return $array;
+    }
+}
+
 
 /*
 # Regexp::Assemple.pm
@@ -16,6 +65,24 @@ perl ÇÃÉãÅ[É`ÉìÇ∆1çsÇ√Ç¬ëŒñÛÇÇ‚Ç¡ÇƒÇ¢Ç‹Ç∑ÅB
 */
 //package Regexp::Assemble;
 class Regexp_Assemble{
+
+var $_path = [];
+var $debug = 1;
+var $indent = 0;
+
+var $track = 0;
+var $mutable = 0;
+var $reduce = 0;
+var $lookahead = 0;
+var $unroll_plus = 0;
+var $anchor_word_begin = 0;
+var $anchor_line_begin = 0;
+var $anchor_string_begin = 0;
+var $anchor_word_end = 0;
+var $anchor_line_end = 0;
+var $anchor_string_end = 0;
+var $anchor_string_end_absolute = 0;
+var $flags = 0;
 
 //use vars qw/$VERSION $have_Storable $Current_Lexer $Default_Lexer $Single_Char $Always_Fail/;
 //$VERSION = '0.35';
@@ -286,13 +353,14 @@ function __constructor($args) {
         chomp
     );
 */
-	foreach( array(	 'fold_meta_pairs'
-					,'reduce'
-					,'chomp'
-					)
-					 as $_){
-		if ( !isset($args[$_]) ) $args[$_] = 1;
-	}
+    foreach( array(	 'fold_meta_pairs'
+          ,'reduce'
+          ,'chomp'
+          )
+        as $_)
+    {
+        if ( !isset($args[$_]) ) $args[$_] = 1;
+    }
 
 //    @args{qw(re str path)} = (undef, undef, []);
 	$args['re'] = NULL;
@@ -310,6 +378,7 @@ function __constructor($args) {
 	}
 
 //    my $self = bless \%args, $class;    //class
+    
 
 //    if ($self->_debug(DEBUG_TIME)) {                            // skip... debug...
 //        $self->_init_time_func();                               // skip... debug...
@@ -372,7 +441,7 @@ afterwards.
 =cut
 */
 
-/* skip phpÇÃ cloneégÇ¶!phpÇÃ cloneégÇ¶!
+/* skip php„ÅÆ clone‰Ωø„Åà!php„ÅÆ clone‰Ωø„Åà!
 sub clone {
     my $self = shift;
     my $clone;
@@ -458,7 +527,7 @@ function _fastlex($record){
     $debug = 1;
 
 //    my $modifier        = q{(?:[*+?]\\??|\\{(?:\\d+(?:,\d*)?|,\d+)\\}\\??)?};
-    $modifier        = "/(?:[*+?]\\??|\\{(?:\\d+(?:,\d*)?|,\d+)\\}\\??)?/";
+    $modifier        = "(?:[*+?]\\??|\\{(?:\\d+(?:,\d*)?|,\d+)\\}\\??)?";
 //    my $class_matcher   = qr/\[(?:\[:[a-z]+:\]|\\?.)*?\]/;
     $class_matcher   = "\[(?:\[:[a-z]+:\]|\\?.)*?\]";
 //    my $paren_matcher   = qr/\(.*?(?<!\\)\)$modifier/;
@@ -473,12 +542,12 @@ function _fastlex($record){
 //    my $matcher = $regular_matcher;
     $matcher = $regular_matcher;
 
-    $pregNum = array(); // $1 $2 Ç»Ç«ÇÃíuÇ´ä∑Ç¶Ç…égÇ§.
+    $pregNum = array(); // $1 $2 „Å™„Å©„ÅÆÁΩÆ„ÅçÊèõ„Åà„Å´‰Ωø„ÅÜ.
 
 //    {
       do{
 //        if ($record =~ /\G$matcher/gc) {
-          if ( preg_match("/\G{$matcher}/gc",$record,$pregNum) !== FALSE ){
+          if ( preg_match("/\G{$matcher}/ugc",$record,$pregNum) !== FALSE ){
 //           # neither a \\ nor [ nor ( followed by a modifer
 //           if ($1 eq '\\E') {
              if ($pregNum[1] ==  '\\E'){
@@ -512,19 +581,19 @@ function _fastlex($record){
 //                $token = quotemeta($token);
                 $token = quotemeta($token);
 //                $token =~ s/^\\([^\w$()*+.?@\[\\\]^|{}\/])$/$1/;
-                $token = preg_replace($token , '/^\\([^\w$()*+.?@\[\\\]^|{}\/])$/' , '$1');
+                $token = preg_replace('/^\\([^\w$()*+.?@\[\\\]^|{}\/])$/u' , '$1' , $token);
 //            }
             }
 //            else {
             else {
 //                $token =~ s{\A([][{}*+?@\\/])\Z}{\\$1};
-                  $token = preg_replace($token , '#\A([][{}*+?@\\/])\Z#' , '\\$1');
+                  $token = preg_replace('#\A([][{}*+?@\\/])\Z#u' , '\\$1' , $token);
 //            }
             }
 
 //            if ($unroll_plus and $qualifier =~ s/\A\+(\?)?\Z/*/) {
-            if ($unroll_plus && preg_match('/\A\+(\?)?\Z/',$qualifier,$pregNum) !== FALSE ){
-                $qualifier = preg_replace($qualifier , '/\A\+(\?)?\Z/','*'); //$qualifier =~ ÇàÍìxÇ…Ç≈Ç´Ç»Ç¢ÇΩÇﬂ
+            if ($unroll_plus && preg_match('/\A\+(\?)?\Z/u',$qualifier,$pregNum) !== FALSE ){
+                $qualifier = preg_replace('/\A\+(\?)?\Z/u','*' , $qualifier); //$qualifier =~ „Çí‰∏ÄÂ∫¶„Å´„Åß„Åç„Å™„ÅÑ„Åü„ÇÅ
                 
 //                $1 and $qualifier .= $1;
                 if ( isset($pregNum[1]) ) $qualifier .= $pregNum[1];
@@ -562,13 +631,13 @@ function _fastlex($record){
 //        }
         }
 //        elsif ($record =~ /\G\\/gc) {
-        else if (preg_match("/\G\\/gc",$record)){
+        else if (preg_match("/\G\\/ugc",$record)){
 //            $debug and print "#  backslash\n";
-            if ($debug){	print "#  backslash\n";	}
+            if ($debug){ echo "#  backslash\n"; }
 
 //            # backslash
 //            if ($record =~ /\G([sdwSDW])($modifier)/gc) {
-              if (preg_match("/\G([sdwSDW])($modifier)/gc",$record,$pregNum)){
+              if (preg_match("/\G([sdwSDW])($modifier)/ugc",$record,$pregNum)){
 
 //                ($token, $qualifier) = ($1, $2);
                 list($token, $qualifier) = $pregNum;
@@ -579,8 +648,8 @@ function _fastlex($record){
 //                push @path, ($unroll_plus and $qualifier =~ s/\A\+(\?)?\Z/*/)
 //                    ? ("\\$token", "\\$token$qualifier" . (defined $1 ? $1 : ''))
 //                    : "\\$token$qualifier";
-                if ($unroll_plus && preg_match("/\A\+(\?)?\Z/",$qualifier,$pregNum) ){
-                     $qualifier = preg_replace($qualifier , '//\A\+(\?)?\Z/','*');
+                if ($unroll_plus && preg_match("/\A\+(\?)?\Z/u",$qualifier,$pregNum) ){
+                     $qualifier = preg_replace('//\A\+(\?)?\Z/u','*' , $qualifier);
                      $path[] = "\\$token";
                      $path[] = "\\$token$qualifier";
                      $path[] = isset($pregNum[1]) ? $pregNum[1] : '';
@@ -591,7 +660,7 @@ function _fastlex($record){
 //            }
             }
 //            elsif ($record =~ /\Gx([\da-fA-F]{2})($modifier)/gc) {
-             else if (preg_match("/\Gx([\da-fA-F]{2})($modifier)/gc",$record,$pregNum)){
+             else if (preg_match("/\Gx([\da-fA-F]{2})($modifier)/ugc",$record,$pregNum)){
 //                $debug and print "#   x $1\n";
                 if ($debug){ echo "#   x $1\n"; }
 
@@ -605,7 +674,7 @@ function _fastlex($record){
                 if ($debug){	echo "#  cooked <$token>\n";	}
 
 //                $token =~ s/^\\([^\w$()*+.?\[\\\]^|{\/])$/$1/; # } balance
-                $token = preg_replace("/^\\([^\w$()*+.?\[\\\]^|{\/])$/",'$1', $token);	// } balance
+                $token = preg_replace("/^\\([^\w$()*+.?\[\\\]^|{\/])$/u",'$1', $token);	// } balance
 
 //                $debug and print "#   giving <$token>\n";
                 if ($debug){	echo "#   giving <$token>\n";	}
@@ -613,8 +682,8 @@ function _fastlex($record){
 //                push @path, ($unroll_plus and $qualifier =~ s/\A\+(\?)?\Z/*/)
 //                    ? ($token, "$token$qualifier" . (defined $1 ? $1 : ''))
 //                    : "$token$qualifier";
-                if ($unroll_plus && preg_match("/\A\+(\?)?\Z/",$qualifier,$pregNum)){
-                     $qualifier = preg_replace($qualifier , '//\A\+(\?)?\Z/','*');
+                if ($unroll_plus && preg_match("/\A\+(\?)?\Z/u",$qualifier,$pregNum)){
+                     $qualifier = preg_replace('//\A\+(\?)?\Z/u','*' , $qualifier);
                      $path[] = "\\$token";
                      $path[] = "\\$token$qualifier";
                      $path[] = isset($pregNum[1]) ? $pregNum[1] : '';
@@ -625,7 +694,7 @@ function _fastlex($record){
 //            }
             }
 //            elsif ($record =~ /\GQ/gc) {
-            else if (preg_match("/\GQ/gc" ,$record) ){
+            else if (preg_match("/\GQ/ugc" ,$record) ){
 //                $debug and print "#   Q\n";
                 if ($debug){	echo "#   Q\n";	}
 //                $qm = 1;
@@ -635,7 +704,7 @@ function _fastlex($record){
 //            }
             }
 //            elsif ($record =~ /\G([LU])/gc) {
-            else if (preg_match("/\G([LU])/gc" ,$record ,$pregNum ) ){
+            else if (preg_match("/\G([LU])/ugc" ,$record ,$pregNum ) ){
 //                $debug and print "#   case $1\n";
                 if ($debug){	echo "#   case $1\n";	}
 //                $case = $1;
@@ -643,7 +712,7 @@ function _fastlex($record){
 //            }
             }
 //            elsif ($record =~ /\GE/gc) {
-            else if (preg_match("/\GE/gc" ,$record )){
+            else if (preg_match("/\GE/ugc" ,$record )){
 //                $debug and print "#   E\n";
                 if ($debug){	echo "#   E\n";	}
 //                $case = $qm = '';
@@ -653,7 +722,7 @@ function _fastlex($record){
 //            }
             }
 //            elsif ($record =~ /\G([lu])(.)/gc) {
-            else if (preg_match("/\G([lu])(.)/gc" ,$record ,$pregNum)){
+            else if (preg_match("/\G([lu])(.)/ugc" ,$record ,$pregNum)){
 //                $debug and print "#   case $1 to <$2>\n";
                 if ($debug){	echo "#   case $1 to <$2>\n";	}
 //                push @path, $1 eq 'l' ? lc($2) : uc($2);
@@ -661,7 +730,7 @@ function _fastlex($record){
 //            }
             }
 //            elsif (my @arg = grep {defined} $record =~ /\G$misc_matcher/gc) {
-            else if ( preg_match("/\G$misc_matcher/gc",$record , $args) ){
+            else if ( preg_match("/\G$misc_matcher/ugc",$record , $args) ){
 //                if ($] < 5.007) {   //skip old version
 //                    my $len = 0;
 //                    $len += length($_) for @arg;
@@ -704,11 +773,11 @@ function _fastlex($record){
                 continue;
             }
 //            elsif ($record =~ /\G(.)/gc) {
-            else if ( preg_match("/\G(.)/gc" , $record, $pregNum) ){
+            else if ( preg_match("/\G(.)/ugc" , $record, $pregNum) ){
 //                $token = $1;
                 $token = $pregNum[1];
 //                $token =~ s{[AZabefnrtz\[\]{}()\\\$*+.?@|/^]}{\\$token};
-                $token = preg_replace("/[AZabefnrtz\[\]{}()\\\$*+.?@|\/^]/","\\$token",$token);
+                $token = preg_replace("/[AZabefnrtz\[\]{}()\\\$*+.?@|\/^]/u","\\$token",$token);
 //                $debug and print "#   meta <$token>\n";
                 if ($debug){	echo "#   meta <$token>\n";	}
 //                push @path, $token;
@@ -726,7 +795,7 @@ function _fastlex($record){
 //        }
         }
 //        elsif ($record =~ /\G($class_matcher)($modifier)/gc) {
-        else if ( preg_match("/\G($class_matcher)($modifier)/gc",$record,$pregNum) ){
+        else if ( preg_match("/\G($class_matcher)($modifier)/ugc",$record,$pregNum) ){
 //            # [class] followed by a modifer
 //            my $class     = $1;
             $class     = $pregNum[1];
@@ -737,11 +806,11 @@ function _fastlex($record){
             if ($debug){	echo "#  class begin <$class> <$qualifier>\n";	}
 
 //            if ($class =~ /\A\[\\?(.)]\Z/) {
-            if (preg_match("/\A\[\\?(.)]\Z/" , $class , $pregNum ) ){
+            if (preg_match("/\A\[\\?(.)]\Z/u" , $class , $pregNum ) ){
 //                $class = quotemeta $1;
                 $class = preg_quote($pregNum[1]);
 //                $class =~ s{\A\\([!@%])\Z}{$1};
-                $class = preg_replace("/#A\\([!@%])\Z#",'$1',$class);
+                $class = preg_replace("/#A\\([!@%])\Z#u",'$1',$class);
 //                $debug and print "#  class unwrap $class\n";
                 if ($debug){	echo "#  class unwrap $class\n";	}
 //            }
@@ -751,8 +820,8 @@ function _fastlex($record){
 //            push @path, ($unroll_plus and $qualifier =~ s/\A\+(\?)?\Z/*/)
 //                ? ($class, "$class$qualifier" . (defined $1 ? $1 : ''))
 //                : "$class$qualifier";
-            if ($unroll_plus && preg_match("/\A\+(\?)?\Z/",$qualifier,$pregNum)){
-                $qualifier = preg_replace("/\A\+(\?)?\Z/","/*/",$qualifier);
+            if ($unroll_plus && preg_match("/\A\+(\?)?\Z/u",$qualifier,$pregNum)){
+                $qualifier = preg_replace("/\A\+(\?)?\Z/u","/*/",$qualifier);
                 $path[] = $class;
                 $path[] = "$class$qualifier";
                 $path[] = isset($pregNum[1]) ? $pregNum[1]  : '';
@@ -765,7 +834,7 @@ function _fastlex($record){
 //        }
         }
 //        elsif ($record =~ /\G($paren_matcher)/gc) {
-        else if (preg_match("/\G($paren_matcher)/gc",$record , $pregNum) ){
+        else if (preg_match("/\G($paren_matcher)/ugc",$record , $pregNum) ){
 //            $debug and print "#  paren <$1>\n";
              if ($debug){	echo "#  paren <{$pregNum[1]}>\n";	}
 //            # (paren) followed by a modifer
@@ -778,7 +847,7 @@ function _fastlex($record){
 
 //     }
         break;
-     }while(0); //redo Ç…ëŒçRÇ∑ÇÈÇΩÇﬂÇÃã[éóÉãÅ[Év
+     }while(0); //redo „Å´ÂØæÊäó„Åô„Çã„Åü„ÇÅ„ÅÆÊì¨‰ºº„É´„Éº„Éó
 
     return $path;
 }
@@ -812,10 +881,10 @@ function _lex($record){
     $next_token = '';
     $diff = '';
     $token_len = '';
-    $pregNum = array();	//$1 Ç∆Ç©ÇÃÇΩÇﬂÇ…égÇ§.
+    $pregNum = array();	//$1 „Å®„Åã„ÅÆ„Åü„ÇÅ„Å´‰Ωø„ÅÜ.
 
 //    while( $record =~ /($re)/g ) {
-      while( preg_match("/($re)/g" , $record , $pregNum) ){
+      while( preg_match("/($re)/ug" , $record , $pregNum) ){
 //        $token = $1;
         $token = $pregNum[1];
 //        $token_len = length($token);
@@ -837,11 +906,11 @@ function _lex($record){
 //        $len += $token_len;
         $len += $token_len;
 //        TOKEN: {
-        TOKEN: {  //php ÇÃ goto Ç™Ç±ÇÒÇ»èäÇ≈ñÇ…óßÇ¬Ç∆ÇÕÅEÅEÅE
+        TOKEN: {  //php „ÅÆ goto „Åå„Åì„Çì„Å™ÊâÄ„ÅßÂΩπ„Å´Á´ã„Å§„Å®„ÅØ„Éª„Éª„Éª
 //            if( substr( $token, 0, 1 ) eq '\\' ) {
             if ( substr( $token, 0, 1 ) == '\\' ){
 //                if( $token =~ /^\\([ELQU])$/ ) {
-                if ( preg_match("/^\\([ELQU])$/" , $token , $pregNum) ){
+                if ( preg_match("/^\\([ELQU])$/u" , $token , $pregNum) ){
 //                    if( $1 eq 'E' ) {
                      if( $pregNum[1] == 'E' ) {
 //                        $qm and $re = defined $self->{lex} ? $self->{lex}
@@ -876,7 +945,7 @@ function _lex($record){
 //                }
                 }
 //                elsif( $token =~ /^\\([lu])(.)$/ ) {
-                else if ( preg_match("/^\\([lu])(.)$/",$token , $pregNum) ) {
+                else if ( preg_match("/^\\([lu])(.)$/u",$token , $pregNum) ) {
 //                    $debug and print "#  apply case=<$1> to <$2>\n";
                     if ($debug){	echo "#  apply case=<$1> to <$2>\n";	}
 //                    push @path, $1 eq 'l' ? lc($2) : uc($2);
@@ -887,13 +956,13 @@ function _lex($record){
 //                }
                 }
 //                elsif( $token =~ /^\\x([\da-fA-F]{2})$/ ) {
-                else if ( preg_match("/^\\x([\da-fA-F]{2})$/",$token , $pregNum) ) {
+                else if ( preg_match("/^\\x([\da-fA-F]{2})$/u",$token , $pregNum) ) {
 //                    $token = quotemeta(chr(hex($1)));
                     $token = preg_quote(chr(dechex($pregNum[1])));
 //                    $debug and print "#  cooked <$token>\n";
                     if ($debug){ echo "#  cooked <$token>\n"; }
 //                    $token =~ s/^\\([^\w$()*+.?@\[\\\]^|{\/])$/$1/; # } balance
-                    $token = preg_replace("/^\\([^\w$()*+.?@\[\\\]^|{\/])$/","$1" , $token);
+                    $token = preg_replace("/^\\([^\w$()*+.?@\[\\\]^|{\/])$/u","$1" , $token);
 //                    $debug and print "#   giving <$token>\n";
                     if ($debug){ echo "#   giving <$token>\n"; }
 //                }
@@ -901,7 +970,7 @@ function _lex($record){
 //                else {
                 else {
 //                    $token =~ s/^\\([^\w$()*+.?@\[\\\]^|{\/])$/$1/; # } balance
-                    $token = preg_replace("/^\\([^\w$()*+.?@\[\\\]^|{\/])$/","$1" , $token);
+                    $token = preg_replace("/^\\([^\w$()*+.?@\[\\\]^|{\/])$/u","$1" , $token);
 //                    $debug and print "#  backslashed <$token>\n";
                     if ($debug){ echo "#  backslashed <$token>\n"; }
 //                }
@@ -926,7 +995,7 @@ function _lex($record){
 //            # undo quotemeta's brute-force escapades
 //            $qm and $token =~ s/^\\([^\w$()*+.?@\[\\\]^|{}\/])$/$1/;
             if ($qm){
-                $token = preg_replace('/^\\([^\w$()*+.?@\[\\\]^|{}\/])$/','$1',$token);
+                $token = preg_replace('/^\\([^\w$()*+.?@\[\\\]^|{}\/])$/u','$1',$token);
             }
 //            $debug and print "#   <$token> case=<$case> qm=<$qm>\n";
             if ($debug){ echo "#   <$token> case=<$case> qm=<$qm>\n"; }
@@ -968,7 +1037,7 @@ function _lex($record){
 //        $debug and print "#   add remaining <$remain> case=<$case> qm=<$qm>\n";
         if ($debug){	echo "#   add remaining <$remain> case=<$case> qm=<$qm>\n";	}
 //        push @path, $remain;
-        $path = Regexp_Assemble::perl_push($path, $remain);
+        $path = perl_push($path, $remain);
 //    }
     }
 //    $debug and print "# _lex out <@path>\n";
@@ -989,10 +1058,10 @@ function add(){
 //    while( defined( $record = shift @_ )) {
     foreach( func_get_args() as $record ) {
 //        CORE::chomp($record) if $self->{chomp};
-        $record = chomp($record);
+        $record = rtrim($record);
         
 //        next if $self->{pre_filter} and not $self->{pre_filter}->($record);
-        if ($this->pre_filter && ! $this->pre_filter($record) ) {
+        if ( isset($this->pre_filter) && ! $this->pre_filter($record) ) {
             continue;
         }
 
@@ -1007,12 +1076,12 @@ function add(){
 //            : [split //, $record]
 //        ;
           $list = 
-              preg_match("/[+*?(\\\[{]/" ,$record ) ? //# }]) restore equilibrium
+              preg_match("/[+*?(\\\[{]/u" ,$record ) ? //# }]) restore equilibrium
               ($this->lex ? $this->_lex($record) : $self->_fastlex($record) )
-              : preg_split("//" ,$record );
+              : preg_split("//u" ,$record );
 
 //        next if $self->{filter} and not $self->{filter}->(@$list);
-          if ($this->filter && ! $this->filter($list) ) {
+          if ( isset($this->filter) && ! $this->filter($list) ) {
               continue;
           }
 
@@ -1080,7 +1149,7 @@ English variable names).
 =cut
 */
 
-/* ADODE SKIPÇ»Ç≠ÇƒÇ‡ìÆÇ≠ÇÃÇ≈è»ó™! 
+/* ADODE SKIP„Å™„Åè„Å¶„ÇÇÂãï„Åè„ÅÆ„ÅßÁúÅÁï•! 
 sub add_file {
     my $self = shift;
     my $rs;
@@ -1168,7 +1237,7 @@ function _insertr() {
         ++$this->stats_add;
 
 //        $self->{stats_cooked} += defined($_) ? length($_) : 0 for @{$_[0]};
-        foreach($args as $p){
+        foreach($args[0] as $p){
             $this->stats_cooked += strlen($p);
         }
 //    }
@@ -1382,15 +1451,15 @@ function as_string() {
             $arg  = func_get_args();
 //            $arg->indent = $self->indent;
 //                if not exists $arg->{indent} and $self->{indent} > 0;
-            if (!$arg->indent && $this->indent > 0){
-                $arg->indent = $this->indent;
+            if ( !isset($arg['indent']) && $this->indent > 0){
+                $arg['indent'] = $this->indent;
             }
 //            if( exists $arg->{indent} and $arg->{indent} > 0 ) {
-            if( $arg->indent && $arg->indent > 0 ) {
+            if( isset($arg['indent']) &&  $arg['indent'] && $arg['indent'] > 0 ) {
 //                $arg->{depth} = 0;
-                $arg->depth = 0;
+                $arg['depth'] = 0;
 //                $self->{str}  = _re_path_pretty($self, $self->_path, $arg);
-                $this->{str}  = $this->_re_path_pretty($this->_path, $arg);
+                $this->str  = $this->_re_path_pretty($this->_path, $arg);
 //            }
             }
 //            elsif( $self->{lookahead} ) {
@@ -1447,8 +1516,8 @@ function as_string() {
 //        }
         }
 //        $self->{path} = [] unless $self->{mutable};
-        if (!$self->mutable) {
-           $self->path = [];
+        if (!$this->mutable) {
+           $this->path = [];
         }
 //    }
     }
@@ -1634,7 +1703,7 @@ function match($target) {
     $this->mvar = [];
 
 //    if( not $target =~ /$self->{re}/ ) {
-    if( !preg_match("/{$this->re}/",$target,$pregNum, PREG_OFFSET_CAPTURE) ) {
+    if( !preg_match("/{$this->re}/u",$target,$pregNum, PREG_OFFSET_CAPTURE) ) {
 //        $self->{mbegin} = [];
         $this->mbegin = [];
 //        $self->{mend}   = [];
@@ -2008,13 +2077,10 @@ to 0 to disable.
 */
 //sub anchor_word_begin {
 //    my $self = shift;
-function anchor_word_begin($p1 = 1) {
 //    $self->{anchor_word_begin} = defined($_[0]) ? $_[0] : 1;
-    $this->anchor_word_begin = $p1;
 //    return $self;
-    return $this;
 //}
-}
+
 /*
 =item anchor_word_end
 
@@ -2030,13 +2096,9 @@ to 0 to disable.
 */
 //sub anchor_word_end {
 //    my $self = shift;
-function anchor_word_end($p1 = 1) {
 //    $self->{anchor_word_end} = defined($_[0]) ? $_[0] : 1;
-    $this->anchor_word_end = $p1;
 //    return $self;
-    return $this;
 //}
-}
 /*
 =item anchor_word
 
@@ -2076,13 +2138,10 @@ to 0 to disable.
 */
 //sub anchor_line_begin {
 //    my $self = shift;
-function anchor_line_begin($p1 = 1) {
 //    $self->{anchor_line_begin} = defined($_[0]) ? $_[0] : 1;
-    $this->anchor_line_begin = $p1;
 //    return $self;
-    return $this;
 //}
-}
+
 /*
 =item anchor_line_end
 
@@ -2097,13 +2156,10 @@ to 0 to disable.
 */
 //sub anchor_line_end {
 //    my $self = shift;
-function anchor_line_end($p1 = 1) {
 //    $self->{anchor_line_end} = defined($_[0]) ? $_[0] : 1;
-    $this->anchor_line_end = $p1;
 //    return $self;
-    return $this;
 //}
-}
+
 /*
 =item anchor_line
 
@@ -2141,13 +2197,10 @@ to 0 to disable.
 */
 //sub anchor_string_begin {
 //    my $self = shift;
-function anchor_string_begin($p1 = 1) {
 //    $self->{anchor_string_begin} = defined($_[0]) ? $_[0] : 1;
-    $this->anchor_string_begin = $p1;
 //    return $self;
-    return $this;
 //}
-}
+
 /*
 =item anchor_string_end
 
@@ -2162,14 +2215,11 @@ to 0 to disable.
 */
 //sub anchor_string_end {
 //    my $self = shift;
-function anchor_string_end($p1 = 1) {
 //    $self->{anchor_string_end} = defined($_[0]) ? $_[0] : 1;
-    $this->anchor_string_end = $p1;
-
 //    return $self;
-    return $this;
 //}
-}
+
+
 /*
 =item anchor_string_end_absolute
 
@@ -2188,13 +2238,9 @@ you want.
 */
 //sub anchor_string_end_absolute {
 //    my $self = shift;
-function anchor_string_end_absolute($p1 = 1) {
 //    $self->{anchor_string_end_absolute} = defined($_[0]) ? $_[0] : 1;
-    $this->anchor_string_end_absolute = $p1;
 //    return $self;
-    return $this;
 //}
-}
 
 /*
 =item anchor_string
@@ -2441,13 +2487,10 @@ probably be worse off.
 */
 //sub lookahead {
 //    my $self = shift;
-function lookahead($p1 = 1) {
 //    $self->{lookahead} = defined($_[0]) ? $_[0] : 1;
-    $this->lookahead = $p1;
 //    return $self;
-    return $this;
 //}
-}
+
 /*
 =item flags(STRING)
 
@@ -2524,13 +2567,10 @@ to assemble with other patterns. Not enabled by default.
 */
 //sub unroll_plus {
 //    my $self = shift;
-function unroll_plus($p1 = 1) {
 //    $self->{unroll_plus} = defined($_[0]) ? $_[0] : 1;
-    $this->unroll_plus = $p1;
 //    return $self;
-    return $this;
 //}
-}
+
 /*
 =item lex(SCALAR)
 
@@ -2564,13 +2604,10 @@ that can consume a non-negligible amount of time).
 */
 //sub reduce {
 //    my $self = shift;
-function reduce($p1 = 1) {
 //    $self->{reduce} = defined($_[0]) ? $_[0] : 1;
-    $this->reduce = $p1;
 //    return $self;
-    return $this;
 //}
-}
+
 /*
 =item mutable(0|1)
 
@@ -2582,13 +2619,10 @@ to replace its functionality.
 */
 //sub mutable {
 //    my $self = shift;
-function mutable($p1 = 1) {
 //    $self->{mutable} = defined($_[0]) ? $_[0] : 1;
-    $this->mutable = $p1;
 //    return $self;
-    return $this;
 //}
-}
+
 /*
 =item reset
 
@@ -2671,50 +2705,10 @@ function _debug($flg) {
 
 # -- helpers
 
-//perl ÇÃ push ÇÉGÉ~ÉÖÉåÅ[ÉVÉáÉìÇ∑ÇÈ.
-static function perl_push($array , $target)
-{
-    if ( is_array($target) ){
-       return array_merge($array , $target );
-    }
-    else {
-       return $array[] = $target;
-    }
-}
-
-//perlÇÃgrepÇ…ëäìñÇ∑ÇÈä÷êî
-//array_filter Ç¡Çƒ array_map Ç∆ÉRÅ[ÉãÉoÉbÉNÇ™ãtÇ»ÇÒÇ≈ìùàÍÇµÇƒÇ®Ç≠ÅBÇﬂÇÒÇ«Ç¢Ç©ÇÁÅB
-static function perl_grep($function , $array) {
-    return array_filter($array , $function);
-}
-
-//perl ÇÃ sort phpÇÃsortä÷êîÇÕCåæåÍÇ∆ìØÇ∂é©å»îjâÛÇÃÉNÉ\édólÇ»ÇÒÇ≈ÅEÅEÅE
-static function perl_sort($function , $array = NULL)
-{
-    if ($array == NULL) {
-       //arrayÇ™è»ó™Ç≥ÇÍÇΩèÍçáÅA ëÊàÍà¯êîÇ™ arrayÇ…Ç»ÇÈÅB
-       sort($function);
-       return $function;
-    }
-    else { 
-       usort($array , $function);
-       return $array;
-    }
-}
-
-
-//sub _path {
-//    # access the path
-function _path($obj) {
-//    return $_[0]->{path};
-    return $obj->path;
-//}
-}
-
 # -- the heart of the matter
 
-////// PHPÇÃèÍçá clone ÇégÇ§ÇÃÇ≈éñé¿è„åƒÇŒÇÍÇ»Ç¢
-// PHPÇ»ÇÁ clone Ç≈Ç‚ÇÈÇ◊Çµ
+////// PHP„ÅÆÂ†¥Âêà clone „Çí‰Ωø„ÅÜ„ÅÆ„Åß‰∫ãÂÆü‰∏äÂëº„Å∞„Çå„Å™„ÅÑ
+// PHP„Å™„Çâ clone „Åß„ÇÑ„Çã„Åπ„Åó
 //
 //$have_Storable = do {
 //    eval {
@@ -2744,7 +2738,7 @@ function _path_copy($path) {
 //        elsif( ref($path->[$p]) eq 'ARRAY' ) {
 //            push @$new, _path_copy($path->[$p]);
 //        }
-//arrayÇ≈ãzé˚Ç∑ÇÈ.
+//array„ÅßÂê∏Âèé„Åô„Çã.
 //        else {
         else {
 //            push @$new, $path->[$p];
@@ -2851,7 +2845,7 @@ function _insert_path($list , $debug , $in) {
 //            if( exists( $node->{$token} )) {
             if( isset( $node[$token] ) ) {
 //                if ($offset < $#$path) {
-                if ($offset < count($path) ) { //Ç†Ç¡ÇƒÇÈÅH
+                if ($offset < count($path) ) { //„ÅÇ„Å£„Å¶„ÇãÔºü
 //                    my $new = {
 //                        $token => [$token, @in],
 //                        _re_path($self, [$node]) => [@{$path}[$offset..$#$path]],
@@ -2875,7 +2869,7 @@ function _insert_path($list , $debug , $in) {
 //                    $offset = 0;
                     $offset = 0;
 //                    redo;
-                    prev($in); // redoÇ»ÇÃÇ≈ $inÇêiÇﬂÇƒÇÕÇ¢ÇØÇ»Ç¢ÇΩÇﬂàÍÇ¬ñﬂÇ∑.
+                    prev($in); // redo„Å™„ÅÆ„Åß $in„ÇíÈÄ≤„ÇÅ„Å¶„ÅØ„ÅÑ„Åë„Å™„ÅÑ„Åü„ÇÅ‰∏Ä„Å§Êàª„Åô.
                     continue;
 //                }
                 }
@@ -2943,7 +2937,7 @@ function _insert_path($list , $debug , $in) {
 //        if( $offset >= @$path ) {
         if( $offset >= count($path) ) {
 //            push @$path, { $token => [ $token, @in ], '' => undef };
-            $path = Regexp_Assemble::perl_push($path,  [ $token => [ $token, $in ], '' => NULL ] );
+            $path = perl_push($path,  [ $token => [ $token, $in ], '' => NULL ] );
 //            $debug and print "#   added remaining @{[_dump($path)]}\n";
             if ($debug) { echo "#   added remaining @{[_dump($path)]}\n"; }
 //            last;
@@ -3081,7 +3075,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                        ref($token) ? _dump($token) : $token, "\n";
                     if ( $debug ){ echo "#  identical nodes in sub_path ". (is_array($token) ? $this->_dump($token) : $token) . "\n"; }
 //                    push @$new_path, shift(@$old_path);
-                    $new_path = Regexp_Assemble::perl_push($new_path, array_shift($old_path) );
+                    $new_path = perl_push($new_path, array_shift($old_path) );
 //                    $token = shift @_;
                     $token = array_shift($_args);
 //                }
@@ -3126,7 +3120,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                    }
                     }
 //                    push @$new_path, $new;
-                    $new_path = Regexp_Assemble::perl_push( $new_path , $new );
+                    $new_path = perl_push( $new_path , $new );
 //                }
                 }
 //                $path_end->[0]{$token_key} = $new_path;
@@ -3210,7 +3204,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                $debug and print "#   convert opt @{[_dump($new)]}\n";
                 if ( $debug ) { echo "#   convert opt @{[_dump($new)]}\n"; }
 //                push @$path, $new;
-                $path = Regexp_Assemble::perl_push($path , $new );
+                $path = perl_push($path , $new );
 //            }
             }
 //        }
@@ -3245,7 +3239,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                ''         => undef,
 //                $token_key => [ $token, @_ ],
 //            };
-            $path = Regexp_Assemble::perl_push( $path , [
+            $path = perl_push( $path , [
                   '' => NULL,
                   $token_key => [ $token, $_args ]
                 ]
@@ -3384,7 +3378,7 @@ function _reduce_path($path, $ctx) {
                  $head = perl_push($head ,$node_head );
             }
 //            push @$tail, ref($node_tail) eq 'HASH' ? $node_tail : @$node_tail;
-//Ç±Ç±Ç†ÇÒÇ‹ÇËé©êMÇ™Ç»Ç¢.
+//„Åì„Åì„ÅÇ„Çì„Åæ„ÇäËá™‰ø°„Åå„Å™„ÅÑ.
             if ( is_array($node_tail) ) {
                  $tail = perl_push($tail ,$node_tail );
             }
@@ -3835,7 +3829,7 @@ function _do_reduce($path, $ctx) {
 //        }
 //        @$path
 //    ;
-    $_temp_path = Regexp_Assemble::perl_sort( function($a,$b){
+    $_temp_path = perl_sort( function($a,$b){
             $scalar_count_a = 0;
             foreach($a as $_) {
                 $scalar_count_a += (is_array($_) ? 1 : 0);
@@ -3877,9 +3871,9 @@ function _do_reduce($path, $ctx) {
 //    my $common = [];
     $common = [];
 //    push @$common, shift @$path while( ref($path->[0]) ne 'HASH' );
-//Ç±ÇÍÇ≈Ç¢Ç¢ÇÒÇ©Ç»ÅH
+//„Åì„Çå„Åß„ÅÑ„ÅÑ„Çì„Åã„Å™Ôºü
     while( is_array($path[0]) ) {
-        $common = Regexp_Assemble::perl_push($common, array_shift($path));
+        $common = perl_push($common, array_shift($path));
     }
 
 //    my $tail = scalar( @$path ) > 1 ? [@$path] : $path->[0];
@@ -3947,9 +3941,9 @@ function _slide_tail($head,$tail,$path,$ctx) {
 //        shift @$slide_path;
         array_shift($slide_path);
 //        push @$slide_path, $slide;
-        $slide_path = Regexp_Assemble::perl_push( $slide_path, $slide);
+        $slide_path = perl_push( $slide_path, $slide);
 //        push @$head, $slide;
-        $head = Regexp_Assemble::perl_push( $head, $slide);
+        $head = perl_push( $head, $slide);
 //    }
     }
 //    $debug and print "# $indent| slide path ", _dump($slide_path), "\n";
@@ -4002,7 +3996,7 @@ function _unrev_path($path, $ctx) {
 //            : ref($p) eq 'ARRAY' ? _unrev_path($p, _descend($ctx) )
 //            : $p
 //        ;
-          $new = Regexp_Assemble::perl_push($new ,  
+          $new = perl_push($new ,  
                      (is_array($p) ? $this->_unrev_node($p, $this->_descend($ctx) ) : $p)
           );
 //    }
@@ -4133,7 +4127,7 @@ function _make_class() {
 //            $_ =~ /^$re$/ and push @delete, $_ for keys %set;
             foreach( array_keys($set) as $_) {
                  if ( preg_match("/^{$re}$/u" , $_) ) {
-                      $delete = Regexp_Assemble::perl_push($delete , $_);
+                      $delete = perl_push($delete , $_);
                  }
             }
 //            delete @set{@delete} if @delete;
@@ -4172,7 +4166,7 @@ function _make_class() {
     }
 
 //    my $class = join( '' => sort keys %set );
-    $class = join('' , Regexp_Assemble::perl_sort(array_keys($set)) );
+    $class = join('' , perl_sort(array_keys($set)) );
 //    $class =~ s/0123456789/\\d/ and $class eq '\\d' and return $class;
     if ( preg_match('/0123456789/u',$class) ) {
         $class = preg_replace('/0123456789/u' , '\\d' , $class);
@@ -4182,23 +4176,6 @@ function _make_class() {
     }
 //    return "[$dash$class$caret]";
     return "[$dash$class$caret]";
-//}
-}
-
-//sub _re_sort {
-function _re_sort($a,$b) {
-//    return length $b <=> length $a || $a cmp $b
-    $_temp_len_a = count($a);
-    $_temp_len_b = count($b);
-    if ( $_temp_len_b > $_temp_len_a ) {
-        return 1;
-    }
-    else if ( $_temp_len_b < $_temp_len_a ) {
-        return -1;
-    }
-
-    // $a == $b
-    return strcmp( join('|' , $a) , join('|' , $b) );
 //}
 }
 
@@ -4231,7 +4208,7 @@ function _combine($type) {
     $short = [];
     $long = [];
     foreach(func_get_args() as $_) {
-        if (preg_match("/^$this->Single_Char$/",$_)) {
+        if (preg_match('/^'.$this->Single_Char.'$/u',$_)) {
             $short[] = $_;
         }
         else {
@@ -4240,18 +4217,18 @@ function _combine($type) {
     }
 
     if( count($short) == 1 ) {
-        $long = Regexp_Assemble::perl_push( 
-               $sort , Regexp_Assemble::perl_sort($long , $this->_re_sort ) );
+        $long = perl_push( 
+               $sort , perl_sort($long , '_re_sort' ) );
     }
     else if ( count($short) > 1 ) {
         //# yucky but true
         ;
-        $combine = Regexp_Assemble::perl_push( $this->_make_class($short),  
-                                Regexp_Assemble::perl_sort($this->_re_sort , $long) );
+        $combine = perl_push( $this->_make_class($short),  
+                                perl_sort( '_re_sort' , $long) );
         $long = $combine;
     }
     else {
-        $long = Regexp_Assemble::perl_sort($this->_re_sort , $long);
+        $long = perl_sort( '_re_sort' , $long);
     }
     $_temp_do = join( '|', $long );
     
@@ -4267,13 +4244,13 @@ function _combine($type) {
 
 //sub _combine_new {
 //    my $self = shift;
-function _combine_new() {
+function _combine_new($args) {
 //    my( @short, @long );
 //    push @{ /^$Single_Char$/ ? \@short : \@long}, $_ for @_;
     $short = [];
     $long = [];
-    foreach(func_get_args() as $_) {
-        if (preg_match("/^{$this->Single_Char}$/",$_)) {
+    foreach( $args as $_) {
+        if (preg_match('/^'.$this->Single_Char.'$/u',$_)) {
             $short[] = $_;
         }
         else {
@@ -4288,7 +4265,7 @@ function _combine_new() {
 //    }
     }
 //    elsif( @short > 1 and @short == @_ ) {
-    else if( count($short) > 1 and (join('|',$short) == join('|',func_get_args()) ) ) {
+    else if( count($short) > 1 and (join('|',$short) == join('|',  $args ) ) ) {
 //        return _make_class($self, @short);
         return $this->_make_class($short);
 //    }
@@ -4305,10 +4282,10 @@ function _combine_new() {
         return '(?:'
             . join( '|' ,
                 count($short) > 1
-                    ? Regexp_Assemble::perl_push( 
-                          $this->_make_class($short), Regexp_Assemble::perl_sort($this->_re_sort , $long) )
-                    : Regexp_Assemble::perl_push( 
-                          Regexp_Assemble::perl_sort($this->_re_sort,$long) , $short )
+                    ? perl_push( 
+                          $this->_make_class($short), perl_sort( '_re_sort' , $long) )
+                    : perl_push( 
+                          perl_sort( '_re_sort' ,$long) , $short )
             )
         . ')';
 //    }
@@ -4324,7 +4301,7 @@ function _re_path() {
     $_args = func_get_args();
 
 //    if ($self->{unroll_plus}) {
-    if ($this->{unroll_plus}) {
+    if ($this->unroll_plus) {
 //        # but we can't easily make this blockless
 //        my @arr = @{$_[0]};
         $arr = $_args[0];
@@ -4334,11 +4311,11 @@ function _re_path() {
         $skip = 0;
 //        for my $i (0..$#arr) {
           for($i = 0 ; $i < count($arr)  ; ++$i) {
-//            if (ref($arr[$i]) eq 'ARRAY') {            arrayÇ»ÇÃÇ≈hashÇ…ó¨Ç∑.
+//            if (ref($arr[$i]) eq 'ARRAY') {            array„Å™„ÅÆ„Åßhash„Å´ÊµÅ„Åô.
 //                $str .= _re_path($self, $arr[$i]);
 //            }
 //            elsif (ref($arr[$i]) eq 'HASH') {
-              //arrayÇ≈éÛÇØÇÈ.
+              //array„ÅßÂèó„Åë„Çã.
               if ( is_array( $arr[$i] ) ) {
 //                $str .= exists $arr[$i]->{''}
 //                    ? _combine_new( $self,
@@ -4349,14 +4326,14 @@ function _re_path() {
                 if ( isset( $arr[$i][''] ) ){
                      $_temp_map = [];
                      foreach( perl_grep( function($_){ return $_ !== ''; } , array_keys($arr[$i]) ) as $_ ){
-                        $_temp_map[] = $this->_re_path( $arr[$i][$_] );  //lamdba captureÇ™í∑Ç∑Ç¨ÇÈÇÃÇ≈foreachÇ≈ÅB
+                        $_temp_map[] = $this->_re_path( $arr[$i][$_] );  //lamdba capture„ÅåÈï∑„Åô„Åé„Çã„ÅÆ„Åßforeach„Åß„ÄÇ
                      }
                      $this->_combine_new($_temp_map). '?';
                 }
                 else {
                      $_temp_map = [];
                      foreach( array_keys($arr[$i]) as $_ ){
-                        $_temp_map[] = $this->_re_path( $arr[$i][$_] );  //lamdba captureÇ™í∑Ç∑Ç¨ÇÈÇÃÇ≈foreachÇ≈ÅB
+                        $_temp_map[] = $this->_re_path( $arr[$i][$_] );  //lamdba capture„ÅåÈï∑„Åô„Åé„Çã„ÅÆ„Åßforeach„Åß„ÄÇ
                      }
                      $this->_combine_new($_temp_map);
                 }
@@ -4390,7 +4367,7 @@ function _re_path() {
     }
 
 //    return join( '', @_ ) unless grep { length ref $_ } @_;
-//   //Ç±ÇÍÇÕÇøÇÂÇ¡Ç∆ï€óØ
+//   //„Åì„Çå„ÅØ„Å°„Çá„Å£„Å®‰øùÁïô
 //    if ( ! perl_grep( function($_){ return count($_); } $_args) ) {
 //        return join( '', $_args );
 //    }
@@ -4475,7 +4452,7 @@ function _lookahead($in) {
 //            my $inner = _lookahead( $in->{$path}[0] );
             $inner = $this->_lookahead( $in[$path][0] );
 //            @head{ keys %$inner } = (values %$inner);
-//perlÇ∑Ç≤Ç¢...            $head{ keys %$inner } = (values %$inner);
+//perl„Åô„Åî„ÅÑ...            $head{ keys %$inner } = (values %$inner);
             foreach( array_keys($inner) as $_ ){
                  $head[$_] = $_;
             }
@@ -4495,7 +4472,7 @@ function _lookahead($in) {
 //                }
 //            }
 //        }
-//arrayÇ»ÇÃÇ≈skip
+//array„Å™„ÅÆ„Åßskip
 
 //        else {
         else {
@@ -4507,7 +4484,7 @@ function _lookahead($in) {
     }
 //    # print "_lookahead ", _dump($in), '==>', _dump([keys %head]), "\n";
 //    return \%head;
-    return $head;  //éQè∆Ç≈ÇÕÇ»Ç¢ÇØÇ«ÇΩÇ‘ÇÒëÂè‰ïvÅEÅEÅEÅH
+    return $head;  //ÂèÇÁÖß„Åß„ÅØ„Å™„ÅÑ„Åë„Å©„Åü„Å∂„ÇìÂ§ß‰∏àÂ§´„Éª„Éª„ÉªÔºü
 //}
 }
 
@@ -4532,7 +4509,7 @@ function _re_path_lookahead($in) {
 //            $out .= _re_path_lookahead($self, $in->[$p]);
 //            next;
 //        }
-// arrayÇ»ÇÃÇ≈ÉXÉLÉbÉv.
+// array„Å™„ÅÆ„Åß„Çπ„Ç≠„ÉÉ„Éó.
 //        # print "$p ", _dump($in->[$p]), "\n";
 //        my $path = [
 //            map { _re_path_lookahead($self, $in->[$p]{$_} ) }
@@ -4580,7 +4557,7 @@ function _re_path_lookahead($in) {
 //        }
         }
 //        my $nr_one = grep { /^$Single_Char$/ } @$path;
-        $nr_one = perl_grep( function($_){ return preg_match("/^$Single_Char$/" , $path); }  , $path );
+        $nr_one = perl_grep( function($_){ return preg_match('/^'.$Single_Char .'$/u' , $path); }  , $path );
 //        my $nr     = @$path;
         $nr     = $path;
 //        if( $nr_one > 1 and $nr_one == $nr ) {
@@ -4600,7 +4577,7 @@ function _re_path_lookahead($in) {
 //                : '';
             $zwla = count($ahead) > 1
                 ?  $this->_combine('?=', perl_grep( function($_) {
-                             return preg_replace("/\+$/" , '' , $_) != '';
+                             return preg_replace("/\+$/u" , '' , $_) != '';
                         }
                         , array_keys($ahead)) )
                 : '';
@@ -4688,7 +4665,7 @@ function _re_path_track($in,$normal,$augmented) {
                  $path[] = $this->_re_path_track( $in[$n][$_], $normal.$simple , $augmented.$augment );
             }
 //            $o = '(?:' . join( '|' => sort _re_sort @$path ) . ')';
-            $o = '(?:' . join( '|' , perl_sort( _re_sort , $path) ) . ')';
+            $o = '(?:' . join( '|' , perl_sort( '_re_sort' , $path) ) . ')';
 //            $o .= '?' if exists $in->[$n]{''};
             if ( isset( $in[$n][''] ) ) {
                  $o .= '?';
@@ -4712,13 +4689,13 @@ function _re_path_track($in,$normal,$augmented) {
 //    my $arg = shift;
 function _re_path_pretty($in,$arg) {
 //    my $pre    = ' ' x (($arg->{depth}+0) * $arg->{indent});
+    $pre    = str_repeat(' ' , (($arg['depth']+0) * $arg['indent']) );
 //    my $indent = ' ' x (($arg->{depth}+1) * $arg->{indent});
+    $indent = str_repeat(' ' , (($arg['depth']+1) * $arg['indent']) );
 //    my $out = '';
-    $pre    = str_repeat(' ' , (($arg->depth+0) * $arg->indent) );
-    $indent = str_repeat(' ' , (($arg->depth+1) * $arg->indent) );
     $out = '';
 //    $arg->{depth}++;
-    $arg->depth++;
+    $arg['depth']++;
 //    my $prev_was_paren = 0;
     $prev_was_paren = 0;
 //    for( my $p = 0; $p < @$in; ++$p ) {
@@ -4761,7 +4738,7 @@ function _re_path_pretty($in,$arg) {
             $short = [];
             $long = [];
             foreach($path as $_) {
-                if (preg_match("/^$Single_Char$/",$_)) {
+                if (preg_match('/^'.$this->Single_Char.'$/u',$_)) {
                     $short[] = $_;
                 }
                 else {
@@ -4801,9 +4778,9 @@ function _re_path_pretty($in,$arg) {
 //                        sort _re_sort @$path
 //                    );
                     $_temp_map_array = [];
-                    foreach( $this->perl_sort($this->_re_sort , $path ) as $_ ) {
+                    foreach( perl_sort( '_re_sort' , $path ) as $_ ) {
                             if ($r++) {
-                                $_ = preg_replace("/^\(\?:/" ,"/\n$indent(?:/" , $_ );
+                                $_ = preg_replace("/^\(\?:/u" ,"/\n$indent(?:/" , $_ );
                             }
                             $_temp_map_array[] = $_;
                     }
@@ -4814,7 +4791,7 @@ function _re_path_pretty($in,$arg) {
 //                else {
                 else {
 //                    $out .= join( "\n$indent|" => ( (sort _re_sort @long), _make_class($self, @short) ));
-                    $out .= join( "\n$indent|" , array_merge( perl_sort($_re_sort , $long) , $this->_make_class($short) ) );
+                    $out .= join( "\n$indent|" , array_merge( perl_sort( '_re_sort' , $long) , $this->_make_class($short) ) );
 //                }
                 }
 //                $out .= "\n$pre)";
@@ -4840,7 +4817,7 @@ function _re_path_pretty($in,$arg) {
 //    }
     }
 //    $arg->{depth}--;
-    $arg->depth--;
+    $arg['depth']--;
 //    return $out;
     return $out;
 //}
@@ -4869,9 +4846,9 @@ function _node_eq($p1 , $p2 = NULL) {
 //        _re_path(undef, [$_[0]] ) eq _re_path(undef, [$_[1]] );
         if ( count($p1) == count($p2) ) {
             if (
-                join('',Regexp_Assemble::perl_sort(array_keys($p1)) ) 
+                join('',perl_sort(array_keys($p1)) ) 
                  === 
-                join('',Regexp_Assemble::perl_sort(array_keys($p2)) 
+                join('',perl_sort(array_keys($p2)) 
             )) {
                 if ( $this->_re_path( NULL , $p1 ) && $this->_re_path( NULL , $p2 ) ) {
                       return true;
@@ -4939,10 +4916,10 @@ function _dump($path) {
 //                $d =~ /^[\x00-\x1f]$/ ? _pretty_dump($d) :
 //                $d
 //            );
-            if ( preg_match('/\s/' , $d) ) {
+            if ( preg_match('/\s/u' , $d) ) {
                 $dump .= "'{$d}'";
             }
-            else if ( preg_match('/^[\x00-\x1f]$/' , $d) ) {
+            else if ( preg_match('/^[\x00-\x1f]$/u' , $d) ) {
                 $dump .= $this->_pretty_dump($d);
             }
             else {
@@ -4973,7 +4950,7 @@ function _dump_node($node) {
 //    my $n;
     $n = NULL;
 //    for $n (sort keys %$node) {
-    foreach( Regexp_Assemble::perl_sort(array_keys($node))  as $n) {
+    foreach( perl_sort(array_keys($node))  as $n) {
 //        $dump .= ' ' if $nr++;
         if ($nr++) {
            $dump .= $nr;
@@ -4987,7 +4964,7 @@ function _dump_node($node) {
 //        ;
         $dump .= $n == ''
             ? '*'
-            : ( preg_match('/^[\x00-\x1f]$/',$n)  ? $this->_pretty_dump($n) : $n)
+            : ( preg_match('/^[\x00-\x1f]$/u',$n)  ? $this->_pretty_dump($n) : $n)
                 . "=>" . $this->_dump($node->$n)
         ;
 //    }
@@ -5342,3 +5319,9 @@ it under the same terms as Perl itself.
 __END__
 */
 }
+
+$a = new Regexp_Assemble();
+$a->add("123");
+$a->add("134");
+$str = $a->re();
+var_dump($str);
