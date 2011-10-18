@@ -29,6 +29,13 @@ function _re_sort($a,$b) {
 //}
 }
 
+//最後の添字を取得する.
+function perl_lastindex($array)
+{
+    $p = array_keys($array);
+    return array_pop($p);
+}
+
 //perl の push をエミュレーションする.
 function perl_push($array , $target)
 {
@@ -2806,7 +2813,7 @@ function _insert_path($list , $debug , $in) {
 //    if( not @in ) {
     if ( count($in) == 0 ) {
 //        if( ref($list->[0]) ne 'HASH' ) {
-        if ( is_array($list[0]) ) {
+        if ( !is_array($list[0]) ) {
 //            return [ { '' => undef, $list->[0] => $list } ];
             return [ '__@UNDEF@__'=> NULL , $list[0] => $list ];
 //        }
@@ -2839,13 +2846,13 @@ function _insert_path($list , $debug , $in) {
 //        if( ref($path->[$offset]) eq 'HASH' ) {
         if ( is_array($path[$offset]) ) {
 //            $debug and print "#   at (off=$offset len=@{[scalar @$path]}) ", _dump($path->[$offset]), "\n";
-            if ($debug) { echo "#   at (off=$offset len=".count($path).",". $this->_dump($path[$offset]). "\n"; }
+            if ($debug) { echo "#   at (off=$offset len=".count($path).",". $this->_dump([$path[$offset]]). "\n"; }
 //            my $node = $path->[$offset];
             $node = $path[$offset];
 //            if( exists( $node->{$token} )) {
             if( isset( $node[$token] ) ) {
 //                if ($offset < $#$path) {
-                if ($offset < count($path) ) { //あってる？
+                if ($offset < perl_lastindex($path) ) { 
 //                    my $new = {
 //                        $token => [$token, @in],
 //                        _re_path($self, [$node]) => [@{$path}[$offset..$#$path]],
@@ -2878,11 +2885,12 @@ function _insert_path($list , $debug , $in) {
 //            else {
             else {
 //                $debug and print "#   add path ($token:@{[_dump(\@in)]}) into @{[_dump($path)]} at off=$offset to end=@{[scalar $#$path]}\n";
-                if ($debug) { echo "#   add path ($token:.".$this->_dump($in)." into ".$this->_dump($path)." at off=$offset to end=@".count($path)."\n"; }
+                if ($debug) { echo "#   add path ($token:.".$this->_dump($in)." into ".$this->_dump($path)." at off=$offset to end=".perl_lastindex($path)."\n"; }
 //                if( $offset == $#$path ) {
-                if ( $offset == count($path)  ) {
+                if ( $offset == perl_lastindex($path)  ) {
 //                    $node->{$token} = [ $token, @in ];
-                    $node[$token] = [ $token, $in ];
+//////                    $node[$token] = [ $token, $in ];  //ここもこれだとだめぽ!!!!!!!!!
+                      $path[$offset][$token] = $in;
 //                }
                 }
 //                else {
@@ -2956,15 +2964,12 @@ function _insert_path($list , $debug , $in) {
 //                $path->[$offset] => [@{$path}[$offset..$#{$path}]],
 //            };
             $_temp_path = strlen($token) 
-                ?  [ $this->_node_key($token) => [$token, $in] ]
+////                ?  [ $this->_node_key($token) => [$token, $in] ]  これではダメなんだよなぁ・・・ 
+                ?  [ $this->_node_key($token) => $in ]
                 :  [ '__@UNDEF@__' => NULL ]
             ;
             $_temp_path[ $path[$offset] ] = array_slice($path , $offset);
-            array_splice($path, $offset, count($path)-$offset,$_temp_path);
-
-//var_dump($path);
-//            $path = [ [ "1" => [1 , 2, 3] , "4"=>[4,5,6] ] ];
-//var_dump($path);
+            array_splice($path, $offset, count($path)-$offset, [ $_temp_path ] );
 
 //            $debug and print "#   path=@{[_dump($path)]}\n";
             if ( $debug ){ echo  "#   path=".$this->_dump($path)."\n"; }
@@ -3259,7 +3264,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //    my $self    = shift;
 function _reduce() {
 //    my $context = { debug => $self->_debug(DEBUG_TAIL), depth => 0 };
-    $context = [ 'debug' => $self->_debug(DEBUG_TAIL), 'depth' => 0 ];
+    $context = [ 'debug' => $this->_debug(DEBUG_TAIL), 'depth' => 0 ];
 
 //    if ($self->_debug(DEBUG_TIME)) {
      if ($this->_debug(DEBUG_TIME)) {
@@ -3355,12 +3360,12 @@ function _remove_optional(&$p1) {
 //    my ($path, $ctx) = @_;
 function _reduce_path($path, $ctx) {
 //    my $indent = ' ' x $ctx->{depth};
-    $indent = str_repeat (' ' , $ctx->depth);
+    $indent = str_repeat (' ' , $ctx['depth']);
 //    my $debug  =       $ctx->{debug};
-    $debug  =       $ctx->debug;
+    $debug  =       $ctx['debug'];
 
 //    $debug and print "#$indent _reduce_path $ctx->{depth} ", _dump($path), "\n";
-    if ($debug) { echo "#$indent _reduce_path $ctx->{depth} ", $this->_dump($path), "\n"; }
+    if ($debug) { echo "#$indent _reduce_path {$ctx['depth']} ", $this->_dump($path), "\n"; }
 //    my $new;
     $new = NULL;
 //    my $head = [];
@@ -3466,7 +3471,7 @@ function _reduce_path($path, $ctx) {
 //    }
     }
 //    $debug and print "#$indent _reduce_path $ctx->{depth} out head=", _dump($head), ' tail=', _dump($tail), "\n";
-    if ($debug) { echo "#$indent _reduce_path $ctx->{depth} out head=", $this->_dump($head), ' tail=', $this->_dump($tail), "\n"; }
+    if ($debug) { echo "#$indent _reduce_path {$ctx['depth']} out head=", $this->_dump($head), ' tail=', $this->_dump($tail), "\n"; }
 //    return ($head, $tail);
     return array_merge($head, $tail);
 //}
@@ -3476,13 +3481,13 @@ function _reduce_path($path, $ctx) {
 //    my ($node, $ctx) = @_;
 function _reduce_node($node, $ctx) {
 //    my $indent = ' ' x $ctx->{depth};
-    $indent = str_repeat (' ' , $ctx->depth);
+    $indent = str_repeat (' ' , $ctx['depth']);
 //    my $debug  =       $ctx->{debug};
-    $debug  =       $ctx->debug;
+    $debug  =       $ctx['debug'];
 //    my $optional = _remove_optional($node);
     $optional = $this->_remove_optional($node);
 //    $debug and print "#$indent _reduce_node $ctx->{depth} in @{[_dump($node)]} opt=$optional\n";
-    if ($debug) { echo "#$indent _reduce_node $ctx->{depth} in " . $this->_dump($node) ." opt=$optional\n"; }
+    if ($debug) { echo "#$indent _reduce_node {$ctx['depth']} in " . $this->_dump($node) ." opt=$optional\n"; }
 //    if( $optional and scalar keys %$node == 1 ) {
     if( $optional and count($node) == 1 ) {
 //        my $path = (values %$node)[0];
@@ -3532,7 +3537,7 @@ function _reduce_node($node, $ctx) {
 //        my ($common, $tail) = _do_reduce( $path, _descend($ctx) );
         list ($common, $tail) = $this->_do_reduce( $path, $this->_descend($ctx) );
 //        $debug and print "#$indent|_reduce_node  $ctx->{depth} common=@{[_dump($common)]} tail=", _dump($tail), "\n";
-        if ( $debug ){ echo "#$indent|_reduce_node  $ctx[depth] common=".$this->_dump($common)." tail=", $this->_dump($tail), "\n"; }
+        if ( $debug ){ echo "#$indent|_reduce_node  {$ctx[depth]} common=".$this->_dump($common)." tail=", $this->_dump($tail), "\n"; }
 //        return( $common, $tail );
         return array_merge( $common, $tail );
 //    }
@@ -3625,9 +3630,9 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
 //    my( $node, $ctx ) = @_;
 function _scan_node( $node, $ctx ) {
 //    my $indent = ' ' x $ctx->{depth};
-    $indent = str_repeat (' ' , $ctx->depth);
+    $indent = str_repeat (' ' , $ctx['depth']);
 //    my $debug  =       $ctx->{debug};
-    $debug  =       $ctx->debug;
+    $debug  =       $ctx['debug'];
 
 //    # For all the paths in the node, reverse them. If the first token
 //    # of the path is a scalar, push it onto an array in a hash keyed by
@@ -3804,9 +3809,9 @@ function _scan_node( $node, $ctx ) {
 //    my ($path, $ctx) = @_;
 function _do_reduce($path, $ctx) {
 //    my $indent = ' ' x $ctx->{depth};
-    $indent = str_repeat (' ' , $ctx->depth);
+    $indent = str_repeat (' ' , $ctx['depth']);
 //    my $debug  =       $ctx->{debug};
-    $debug  =       $ctx->debug;
+    $debug  =       $ctx['debug'];
 //    my $ra = Regexp::Assemble->new(chomp=>0);
     $ra = new Regexp_Assemble( [ 'chomp' => 0 ] );
 //    $ra->debug($debug);
@@ -3913,9 +3918,9 @@ function _node_offset($nr) {
 //    my $ctx    = shift;
 function _slide_tail($head,$tail,$path,$ctx) {
 //    my $indent = ' ' x $ctx->{depth};
-    $indent = str_repeat (' ' , $ctx->depth);
+    $indent = str_repeat (' ' , $ctx['depth']);
 //    my $debug  =       $ctx->{debug};
-    $debug  =       $ctx->{debug};
+    $debug  =       $ctx['debug'];
 //    $debug and print "# $indent| slide in h=", _dump($head),
 //        ' t=', _dump($tail), ' p=', _dump($path), "\n";
     if ($debug){ echo "# $indent| slide in h=". $this->_dump($head) . ' t='. $this->_dump($tail). ' p='. $this->_dump($path). "\n"; }
@@ -3970,9 +3975,9 @@ function _slide_tail($head,$tail,$path,$ctx) {
 //    my ($path, $ctx) = @_;
 function _unrev_path($path, $ctx) {
 //    my $indent = ' ' x $ctx->{depth};
-    $indent = str_repeat (' ' , $ctx->depth);
+    $indent = str_repeat (' ' , $ctx['depth']);
 //    my $debug  =       $ctx->{debug};
-    $debug  =       $ctx->debug;
+    $debug  =       $ctx['debug'];
 //    my $new;
     $new = NULL;
 //    if( not grep { ref($_) } @$path ) {
@@ -4014,9 +4019,9 @@ function _unrev_path($path, $ctx) {
 //    my ($node, $ctx ) = @_;
 function _unrev_node($node, $ctx ) {
 //    my $indent = ' ' x $ctx->{depth};
-    $indent = str_repeat (' ' , $ctx->depth);
+    $indent = str_repeat (' ' , $ctx['depth']);
 //    my $debug  =       $ctx->debug;
-    $debug  =       $ctx->debug;
+    $debug  =       $ctx['debug'];
 //    $optional = _remove_optional($node);
     $optional = $this->_remove_optional($node);
 //    $debug and print "# ${indent}unrev node in ", _dump($node), " opt=$optional\n";
@@ -4079,7 +4084,7 @@ function _node_key($node) {
 //    my $ctx = shift;
 function _descend($ctx) {
 //    return {%$ctx, depth => $ctx->{depth}+1};
-    return [ $ctx , 'depth'=> $ctx->depth+1 ];
+    return [ $ctx , 'depth'=> $ctx['depth']+1 ];
 //}
 }
 
@@ -4311,7 +4316,7 @@ function _re_path($_args) {
 //        my $skip = 0;
         $skip = 0;
 //        for my $i (0..$#arr) {
-          for($i = 0 ; $i < count($arr)  ; ++$i) {
+          for($i = 0 ; $i < perl_lastindex($arr)  ; ++$i) {
 //            if (ref($arr[$i]) eq 'ARRAY') {            arrayなのでhashに流す.
 //                $str .= _re_path($self, $arr[$i]);
 //            }
@@ -4341,7 +4346,7 @@ function _re_path($_args) {
 //            }
             }
 //            elsif ($i < $#arr and $arr[$i+1] =~ /\A$arr[$i]\*(\??)\Z/) {
-            else if ($i < count($arr) and preg_match('/\A$arr[$i]\*(\??)\Z/u' , $arr[$i+1] , $pregNum)  ) {
+            else if ($i < perl_lastindex($arr) and preg_match('/\A$arr[$i]\*(\??)\Z/u' , $arr[$i+1] , $pregNum)  ) {
 //                $str .= "$arr[$i]+" . (defined $1 ? $1 : '');
                 $str .= "$arr[$i]+" . ($pregNum[1] ? $pregNum[1] : '');
 //                ++$skip;
@@ -5340,6 +5345,6 @@ __END__
 $a = new Regexp_Assemble();
 $a->debug(255);
 $a->add("123");
-$a->add("456");
+$a->add("145");
 $str = $a->re();
 var_dump($str);
