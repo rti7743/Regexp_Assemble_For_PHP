@@ -2902,8 +2902,7 @@ function _insert_path($list , $debug , $in) {
 //                if( $offset == $#$path ) {
                 if ( $offset == perl_lastindex($path)  ) {
 //                    $node->{$token} = [ $token, @in ];
-//////                    $node[$token] = [ $token, $in ];  //ここもこれだとだめぽ!!!!!!!!!
-                      $path[$offset][$token] = $in;
+                      $path[$offset][$token] = perl_array($token,$in); //nodeを参照にしていないため $path で受ける.
 //                }
                 }
 //                else {
@@ -5358,5 +5357,7 @@ $a = new Regexp_Assemble();
 $a->debug(255);
 $a->add("123");
 $a->add("145");
+$a->add("678");
+$a->add("ABC");
 $str = $a->re();
 var_dump($str);
