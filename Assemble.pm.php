@@ -43,7 +43,8 @@ function perl_push($array , $target)
        return array_merge($array , $target );
     }
     else {
-       return $array[] = $target;
+       $array[] = $target;
+       return $array;
     }
 }
 
@@ -65,6 +66,17 @@ function perl_sort($function , $array = NULL)
        usort($array , $function);
        return $array;
     }
+}
+
+//perl の配列/Array定義のエミュレーション.
+function perl_array($a,$b,$c = NULL){
+    $r = [];
+    $r = perl_push($r , $a);
+    $r = perl_push($r , $b);
+    if ( $c !== NULL) {
+        $r = perl_push($r , $c);
+    }
+    return $r;
 }
 
 
@@ -2829,7 +2841,8 @@ function _insert_path($list , $debug , $in) {
 //    }
     }
 //    while( defined( $token = shift @in )) {
-    foreach($in as $token) {
+    while( $token = array_shift($in) ) {
+
 //        if( ref($token) eq 'HASH' ) {
         if ( is_array($token) ) {
 //            $debug and print "#  p0=", _dump($path), "\n";
@@ -2858,7 +2871,7 @@ function _insert_path($list , $debug , $in) {
 //                        _re_path($self, [$node]) => [@{$path}[$offset..$#$path]],
 //                    };
                     $new = [
-                         $token => [$token, $in],
+                         $token => perl_array($token, $in) ,
                          $this->_re_path($node) => array_slice($path,$offset)
                     ];
 //                    splice @$path, $offset, @$path-$offset, $new;
@@ -2876,7 +2889,7 @@ function _insert_path($list , $debug , $in) {
 //                    $offset = 0;
                     $offset = 0;
 //                    redo;
-                    prev($in); // redoなので $inを進めてはいけないため一つ戻す.
+                    array_unshift($in,$token);  // redoなので $inを進めてはいけないため一つ戻す.
                     continue;
 //                }
                 }
@@ -2964,8 +2977,7 @@ function _insert_path($list , $debug , $in) {
 //                $path->[$offset] => [@{$path}[$offset..$#{$path}]],
 //            };
             $_temp_path = strlen($token) 
-////                ?  [ $this->_node_key($token) => [$token, $in] ]  これではダメなんだよなぁ・・・ 
-                ?  [ $this->_node_key($token) => $in ]
+                ?  [ $this->_node_key($token) => perl_array($token , $in) ]
                 :  [ '__@UNDEF@__' => NULL ]
             ;
             $_temp_path[ $path[$offset] ] = array_slice($path , $offset);
@@ -3305,7 +3317,7 @@ function _reduce() {
 //            @{_unrev_path( $tail, $context )},
 //            @{_unrev_path( $head, $context )},
 //        ];
-        $this->path = array_merge(
+        $this->path = perl_array(
             $this->_unrev_path( $tail, $context ),
             $this->_unrev_path( $head, $context )
         );
@@ -3465,7 +3477,7 @@ function _reduce_path($path, $ctx) {
 //            ($head, $tail, $path) = _slide_tail( $head, $tail, $path, _descend($ctx) );
             list($head, $tail, $path) = $this->_slide_tail( $head, $tail, $path, $this->_descend($ctx) );
 //            $tail = [$tail, @$path];
-            $tail = array_merge($tail, $path);
+            $tail = perl_array($tail, $path);
 //        }
         }
 //    }
@@ -3473,7 +3485,7 @@ function _reduce_path($path, $ctx) {
 //    $debug and print "#$indent _reduce_path $ctx->{depth} out head=", _dump($head), ' tail=', _dump($tail), "\n";
     if ($debug) { echo "#$indent _reduce_path {$ctx['depth']} out head=", $this->_dump($head), ' tail=', $this->_dump($tail), "\n"; }
 //    return ($head, $tail);
-    return array_merge($head, $tail);
+    return perl_array($head, $tail);
 //}
 }
 
@@ -3539,7 +3551,7 @@ function _reduce_node($node, $ctx) {
 //        $debug and print "#$indent|_reduce_node  $ctx->{depth} common=@{[_dump($common)]} tail=", _dump($tail), "\n";
         if ( $debug ){ echo "#$indent|_reduce_node  {$ctx[depth]} common=".$this->_dump($common)." tail=", $this->_dump($tail), "\n"; }
 //        return( $common, $tail );
-        return array_merge( $common, $tail );
+        return perl_array( $common, $tail );
 //    }
     }
 
@@ -3675,7 +3687,7 @@ function _scan_node( $node, $ctx ) {
       $_temp_map = [];
       foreach ( array_keys($node) as $_ ) {
           $_temp_map[] =  join( '|' ,
-               array_merge(
+               perl_array(
                     $this->scalar( perl_grep( function($__){ return is_array($__); } , $node[$_] ) ) , 
                     $this->_node_offset($node[$_]),
                     $node[$_]
@@ -3801,7 +3813,7 @@ function _scan_node( $node, $ctx ) {
     if ( $debug ) { echo 
         "# $indent|_scan_node counts: reduce=@{[scalar keys %reduce]} fail=@{[scalar @fail]}\n"; }
 //    return( \@fail, \%reduce );
-    return array_merge( $fail, $reduce );
+    return perl_array( $fail, $reduce );
 //}
 }
 
@@ -4804,7 +4816,7 @@ function _re_path_pretty($in,$arg) {
 //                else {
                 else {
 //                    $out .= join( "\n$indent|" => ( (sort _re_sort @long), _make_class($self, @short) ));
-                    $out .= join( "\n$indent|" , array_merge( perl_sort( '_re_sort' , $long) , $this->_make_class($short) ) );
+                    $out .= join( "\n$indent|" , perl_array( perl_sort( '_re_sort' , $long) , $this->_make_class($short) ) );
 //                }
                 }
 //                $out .= "\n$pre)";
