@@ -92,6 +92,7 @@ class Regexp_Assemble{
 var $path = [];
 var $debug = 255;
 var $indent = 0;
+var $lex = 0;
 
 var $track = 0;
 var $mutable = 0;
@@ -107,6 +108,7 @@ var $anchor_string_end = 0;
 var $anchor_string_end_absolute = 0;
 var $flags = '';
 var $fold_meta_pairs = 0;
+var $dup_warn = 0;
 
 //use vars qw/$VERSION $have_Storable $Current_Lexer $Default_Lexer $Single_Char $Always_Fail/;
 //$VERSION = '0.35';
@@ -539,7 +541,8 @@ function _fastlex($record){
 //    my $qm     = '';
 	$qm = '';
 
-//    my $debug       = $self->{debug} & DEBUG_LEX;	//skip debug.
+//    my $debug       = $self->{debug} & DEBUG_LEX;
+    $debug       = $this->debug & $this->DEBUG_LEX;
 //    my $unroll_plus = $self->{unroll_plus};
 	$unroll_plus = $this->unroll_plus;
 
@@ -548,7 +551,8 @@ function _fastlex($record){
 //    my $qualifier;
 	$qualifier = NULL;
 
-//    $debug and print "# _lex <$record>\n";	//skip debug.
+//    $debug and print "# _lex <$record>\n";
+    if ( $debug ) { echo "# _lex <$record>\n"; } 
     $debug = 1;
 
 //    my $modifier        = q{(?:[*+?]\\??|\\{(?:\\d+(?:,\d*)?|,\d+)\\}\\??)?};
@@ -567,12 +571,15 @@ function _fastlex($record){
 //    my $matcher = $regular_matcher;
     $matcher = $regular_matcher;
 
+    $stripRecord = $record;
     $pregNum = array(); // $1 $2 などの置き換えに使う.
 
 //    {
-      do{
+      while(1){
 //        if ($record =~ /\G$matcher/gc) {
-          if ( preg_match("/\G{$matcher}/ugc",$record,$pregNum) !== FALSE ){
+          if ( preg_match("/{$matcher}/u",$stripRecord,$pregNum)  ){
+             $stripRecord = str_replace($pregNum[0] ,'' , $stripRecord); // \G なので削る
+
 //           # neither a \\ nor [ nor ( followed by a modifer
 //           if ($1 eq '\\E') {
              if ($pregNum[1] ==  '\\E'){
@@ -617,7 +624,7 @@ function _fastlex($record){
             }
 
 //            if ($unroll_plus and $qualifier =~ s/\A\+(\?)?\Z/*/) {
-            if ($unroll_plus && preg_match('/\A\+(\?)?\Z/u',$qualifier,$pregNum) !== FALSE ){
+            if ($unroll_plus && preg_match('/\A\+(\?)?\Z/u',$qualifier,$pregNum)  ){
                 $qualifier = preg_replace('/\A\+(\?)?\Z/u','*' , $qualifier); //$qualifier =~ を一度にできないため
                 
 //                $1 and $qualifier .= $1;
@@ -645,7 +652,7 @@ function _fastlex($record){
 //                    :                   $token.$qualifier
 //                    ;
                   $path[] = ( $case == 'L' ? strtolower($token).$qualifier 
-                          : ($case == 'U' ? strtoupper($token).$qualifier 
+                          : ( $case == 'U' ? strtoupper($token).$qualifier 
                           : $token.$qualifier
                           ) 
                   );
@@ -656,13 +663,16 @@ function _fastlex($record){
 //        }
         }
 //        elsif ($record =~ /\G\\/gc) {
-        else if (preg_match("/\G\\/ugc",$record)){
+        else if (preg_match("/\\/u",$stripRecord , $pregNum )){
+            $stripRecord = str_replace($pregNum[0] ,'' , $stripRecord); // \G なので削る
+
 //            $debug and print "#  backslash\n";
             if ($debug){ echo "#  backslash\n"; }
 
 //            # backslash
 //            if ($record =~ /\G([sdwSDW])($modifier)/gc) {
-              if (preg_match("/\G([sdwSDW])($modifier)/ugc",$record,$pregNum)){
+              if (preg_match("/([sdwSDW])($modifier)/u",$stripRecord,$pregNum)){
+                $stripRecord = str_replace($pregNum[0] ,'' , $stripRecord); // \G なので削る
 
 //                ($token, $qualifier) = ($1, $2);
                 list($token, $qualifier) = $pregNum;
@@ -685,7 +695,9 @@ function _fastlex($record){
 //            }
             }
 //            elsif ($record =~ /\Gx([\da-fA-F]{2})($modifier)/gc) {
-             else if (preg_match("/\Gx([\da-fA-F]{2})($modifier)/ugc",$record,$pregNum)){
+             else if (preg_match("/x([\da-fA-F]{2})($modifier)/u",$stripRecord,$pregNum)){
+                $stripRecord = str_replace($pregNum[0] ,'' , $stripRecord); // \G なので削る
+
 //                $debug and print "#   x $1\n";
                 if ($debug){ echo "#   x $1\n"; }
 
@@ -719,7 +731,9 @@ function _fastlex($record){
 //            }
             }
 //            elsif ($record =~ /\GQ/gc) {
-            else if (preg_match("/\GQ/ugc" ,$record) ){
+            else if (preg_match("/Q/u" ,$stripRecord , $pregNum) ){
+                $stripRecord = str_replace($pregNum[0] ,'' , $stripRecord); // \G なので削る
+
 //                $debug and print "#   Q\n";
                 if ($debug){	echo "#   Q\n";	}
 //                $qm = 1;
@@ -729,7 +743,9 @@ function _fastlex($record){
 //            }
             }
 //            elsif ($record =~ /\G([LU])/gc) {
-            else if (preg_match("/\G([LU])/ugc" ,$record ,$pregNum ) ){
+            else if (preg_match("/([LU])/u" ,$stripRecord ,$pregNum ) ){
+                $stripRecord = str_replace($pregNum[0] ,'' , $stripRecord); // \G なので削る
+
 //                $debug and print "#   case $1\n";
                 if ($debug){	echo "#   case $1\n";	}
 //                $case = $1;
@@ -737,7 +753,9 @@ function _fastlex($record){
 //            }
             }
 //            elsif ($record =~ /\GE/gc) {
-            else if (preg_match("/\GE/ugc" ,$record )){
+            else if (preg_match("/E/u" ,$stripRecord ,$pregNum)){
+                $stripRecord = str_replace($pregNum[0] ,'' , $stripRecord); // \G なので削る
+
 //                $debug and print "#   E\n";
                 if ($debug){	echo "#   E\n";	}
 //                $case = $qm = '';
@@ -747,7 +765,9 @@ function _fastlex($record){
 //            }
             }
 //            elsif ($record =~ /\G([lu])(.)/gc) {
-            else if (preg_match("/\G([lu])(.)/ugc" ,$record ,$pregNum)){
+            else if (preg_match("/([lu])(.)/u" ,$stripRecord ,$pregNum)){
+                $stripRecord = str_replace($pregNum[0] ,'' , $stripRecord); // \G なので削る
+
 //                $debug and print "#   case $1 to <$2>\n";
                 if ($debug){	echo "#   case $1 to <$2>\n";	}
 //                push @path, $1 eq 'l' ? lc($2) : uc($2);
@@ -755,7 +775,11 @@ function _fastlex($record){
 //            }
             }
 //            elsif (my @arg = grep {defined} $record =~ /\G$misc_matcher/gc) {
-            else if ( preg_match("/\G$misc_matcher/ugc",$record , $args) ){
+            else if ( preg_match("/$misc_matcher/u",$stripRecord , $stripRecord) ){
+                $stripRecord = str_replace($pregNum[0] ,'' , $stripRecord); // \G なので削る
+
+                $arg = perl_grep( function($_){ return $_ !== ''; }  , array_slice($pregNum , 1) );
+
 //                if ($] < 5.007) {   //skip old version
 //                    my $len = 0;
 //                    $len += length($_) for @arg;
@@ -763,14 +787,14 @@ function _fastlex($record){
 //                    pos($record) = pos($record) + $len;
 //                }
 //                my $directive = shift @arg;
-                $directive = array_shift($args);
+                $directive = array_shift($arg);
 //                if ($directive eq 'c') {
                 if ($directive == 'c'){
 //                    $debug and print "#  ctrl <@arg>\n";
                     if ($debug){	echo "#  ctrl <@arg>\n";	}
 //                    push @path, "\\c" . uc(shift @arg);
                     $path[] = "\\c";
-                    $path[] = strtoupper(array_shift($args));
+                    $path[] = strtoupper(array_shift($arg));
 //                }
                 }
 //                else { # elsif ($directive eq '0') {
@@ -779,7 +803,7 @@ function _fastlex($record){
                     if ($debug){	echo "#  octal <@arg>\n";	}
 
 //                    my $ascii = oct(shift @arg);
-                    $ascii = decoct(array_shift($args));
+                    $ascii = decoct(array_shift($arg));
 
 //                    push @path, ($ascii < 32)
 //                        ? "\\c" . chr($ascii+64)
@@ -798,7 +822,9 @@ function _fastlex($record){
                 continue;
             }
 //            elsif ($record =~ /\G(.)/gc) {
-            else if ( preg_match("/\G(.)/ugc" , $record, $pregNum) ){
+            else if ( preg_match("/(.)/u" , $stripRecord, $pregNum) ){
+                $stripRecord = str_replace($pregNum[0] ,'' , $stripRecord); // \G なので削る
+
 //                $token = $1;
                 $token = $pregNum[1];
 //                $token =~ s{[AZabefnrtz\[\]{}()\\\$*+.?@|/^]}{\\$token};
@@ -820,7 +846,9 @@ function _fastlex($record){
 //        }
         }
 //        elsif ($record =~ /\G($class_matcher)($modifier)/gc) {
-        else if ( preg_match("/\G($class_matcher)($modifier)/ugc",$record,$pregNum) ){
+        else if ( preg_match("/($class_matcher)($modifier)/u",$stripRecord,$pregNum) ){
+                $stripRecord = str_replace($pregNum[0] ,'' , $stripRecord); // \G なので削る
+
 //            # [class] followed by a modifer
 //            my $class     = $1;
             $class     = $pregNum[1];
@@ -859,7 +887,9 @@ function _fastlex($record){
 //        }
         }
 //        elsif ($record =~ /\G($paren_matcher)/gc) {
-        else if (preg_match("/\G($paren_matcher)/ugc",$record , $pregNum) ){
+        else if (preg_match("/($paren_matcher)/u",$stripRecord , $pregNum) ){
+             $stripRecord = str_replace($pregNum[0] ,'' , $stripRecord); // \G なので削る
+
 //            $debug and print "#  paren <$1>\n";
              if ($debug){	echo "#  paren <{$pregNum[1]}>\n";	}
 //            # (paren) followed by a modifer
@@ -872,7 +902,7 @@ function _fastlex($record){
 
 //     }
         break;
-     }while(0); //redo に対抗するための擬似ループ
+     } //redo に対抗するための擬似ループ
 
     return $path;
 }
@@ -909,7 +939,7 @@ function _lex($record){
     $pregNum = array();	//$1 とかのために使う.
 
 //    while( $record =~ /($re)/g ) {
-      while( preg_match("/($re)/ug" , $record , $pregNum) ){
+      while( preg_match("/($re)/u" , $record , $pregNum) ){
 //        $token = $1;
         $token = $pregNum[1];
 //        $token_len = length($token);
@@ -1047,7 +1077,7 @@ function _lex($record){
 //    }
     }
 //    if( $len < length($record) ) {
-    if( $len < length($record) ) {
+    if( $len < strlen($record) ) {
 //        # NB: the remainder only arises in the case of degenerate lexer,
 //        # and if \Q is operative, the lexer will have been switched to
 //        # /\\?./, which means there can never be a remainder, so we
@@ -2047,13 +2077,9 @@ to the object in question, and the lexed pattern.
 */
 //sub dup_warn {
 //    my $self = shift;
-function dup_warn($p = 1) {
 //    $self->{dup_warn} = defined($_[0]) ? $_[0] : 1;
-    $this->dup_warn = $p1;
 //    return $self;
-    return $this;
 //}
-}
 /*
 =back
 
@@ -2600,13 +2626,9 @@ You can examine the C<eg/naive> script as a starting point.
 */
 //sub lex {
 //    my $self = shift;
-function lex($lex) {
 //    $self->{lex} = qr($_[0]);
-    $this->lex = $lex;
 //    return $self;
-    return $this;
 //}
-}
 /*
 =item reduce(0|1)
 
@@ -5356,13 +5378,20 @@ __END__
 
 $a = new Regexp_Assemble();
 $a->debug(255);
-$a->add("123");
-$a->add("145");
-$a->add("678");
-$a->add("ABC");
-$a->add("ADE");
-$a->add("ABN");
-$a->add("こいよベネット");
-$a->add("こいよアグネス");
+//$a->add("123");
+//$a->add("145");
+//$a->add("678");
+//$a->add("ABC");
+//$a->add("ADE");
+//$a->add("ABN");
+//$a->add("こいよベネット");
+//$a->add("こいよアグネス");
+
+$a->add( 'ab+c' );
+$a->add( 'ab+-' );
+$a->add( 'a\w\d+' );
+$a->add( 'a\d+' );
+//  print $ra->re; # prints a(?:\w?\d+|b+[-c])
+
 $str = $a->re();
 var_dump($str);
