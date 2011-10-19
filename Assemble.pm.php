@@ -1252,6 +1252,7 @@ function _insertr() {
 //    my $dup    = $self->{stats_dup} || 0;
     $args = func_get_args();
     $dup    = isset($this->stats_dup) ? $this->stats_dup : 0;
+
 //    $self->{path} = $self->_insert_path( $self->_path, $self->_debug(DEBUG_ADD), $_[0] );
     $this->path = $this->_insert_path( $this->path, $this->_debug($this->DEBUG_ADD), $args[0] );
 
@@ -2885,12 +2886,11 @@ function _insert_path($list , $debug , $in) {
 //                    $debug and print "#   descend key=$token @{[_dump($node->{$token})]}\n";
                     if ( $debug ) { echo "#   descend key=$token .".$this->_dump($node[$token])."\n"; }
 //                    $path   = $node->{$token};
-                    $path   = $node[$token];
 //                    $offset = 0;
-                    $offset = 0;
 //                    redo;
-                    array_unshift($in,$token);  // redoなので $inを進めてはいけないため一つ戻す.
-                    continue;
+                    //オリジナルは参照を使って実装しているが、再起を使って実装してみる。
+                    $path[$offset][$token] = $this->_insert_path( $path[$offset][$token] , $debug , perl_array($token, $in) ) ;
+                    return $path;
 //                }
                 }
 //            }
@@ -2903,6 +2903,7 @@ function _insert_path($list , $debug , $in) {
                 if ( $offset == perl_lastindex($path)  ) {
 //                    $node->{$token} = [ $token, @in ];
                       $path[$offset][$token] = perl_array($token,$in); //nodeを参照にしていないため $path で受ける.
+                    if ($debug) { echo "#   offset({$offset}) eq lastindex=".perl_lastindex($path)." path=".$this->_dump($path)."\n"; }
 //                }
                 }
 //                else {
@@ -5359,5 +5360,9 @@ $a->add("123");
 $a->add("145");
 $a->add("678");
 $a->add("ABC");
+$a->add("ADE");
+$a->add("ABN");
+$a->add("こいよベネット");
+$a->add("こいよアグネス");
 $str = $a->re();
 var_dump($str);
