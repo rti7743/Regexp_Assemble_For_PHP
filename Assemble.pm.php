@@ -3584,7 +3584,7 @@ function _reduce_node($node, $ctx) {
 //        my ($common, $tail) = _do_reduce( $path, _descend($ctx) );
         list ($common, $tail) = $this->_do_reduce( $path, $this->_descend($ctx) );
 //        $debug and print "#$indent|_reduce_node  $ctx->{depth} common=@{[_dump($common)]} tail=", _dump($tail), "\n";
-        if ( $debug ){ echo "#$indent|_reduce_node  {$ctx[depth]} common=".$this->_dump($common)." tail=", $this->_dump($tail), "\n"; }
+        if ( $debug ){ echo "#$indent|_reduce_node  {$ctx['depth']} common=".$this->_dump($common)." tail=", $this->_dump($tail), "\n"; }
 //        return( $common, $tail );
         return array( $common, $tail );
 //    }
@@ -3627,15 +3627,15 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
 //            $path = $path->[0];
             $path = $path[0];
 //            $debug and print "#$indent| -simple opt=$optional unrev @{[_dump($path)]}\n";
-            if ( $debug ) { print "#$indent| -simple opt=$optional unrev ".$this->_dump($path)."\n"; }
+            if ( $debug ) { echo "#$indent| -simple opt=$optional unrev ".$this->_dump($path)."\n"; }
 //            $path = _unrev_path($path, _descend($ctx) );
             $path = $this->_unrev_path($path, $this->_descend($ctx) );
 //            $debug and print "#$indent| -simple opt=$optional unrev return @{[_dump($path)]}\n";
-            if ( $debug ) { print "#$indent| -simple opt=$optional unrev return".$this->_dump($path)."\n"; }
+            if ( $debug ) { echo "#$indent| -simple opt=$optional unrev return".$this->_dump($path)."\n"; }
 //            $result{_node_key($path->[0])} = $path;
             $result[ $this->_node_key($path[0]) ] = $path;
 //            $debug and print "#$indent| -simple opt=$optional result: @{[_dump($result)]}\n";
-            if ( $debug ) { print "#$indent| -simple opt=$optional result: ".$this->_dump($result)."\n"; }
+            if ( $debug ) { echo "#$indent| -simple opt=$optional result: ".$this->_dump($result)."\n"; }
 //        }
         }
 //        else {
@@ -4065,7 +4065,7 @@ function _unrev_path($path, $ctx) {
 //        $new = [reverse @$path];
         $new = array_reverse($path);
 //        $debug and print "#  -> ", _dump($new), "\n";
-        if ($debug){ echo print "#  -> ". $this->_dump($new). "\n" ; }
+        if ($debug){ echo "#  -> ". $this->_dump($new). "\n" ; }
 
 //        return $new;
         return $new;
