@@ -1104,6 +1104,10 @@ function _lex($record){
     }
 //    $debug and print "# _lex out <@path>\n";
     if ($debug){ echo "# _lex out <@path>\n"; }
+    
+    
+    die;
+    
 //    return \@path;
     return $path;
 //}
@@ -2840,7 +2844,7 @@ function _insert_path($list , $debug , $in) {
 //        else {
         else {
 //            return \@in;
-            return $in;
+            return $in;  /////要注意
 //        }
         }
 //    }
@@ -3601,6 +3605,7 @@ function _reduce_node($node, $ctx) {
 //sub _reduce_fail {
 //    my( $reduce, $fail, $optional, $ctx ) = @_;
 function _reduce_fail($reduce, $fail, $optional, $ctx) {
+
 //    my( $debug, $depth, $indent ) = @{$ctx}{qw(debug depth indent)};
     $debug  = $ctx['debug'];
     $depth  = $ctx['depth'];
@@ -3668,9 +3673,10 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
         }
 //    }
     }
+
 //    my $f;
 //    for $f( @$fail ) {
-    foreach($fail as $f )  {
+    foreach( $fail as $f )  {
 //        $debug and print "#$indent| +fail @{[_dump($f)]}\n";
         if ( $debug ) { echo "#$indent| +fail ".$this->_dump($f)."\n"; }
 //        $result{$f->[0]} = $f;
@@ -3809,12 +3815,16 @@ function _scan_node( $node, $ctx ) {
             else {
 //                my( $common, $tail ) = _reduce_node( $end, _descend($ctx) );
                 list( $common, $tail ) = $this->_reduce_node( $end, $this->_descend($ctx) );
-//                    if( not @$common ) {
-                    if( ! count($common) ) {
-//                    $debug and print "# $indent| +failed $n\n";
-                    if ( $debug ) { echo  "# $indent| +failed $n\n"; }
-//                    push @fail, [reverse(@path), $tail];
-                    $fail = perl_push( $fail, perl_array( array_reverse($path), $tail ) );
+                if ( $debug ) { echo "# $indent|_scan_node  tail= ", $this->_dump($tail), "\n"; }
+//                if( not @$common ) {
+                if( ! count($common) ) {
+//                       $debug and print "# $indent| +failed $n\n";
+                       if ( $debug ) { echo  "# $indent| +failed $n\n"; }
+//                       push @fail, [reverse(@path), $tail];
+                       if ( $debug ) { echo "# $indent|_scan_node push before fail=", $this->_dump($fail), "\n"; }
+///////                       $fail = perl_push( $fail, perl_array( array_reverse($path), $tail ) );   //腑に落ちないが [$tail] とネストするらしい？
+                       $fail = perl_push( $fail, perl_array( array_reverse($path), [$tail] ) ); 
+                       if ( $debug ) { echo "# $indent|_scan_node push after fail=", $this->_dump($fail), "\n"; }
 //                }
                 }
 //                else {
@@ -3864,9 +3874,15 @@ function _scan_node( $node, $ctx ) {
 //    $debug and print
 //        "# $indent|_scan_node counts: reduce=@{[scalar keys %reduce]} fail=@{[scalar @fail]}\n";
     if ( $debug ) { echo 
-        "# $indent|_scan_node counts: reduce=". count($reduce) ." fail=" . count($fail) . "\n"; }
+        "# $indent|_scan_node counts: reduce=". count($reduce) ." fail=" . count($fail) . " dump reduce:" . $this->_dump($reduce)." dump fail:" . $this->_dump($fail)." dump fail2:" . $this->_dump([$fail]). "\n"; }
 //    return( \@fail, \%reduce );
-    return array( $fail, $reduce );
+/////////    return array( $fail , $reduce );
+    if ( count($fail) > 0 )
+    {   // よくわからないけど \@されると [] が一つネストするらしい？ なんで？
+        //ただし、配列がからの場合は増やしてはいけない。
+        $fail = [ $fail ];
+    }
+    return array( $fail , $reduce );  
 //}
 }
 
@@ -4366,9 +4382,9 @@ function _combine_new($args) {
         return '(?:'
             . join( '|' ,
                 count($short) > 1
-                    ? perl_push( 
+                    ? perl_array( 
                           $this->_make_class($short), perl_sort( '_re_sort' , $long) )
-                    : perl_push( 
+                    : perl_array( 
                           perl_sort( '_re_sort' ,$long) , $short )
             )
         . ')';
@@ -5442,12 +5458,12 @@ $a = new Regexp_Assemble();
 $a->debug(255);
 echo $a->_dump( ['A' => [ 'X','Y','Z'],'1' => [ '4','5','6'] ] );
 
-$a->add("123");
+//$a->add("123");
 $a->add("ABC");
 //$a->add("678");
-//$a->add("ABC");
-//$a->add("ADE");
-//$a->add("ABN");
+$a->add("ABC");
+$a->add("ADE");
+$a->add("ABN");
 //$a->add("こいよベネット");
 //$a->add("こいよアグネス");
 
