@@ -9,7 +9,7 @@ perl のルーチンと1行づつ対訳をやっています。
 */
 
 //sub _re_sort {
-function _re_sort($a,$b) {
+function _re_sort( $a, $b) {
 //    return length $b <=> length $a || $a cmp $b
     $_temp_len_a = count($a);
     $_temp_len_b = count($b);
@@ -18,6 +18,9 @@ function _re_sort($a,$b) {
     }
     else if ( $_temp_len_b < $_temp_len_a ) {
         return -1;
+    }
+    if (!is_array($a) && !is_array($b)) {
+        return $a  < $b ? 1 : ($a  > $b ? 1 : 0);
     }
 
     // $a == $b
@@ -30,14 +33,14 @@ function _re_sort($a,$b) {
 }
 
 //最後の添字を取得する.
-function perl_lastindex($array)
+function perl_lastindex(array $array)
 {
     $p = array_keys($array);
     return array_pop($p);
 }
 
 //perl の push をエミュレーションする.
-function perl_push($array , $target)
+function perl_push(array $array , $target)
 {
     if ( is_array($target) ){
        return array_merge($array , $target );
@@ -50,7 +53,11 @@ function perl_push($array , $target)
 
 //perlのgrepに相当する関数
 //array_filter って array_map とコールバックが逆なんで統一しておく。めんどいから。
-function perl_grep($function , $array) {
+function perl_grep($function ,array $array) {
+    if ( ! is_array($array) )
+    {
+    	return [];
+    }
     return array_filter($array , $function);
 }
 
@@ -78,21 +85,6 @@ function perl_array($a,$b,$c = NULL){
     }
     return $r;
 }
-
-//配列を反転させる.
-function perl_array_reverse(array $target)
-{
-    $ret = [];
-    $keys = array_keys($target);
-    $revkeys = array_reverse($keys);
-    $max = count($keys);
-    
-    for($i = 0 ; $i < $max ; ++$i) {
-        $ret[$revkeys[$i]] = $target[$keys[$i]];
-    }
-    return $ret;
-}
-
 
 /*
 # Regexp::Assemple.pm
@@ -415,7 +407,7 @@ function __constructor($args) {
     }
 //    $args{lex}     = $Current_Lexer if defined $Current_Lexer;
     if ( isset($this->Current_Lexer) ){
-        $args{lex}     = $this->Current_Lexer;
+        $args['lex']     = $this->Current_Lexer;
     }
 
 //    my $self = bless \%args, $class;    //class
@@ -568,7 +560,6 @@ function _fastlex($record){
 
 //    $debug and print "# _lex <$record>\n";
     if ( $debug ) { echo "# _lex <$record>\n"; } 
-    $debug = 1;
 
 //    my $modifier        = q{(?:[*+?]\\??|\\{(?:\\d+(?:,\d*)?|,\d+)\\}\\??)?};
     $modifier        = '(?:[*+?]\\\\??|\\\\{(?:\\\\d+(?:,\d*)?|,\d+)\\\\}\\\\??)?';
@@ -3398,6 +3389,7 @@ skip debug
 
 //sub _remove_optional {
 function _remove_optional(&$p1) {
+
 //    if( exists $_[0]->{''} ) {
     if( isset($p1['__@UNDEF@__']) ) {
 //        delete $_[0]->{''};
@@ -3430,10 +3422,10 @@ function _reduce_path($path, $ctx) {
     $tail = [];
 //    while( defined( my $p = pop @$path )) {
     while( $p = array_pop($path) ) {
+         if ($debug) { echo "#$indent _reduce_path now path:",  $this->_dump($path), " p:",  $this->_dump($p), "\n"; }
+
 //        if( ref($p) eq 'HASH' ) {
         if( is_array($p) ) {
-/////////////            $p = [ $p ]; //とりあえず・・うーん。。。 HAHAHAHA
-
 //            my ($node_head, $node_tail) = _reduce_node($p, _descend($ctx) );
             list ($node_head, $node_tail) = $this->_reduce_node($p, $this->_descend($ctx) );
 //            $debug and print "#$indent| head=", _dump($node_head), " tail=", _dump($node_tail), "\n";
@@ -3444,12 +3436,8 @@ function _reduce_path($path, $ctx) {
             }
 //            push @$tail, ref($node_tail) eq 'HASH' ? $node_tail : @$node_tail;
 //ここあんまり自信がない.
-            if ( is_array($node_tail) ) {
-                 $tail = perl_push($tail ,$node_tail );
-            }
-            else {
-                 $tail = perl_push($tail , [ $node_tail ] );
-            }
+            $tail = perl_push($tail ,[ $node_tail ] );
+
 //        }
         }
 //        else {
@@ -3542,7 +3530,7 @@ function _reduce_node($node, $ctx) {
     $indent = str_repeat (' ' , $ctx['depth']);
 //    my $debug  =       $ctx->{debug};
     $debug  =       $ctx['debug'];
-    
+
 //    my $optional = _remove_optional($node);
     $optional = $this->_remove_optional($node);
 //    $debug and print "#$indent _reduce_node $ctx->{depth} in @{[_dump($node)]} opt=$optional\n";
@@ -3569,7 +3557,7 @@ function _reduce_node($node, $ctx) {
 //            $debug and print "#$indent| fast fail @{[_dump($result)]}\n";
             if ( $debug ){ echo "#$indent| fast fail ".$this->_dump($result)."\n"; }
 //            return [], $result;
-            return $result;
+            return array([] ,$result);
 //        }
         }
 //    }
@@ -3598,7 +3586,7 @@ function _reduce_node($node, $ctx) {
 //        $debug and print "#$indent|_reduce_node  $ctx->{depth} common=@{[_dump($common)]} tail=", _dump($tail), "\n";
         if ( $debug ){ echo "#$indent|_reduce_node  {$ctx[depth]} common=".$this->_dump($common)." tail=", $this->_dump($tail), "\n"; }
 //        return( $common, $tail );
-        return perl_array( $common, $tail );
+        return array( $common, $tail );
 //    }
     }
 
@@ -3620,28 +3608,34 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
 //    my %result;
     $result = [];
 //    $result{''} = undef if $optional;
-    if (!$optional) {
+    if ($optional) {
         $result['__@UNDEF@__'] = NULL;
     }
-    
-    var_dump($reduce);
-    
+
+    if ( $debug ) { echo "#$indent| _reduce_fail1 start reduce:" . $this->_dump($reduce)." result:"  . $this->_dump($result) . "\n"; }
+
 //    my $p;
 //    for $p (keys %$reduce) {
     foreach(array_keys($reduce) as $p ){
 //        my $path = $reduce->{$p};
         $path = $reduce[$p];
 
+        if ( $debug ) { echo "#$indent| _reduce_fail1 path:" . $this->_dump($path)." key: " . $this->_dump($p) . "\n"; }
+        
 //        if( scalar @$path == 1 ) {
-        if( count($path) == 1 ) {
+        if( 1 ) { //とりあえずこれで勘弁して。
 //            $path = $path->[0];
             $path = $path[0];
 //            $debug and print "#$indent| -simple opt=$optional unrev @{[_dump($path)]}\n";
             if ( $debug ) { print "#$indent| -simple opt=$optional unrev ".$this->_dump($path)."\n"; }
 //            $path = _unrev_path($path, _descend($ctx) );
             $path = $this->_unrev_path($path, $this->_descend($ctx) );
+//            $debug and print "#$indent| -simple opt=$optional unrev return @{[_dump($path)]}\n";
+            if ( $debug ) { print "#$indent| -simple opt=$optional unrev return".$this->_dump($path)."\n"; }
 //            $result{_node_key($path->[0])} = $path;
             $result[ $this->_node_key($path[0]) ] = $path;
+//            $debug and print "#$indent| -simple opt=$optional result: @{[_dump($result)]}\n";
+            if ( $debug ) { print "#$indent| -simple opt=$optional result: ".$this->_dump($result)."\n"; }
 //        }
         }
 //        else {
@@ -3658,14 +3652,14 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
 //                ),
 //                @{_unrev_path($common, _descend($ctx) )}
 //            ];
-            $path = [
+            $path = perl_array(
                 (
                     is_array($tail)
                         ? $this->_unrev_node($tail, $this->_descend($ctx) )
                         : $this->_unrev_path($tail, $this->_descend($ctx) )
                 ),
                 $this->_unrev_path($common, $this->_descend($ctx) )
-            ];
+            );
 //            $debug and print "#$indent| +reduced @{[_dump($path)]}\n";
             if ( $debug ) { echo  "#$indent| +reduced ".$this->_dump($path)."\n"; }
 //            $result{_node_key($path->[0])} = $path;
@@ -3685,7 +3679,7 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
 //    $debug and print "#$indent _reduce_fail $depth fail=@{[_dump(\%result)]}\n";
     if ( $debug ){ echo "#$indent _reduce_fail $depth fail=".$this->_dump($result)."\n"; }
 //    return ( [], \%result );
-    return $result;
+    return array( [] , $result);
 //}
 }
 
@@ -3737,12 +3731,13 @@ function _scan_node( $node, $ctx ) {
 
       $_temp_map = [];
       foreach ( array_keys($node) as $_ ) {
+
           $_temp_map[] =  join( '|' ,
-               perl_array(
-                    count( perl_grep( function($__){ return is_array($__); } , $node[$_] ) ) , 
+               [
+                    count( perl_grep( function($__){ return is_array($__); } ,$node[$_]  ) ) , 
                     $this->_node_offset($node[$_]),
                     count($node[$_])
-               )
+               ]
           ) . '#'. $_;   //#は区切り文字 マークする。  いわいる番兵的存在
       }
 
@@ -3762,7 +3757,8 @@ function _scan_node( $node, $ctx ) {
             if ($debug) { echo "# $indent|_scan_node push reduce ($end:".$this->_dump($path).")\n"; }
 //            push @{$reduce{$end}}, [ $end, @path ];
             if (!isset($reduce[$end])) $reduce[$end] = [];
-            $reduce[$end] = perl_push( $reduce[$end] , [ $end, $path ] );
+///////            $reduce[$end] = perl_push( $reduce[$end] , perl_array( $end, $path ) );
+            $reduce[$end] = perl_push( $reduce[$end] , [perl_array( $end, $path ) ] ); //配列がひとつネストするらしい？
 //        }
         }
 //        else {
@@ -3781,7 +3777,7 @@ function _scan_node( $node, $ctx ) {
                     list($key, $opt_path) = each($end);
                 }
 //                $opt_path = [reverse @{$opt_path}];
-                $opt_path = [ array_reverse($opt_path) ];
+                $opt_path =  array_reverse($opt_path) ;
 //                $debug and print "# $indent| check=", _dump($opt_path), "\n";
                 if ($debug) { echo "# $indent| check=", _dump($opt_path), "\n"; }
 //                my $end = { '' => undef, $opt_path->[0] => [@$opt_path] };
@@ -3795,7 +3791,7 @@ function _scan_node( $node, $ctx ) {
 //                if( @$head ) {
                 if( count($head) ) {
 //                    $new_path = [ @$head, $slide, @$path ];
-                    $new_path = [ $head, $slide, $path ];
+                    $new_path = perl_array( $head, $slide, $path );
 //                }
                 }
 //            }
@@ -3818,7 +3814,7 @@ function _scan_node( $node, $ctx ) {
 //                    $debug and print "# $indent| +failed $n\n";
                     if ( $debug ) { echo  "# $indent| +failed $n\n"; }
 //                    push @fail, [reverse(@path), $tail];
-                    $fail = perl_push( $fail, [ array_reverse($path), $tail ] );
+                    $fail = perl_push( $fail, perl_array( array_reverse($path), $tail ) );
 //                }
                 }
 //                else {
@@ -3850,11 +3846,11 @@ function _scan_node( $node, $ctx ) {
 //                    ];
                     if (!isset($reduce[$common[0]])) $reduce[$common[0]] = [];
                     $reduce[$common[0]] = perl_push( $reduce[$common[0]], 
-                        [
+                        perl_array(
                           $common , 
                           $tail , 
                           $path
-                        ]
+                        )
                     );
 //                }
                 }
@@ -3948,7 +3944,7 @@ function _do_reduce($path, $ctx) {
     $common = [];
 //    push @$common, shift @$path while( ref($path->[0]) ne 'HASH' );
 //これでいいんかな？
-    while( is_array($path[0]) ) {
+    while( count($path) > 0 && !is_array($path[0]) ) {
         $common = perl_push($common, array_shift($path));
     }
 
@@ -3966,12 +3962,15 @@ function _do_reduce($path, $ctx) {
 //    # return the offset that the first node is found, or -ve
 //    # optimised for speed
 //    my $nr = @{$_[0]};
-function _node_offset(array $nr) {
+function _node_offset($nr) {
 //    my $atom = -1;
 //    ref($_[0]->[$atom]) eq 'HASH' and return $atom while ++$atom < $nr;
 
     //PHPは -1 で最後の要素にアクセスできないため
     //ふつーにやる.
+    if (!is_array($nr)){
+        return -1;
+    }
 
     //最初に終端を調べるらしい
     $_temp_lastindex = perl_lastindex($nr);
@@ -4062,9 +4061,9 @@ function _unrev_path($path, $ctx) {
 //    if( not grep { ref($_) } @$path ) {
     if (count($path) > 0) {
 //        $debug and print "# ${indent}_unrev path fast ", _dump($path);
-        if ($debug){ echo "# ${indent}_unrev path fast ". $this->_dump($path) ; }
+        if ($debug){ echo "# {$indent}_unrev path fast ". $this->_dump($path) ; }
 //        $new = [reverse @$path];
-        $new = [ array_reverse($path) ];
+        $new = array_reverse($path);
 //        $debug and print "#  -> ", _dump($new), "\n";
         if ($debug){ echo print "#  -> ". $this->_dump($new). "\n" ; }
 
@@ -4132,6 +4131,7 @@ function _unrev_node($node, $ctx ) {
 function _node_key($node) {
 //    return _node_key($node->[0]) if ref($node) eq 'ARRAY';
 //    return $node unless ref($node) eq 'HASH';
+
     if ( !is_array($node) ){
        return $node;
     }
@@ -4974,36 +4974,20 @@ function _pretty_dump($p) {
 
 //sub _dump {
 //    my $path = shift;
-function _dump($path) {
 //    return _dump_node($path) if ref($path) eq 'HASH';
 //    my $dump = '[';
-    $dump = '[';
 //    my $d;
-    $d = NULL;
 //    my $nr = 0;
-    $nr = 0;
-    
-    if ( ! is_array( $path ) ) {
-        $path = [ $path ];
-    }
-
 //    for $d( @$path ) {
-    foreach($path as $d) {
+//    foreach($path as $d) {
 //        $dump .= ' ' if $nr++;
-        if ($nr++) {
-            $dump .= ' ';
-        }
 //        if( ref($d) eq 'HASH' ) {
-        if( is_array($d) ) {
 //            $dump .= _dump_node($d);
-            $dump .= $this->_dump_node($d);
 //        }
-        }
 //        elsif( ref($d) eq 'ARRAY' ) {   //skip
 //            $dump .= _dump($d);         //skip
 //        }                               //skip
 //        elsif( defined $d ) {
-        else if ($d) {
 //            # D::C indicates the second test is redundant
 //            # $dump .= ( $d =~ /\s/ or not length $d )
 //            $dump .= (
@@ -5011,50 +4995,21 @@ function _dump($path) {
 //                $d =~ /^[\x00-\x1f]$/ ? _pretty_dump($d) :
 //                $d
 //            );
-            if ( preg_match('/\s/u' , $d) ) {
-                $dump .= "'{$d}'";
-            }
-            else if ( preg_match('/^[\x00-\x1f]$/u' , $d) ) {
-                $dump .= $this->_pretty_dump($d);
-            }
-            else {
-               $dump .= $d;
-            }
 //        }
-        }
 //        else {
-        else {
 //            $dump .= '*';
-            $dump .= '*';
 //        }
-        }
 //    }
-    }
 //    return $dump . ']';
-    return $dump . ']';
 //}
-}
 
 //sub _dump_node {
 //    my $node = shift;
-function _dump_node($node) {
 //    my $dump = '{';
-    $dump = '{';
 //    my $nr   = 0;
-    $nr   = 0;
 //    my $n;
-    $n = NULL;
 //    for $n (sort keys %$node) {
-//echo "++";
-//var_dump($node);
-//echo "--";
-//var_dump(perl_sort(array_keys($node)));
-//die;
-    foreach( perl_sort(array_keys($node))  as $n) {
 //        $dump .= ' ' if $nr++;
-        if ($nr++) {
-           $dump .= ' ';
-        }
 //        # Devel::Cover shows this to test to be redundant
 //        # $dump .= ( $n eq '' and not defined $node->{$n} )
 //        $dump .= $n eq ''
@@ -5062,17 +5017,78 @@ function _dump_node($node) {
 //            : ($n =~ /^[\x00-\x1f]$/ ? _pretty_dump($n) : $n)
 //                . "=>" . _dump($node->{$n})
 //        ;
-        $dump .= $n === '__@UNDEF@__'
-            ? '*'
-            : ( preg_match('/^[\x00-\x1f]$/u',$n)  ? $this->_pretty_dump($n) : $n )
-                . "=>" . $this->_dump($node[$n])
-        ;
 //    }
-    }
 //    return $dump . '}';
-    return $dump . '}';
 //}
+
+//perl だとハッシュの概念があるので、phpにそのままだと移植できない。
+//適当にごまかしながら移植してみる。
+function _dump($path) {
+    if ( !is_array($path) ) {
+        if ( preg_match('/\s/u' , $path) ) {
+            return "'{$path}'";
+        }
+        else if ( preg_match('/^[\x00-\x1f]$/u' , $path) ) {
+            return $this->_pretty_dump($path);
+        }
+        else {
+           return $path;
+        }
+    }
+
+    //きれいに見せるために順番でソートする.
+    $keys = perl_sort(array_keys($path));
+
+    //調査
+    $count = 0;
+    foreach($keys as $n) {
+        if ($n !== $count) {
+           break;
+        }
+//        echo "$n VS $count   ";
+        $count ++;
+    }
+//var_dump($count);
+    if ($count == count($keys) ) {
+       //たぶん配列
+         $nr   = 0;
+         $dump = '[';
+         foreach($keys as $n) {
+             if ($nr++) {
+                $dump .= ' ';
+             }
+             $dump .= $this->_dump($path[$n]);
+         }
+         return $dump . ']';
+    }
+    else {
+       //たぶんハッシュ
+         $nr   = 0;
+         $dump = '{';
+         foreach($keys as $n) {
+             if ($nr++) {
+                $dump .= ' ';
+             }
+             
+             if ($n === '__@UNDEF@__') {
+                $dump .= '*';
+             }
+             else {
+                if ( preg_match('/^[\x00-\x1f]$/u',$n) ) {
+                     $dump .= $this->_pretty_dump($n);
+                }
+                else
+                {
+                     $dump .= $n;
+                }
+
+                $dump .= "=>" . $this->_dump( $path[$n] );
+             }
+         }
+         return $dump . '}';
+    }
 }
+
 /*
 =back
 
@@ -5424,6 +5440,8 @@ __END__
 
 $a = new Regexp_Assemble();
 $a->debug(255);
+echo $a->_dump( ['A' => [ 'X','Y','Z'],'1' => [ '4','5','6'] ] );
+
 $a->add("123");
 $a->add("ABC");
 //$a->add("678");
