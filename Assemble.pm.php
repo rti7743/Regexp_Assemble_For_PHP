@@ -39,11 +39,34 @@ function perl_lastindex(array $array)
     return array_pop($p);
 }
 
-//perl の push をエミュレーションする.
+//perl の push をエミュレーションする. その1 ネストする場合
 function perl_push(array $array , $target)
 {
     if ( is_array($target) ){
-       return array_merge($array , $target );
+       if (count($array) <= 0) {
+           return $target;
+       }
+//    var_dump($array);
+//    var_dump($target);
+       $array[] = $target;
+//    var_dump($array);
+       return $array;
+    }
+    else {
+       $array[] = $target;
+       return $array;
+    }
+}
+
+//perl の push をエミュレーションする. その2 直列する場合
+//http://en.yummy.stripper.jp/?eid=1168151
+function perl_push2(array $array , $target)
+{
+    if ( is_array($target) ){
+       if (count($array) <= 0) {
+           return $target;
+       }
+       return array_merge($array,$target);
     }
     else {
        $array[] = $target;
@@ -77,13 +100,39 @@ function perl_sort($function , $array = NULL)
 
 //perl の配列/Array定義のエミュレーション.
 function perl_array($a,$b,$c = NULL){
-    $r = [];
-    $r = perl_push($r , $a);
-    $r = perl_push($r , $b);
-    if ( $c !== NULL) {
-        $r = perl_push($r , $c);
+    if ( is_array($a) ) {
+        $r = $a;
     }
+    else {
+        $r = [ $a ];
+    }
+
+    if ( is_array($b) ) {
+        $r = array_merge($r,$b);
+    }
+    else {
+        $r[] = $b;
+    }
+
+    if ( $c !== NULL ) {
+        if ( is_array($c) ) {
+            $r = array_merge($r,$c);
+        }
+        else {
+            $r[] = $c;
+        }
+    }
+
     return $r;
+}
+
+function perl_reverse($p) {
+    if ( is_array($p) ){
+        return array_reverse($p);
+    }
+    else {
+        return strrev($p);
+    }
 }
 
 /*
@@ -3436,7 +3485,7 @@ function _reduce_path($path, $ctx) {
             if ($debug) { echo "#$indent| head=", $this->_dump($node_head), " tail=", $this->_dump($node_tail), "\n"; }
 //            push @$head, @$node_head if scalar @$node_head;
             if ( count( $node_head) ) {
-                 $head = perl_push($head ,$node_head );
+                 $head = perl_push2($head ,$node_head );
             }
 //            push @$tail, ref($node_tail) eq 'HASH' ? $node_tail : @$node_tail;
 //ここあんまり自信がない.
@@ -3617,7 +3666,7 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
         $result['__@UNDEF@__'] = NULL;
     }
 
-    if ( $debug ) { echo "#$indent| _reduce_fail1 start reduce:" . $this->_dump($reduce)." result:"  . $this->_dump($result) . "\n"; }
+    if ( $debug ) { echo "#$indent| _reduce_fail1 start reduce:" . $this->_dump($reduce)." result:"  . $this->_dump($result)." fail:"  . $this->_dump($fail) . "\n"; }
 
 //    my $p;
 //    for $p (keys %$reduce) {
@@ -3754,8 +3803,9 @@ function _scan_node( $node, $ctx ) {
 
       foreach ($_temp_map2 as $n ) {
 //        my( $end, @path ) = reverse @{$node->{$n}};
-        $path = array_reverse($node[$n]);
+        $path = perl_reverse($node[$n]);
         $end = array_shift($path);
+        if ($debug) { echo "# $indent|_scan_node end:$end  path:".$this->_dump($path)."\n"; }
 
 //        if( ref($end) ne 'HASH' ) {
         if ( ! is_array($end) ) {
@@ -3763,7 +3813,7 @@ function _scan_node( $node, $ctx ) {
             if ($debug) { echo "# $indent|_scan_node push reduce ($end:".$this->_dump($path).")\n"; }
 //            push @{$reduce{$end}}, [ $end, @path ];
             if (!isset($reduce[$end])) $reduce[$end] = [];
-///////            $reduce[$end] = perl_push( $reduce[$end] , perl_array( $end, $path ) );
+/////               $reduce[$end] = perl_push( $reduce[$end] , perl_array( $end, $path ) );
             $reduce[$end] = perl_push( $reduce[$end] , [perl_array( $end, $path ) ] ); //配列がひとつネストするらしい？
 //        }
         }
@@ -3783,7 +3833,7 @@ function _scan_node( $node, $ctx ) {
                     list($key, $opt_path) = each($end);
                 }
 //                $opt_path = [reverse @{$opt_path}];
-                $opt_path =  array_reverse($opt_path) ;
+                $opt_path =  perl_reverse($opt_path) ;
 //                $debug and print "# $indent| check=", _dump($opt_path), "\n";
                 if ($debug) { echo "# $indent| check=", _dump($opt_path), "\n"; }
 //                my $end = { '' => undef, $opt_path->[0] => [@$opt_path] };
@@ -3821,9 +3871,12 @@ function _scan_node( $node, $ctx ) {
 //                       $debug and print "# $indent| +failed $n\n";
                        if ( $debug ) { echo  "# $indent| +failed $n\n"; }
 //                       push @fail, [reverse(@path), $tail];
-                       if ( $debug ) { echo "# $indent|_scan_node push before fail=", $this->_dump($fail), "\n"; }
-///////                       $fail = perl_push( $fail, perl_array( array_reverse($path), $tail ) );   //腑に落ちないが [$tail] とネストするらしい？
-                       $fail = perl_push( $fail, perl_array( array_reverse($path), [$tail] ) ); 
+                       if ( $debug ) { echo "# $indent|_scan_node push before fail=", $this->_dump($fail), 
+                             " reversepath:" , $this->_dump(perl_reverse($path)) , " tail=" , $this->_dump($tail) , " pushdata:" , $this->_dump(perl_array( perl_reverse($path), [ $tail ] )) , "\n"; }
+///////                       $fail = perl_push( $fail, perl_array( perl_reverse($path), $tail ) );   //腑に落ちないが [$tail] とネストするらしい？
+
+//結局こうなった・・・うーん
+                       $fail[] = perl_array( perl_reverse($path), [ $tail ] ) ; 
                        if ( $debug ) { echo "# $indent|_scan_node push after fail=", $this->_dump($fail), "\n"; }
 //                }
                 }
@@ -3877,11 +3930,6 @@ function _scan_node( $node, $ctx ) {
         "# $indent|_scan_node counts: reduce=". count($reduce) ." fail=" . count($fail) . " dump reduce:" . $this->_dump($reduce)." dump fail:" . $this->_dump($fail)." dump fail2:" . $this->_dump([$fail]). "\n"; }
 //    return( \@fail, \%reduce );
 /////////    return array( $fail , $reduce );
-    if ( count($fail) > 0 )
-    {   // よくわからないけど \@されると [] が一つネストするらしい？ なんで？
-        //ただし、配列がからの場合は増やしてはいけない。
-        $fail = [ $fail ];
-    }
     return array( $fail , $reduce );  
 //}
 }
@@ -3961,7 +4009,7 @@ function _do_reduce($path, $ctx) {
 //    push @$common, shift @$path while( ref($path->[0]) ne 'HASH' );
 //これでいいんかな？
     while( count($path) > 0 && !is_array($path[0]) ) {
-        $common = perl_push($common, array_shift($path));
+        $common = perl_push2($common, array_shift($path));
     }
 
 //    my $tail = scalar( @$path ) > 1 ? [@$path] : $path->[0];
@@ -4079,7 +4127,7 @@ function _unrev_path($path, $ctx) {
 //        $debug and print "# ${indent}_unrev path fast ", _dump($path);
         if ($debug){ echo "# {$indent}_unrev path fast ". $this->_dump($path) ; }
 //        $new = [reverse @$path];
-        $new = array_reverse($path);
+        $new = perl_reverse($path);
 //        $debug and print "#  -> ", _dump($new), "\n";
         if ($debug){ echo "#  -> ". $this->_dump($new). "\n" ; }
 
@@ -5464,8 +5512,8 @@ $a->add("ABC");
 $a->add("ABC");
 $a->add("ADE");
 $a->add("ABN");
-//$a->add("こいよベネット");
-//$a->add("こいよアグネス");
+$a->add("B1");
+$a->add("B2");
 
 //$a->add( 'ab+c' );
 //$a->add( 'ab+-' );
