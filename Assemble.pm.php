@@ -1352,6 +1352,7 @@ function _insertr() {
         ++$this->stats_add;
 
 //        $self->{stats_cooked} += defined($_) ? length($_) : 0 for @{$_[0]};
+        echo "# _insertr args[0]:" , $this->_dump($args[0]) , "\n";
         foreach($args[0] as $p){
             $this->stats_cooked += strlen($p);
         }
@@ -3677,7 +3678,9 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
         if ( $debug ) { echo "#$indent| _reduce_fail1 path:" . $this->_dump($path)." key: " . $this->_dump($p) . "\n"; }
         
 //        if( scalar @$path == 1 ) {
-        if( 1 ) { //とりあえずこれで勘弁して。
+//        if( 1 ) { //とりあえずこれで勘弁して。
+        if( count($path) <= 1 ) {
+
 //            $path = $path->[0];
             $path = $path[0];
 //            $debug and print "#$indent| -simple opt=$optional unrev @{[_dump($path)]}\n";
@@ -3706,14 +3709,16 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
 //                ),
 //                @{_unrev_path($common, _descend($ctx) )}
 //            ];
+//これでいいんか・・・？
             $path = perl_array(
-                (
+                [
                     is_array($tail)
                         ? $this->_unrev_node($tail, $this->_descend($ctx) )
                         : $this->_unrev_path($tail, $this->_descend($ctx) )
-                ),
-                $this->_unrev_path($common, $this->_descend($ctx) )
+                ],
+                 $this->_unrev_path($common, $this->_descend($ctx) ) 
             );
+
 //            $debug and print "#$indent| +reduced @{[_dump($path)]}\n";
             if ( $debug ) { echo  "#$indent| +reduced ".$this->_dump($path)."\n"; }
 //            $result{_node_key($path->[0])} = $path;
@@ -3814,7 +3819,8 @@ function _scan_node( $node, $ctx ) {
 //            push @{$reduce{$end}}, [ $end, @path ];
             if (!isset($reduce[$end])) $reduce[$end] = [];
 /////               $reduce[$end] = perl_push( $reduce[$end] , perl_array( $end, $path ) );
-            $reduce[$end] = perl_push( $reduce[$end] , [perl_array( $end, $path ) ] ); //配列がひとつネストするらしい？
+/////               $reduce[$end] = perl_push( $reduce[$end] , [perl_array( $end, $path ) ] ); //配列がひとつネストするらしい？
+            $reduce[$end][] = perl_array( $end, $path ) ; //これが正しいのかなぁ
 //        }
         }
 //        else {
@@ -3883,7 +3889,7 @@ function _scan_node( $node, $ctx ) {
 //                else {
                 else {
 //                    my $path = [@path];
-                    $path = [ $path ];
+////////                    $path = [ $path ]; いらない？
 //                    $debug and print "# $indent|_scan_node ++recovered common=@{[_dump($common)]} tail=",
 //                        _dump($tail), " path=@{[_dump($path)]}\n";
                     if ( $debug ) { echo  "# $indent|_scan_node ++recovered common=".$this->_dump($common)." tail=",
@@ -3908,13 +3914,22 @@ function _scan_node( $node, $ctx ) {
 //                        @$path
 //                    ];
                     if (!isset($reduce[$common[0]])) $reduce[$common[0]] = [];
-                    $reduce[$common[0]] = perl_push( $reduce[$common[0]], 
+//                    $reduce[$common[0]] = perl_push( $reduce[$common[0]], 
+//                        perl_array(
+//                          $common , 
+//                          $tail , 
+//                          $path
+//                        )
+//                    );
+                    $reduce[$common[0]][] = 
                         perl_array(
                           $common , 
-                          $tail , 
+                          [ $tail ] , 
                           $path
-                        )
-                    );
+                        );
+                   if ( $debug ) { echo 
+                           "# $indent|_scan_node ++recovered dump reduce:" . $this->_dump($reduce)." dump fail:" . $this->_dump($fail)." dump tail:" . $this->_dump($tail). "\n"; }
+                        
 //                }
                 }
 //            }
@@ -4015,7 +4030,7 @@ function _do_reduce($path, $ctx) {
 //    my $tail = scalar( @$path ) > 1 ? [@$path] : $path->[0];
     $tail = ( count($path) > 1 ) ? $path : $path[0];
 
-//    $debug and print "# $indent| _do_reduce common=@{[_dump($common)]} tail=@{[_dump($tail)]}\n";
+//    $debug and print "# $indent| _do_reduce common={[_dump($common)]} tail=@{[_dump($tail)]}\n";
    if ($debug){ echo "# $indent| _do_reduce common=@".$this->_dump($common)." tail=".$this->_dump($tail)."\n"; }
 //    return ($common, $tail);
    return [ $common, $tail ];
@@ -4171,14 +4186,14 @@ function _unrev_node($node, $ctx ) {
 //    my $new;
     $new = NULL;
 //    $new->{''} = undef if $optional;
-    if (!$optional) {
+    if ($optional) {
        $new['__@UNDEF@__'] = NULL;
     }
 //    my $n;
 //    for $n( keys %$node ) {
     foreach( array_keys($node) as $n ){
 //        my $path = _unrev_path($node->{$n}, _descend($ctx) );
-        $path = $_unrev_path($node->$n, $this->_descend($ctx) );
+        $path = $this->_unrev_path($node[$n], $this->_descend($ctx) );
 //        $new->{_node_key($path->[0])} = $path;
         $new[$this->_node_key($path[0])] = $path;
 //    }
@@ -5506,14 +5521,10 @@ $a = new Regexp_Assemble();
 $a->debug(255);
 echo $a->_dump( ['A' => [ 'X','Y','Z'],'1' => [ '4','5','6'] ] );
 
-//$a->add("123");
-$a->add("ABC");
-//$a->add("678");
-$a->add("ABC");
-$a->add("ADE");
-$a->add("ABN");
-$a->add("B1");
-$a->add("B2");
+$a->add("12312");
+$a->add("12412");
+$a->add("12512");
+$a->add("12513");
 
 //$a->add( 'ab+c' );
 //$a->add( 'ab+-' );
