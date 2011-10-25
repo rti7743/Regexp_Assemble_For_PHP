@@ -873,7 +873,7 @@ function _fastlex($record){
                       }
                 }
 //                $path[-1] .= join( '', @arg ); # if @arg;
-                $path[-1] .= join( '', $arg ); // if @arg;
+                $path[perl_lastindex($path)] .= join( '', $arg ); // if @arg;
 //                redo;
                 continue;
             }
@@ -1153,9 +1153,6 @@ function _lex($record){
     }
 //    $debug and print "# _lex out <@path>\n";
     if ($debug){ echo "# _lex out <@path>\n"; }
-    
-    
-    die;
     
 //    return \@path;
     return $path;
@@ -1830,11 +1827,12 @@ function match($target) {
 //    }
     }
 //    $self->{m}      = $^R if $] >= 5.009005;
-    $this->m = $pregNum[-1][0];
+    $lastindex = perl_lastindex($pregNum);
+    $this->m = $pregNum[$lastindex][0];
 //    $self->{mbegin} = _path_copy([@-]);
     $this->mbegin = $this->_path_copy($pregNum[1][1]);
 //    $self->{mend}   = _path_copy([@+]);
-    $this->mend = $this->_path_copy($pregNum[-1][1]);
+    $this->mend = $this->_path_copy($pregNum[$lastindex][1]);
 //    my $n = 0;
     $n = 0;
 //kokokara
@@ -2888,7 +2886,7 @@ function _insert_path($list , $debug , $in) {
 //        if( @in == 0 or (@in == 1 and (not defined $in[0] or $in[0] eq ''))) {
         if (count($in) == 0 || (count($in) == 1 && (! isset($in[0]) || $in[0] == '' ) ) ) {
 //            return [{'' => undef}];
-            return ['__@UNDEF@__' => NULL];
+            return ['__@UNDEF@__' => 0];
 //        }
         }
 //        else {
@@ -2912,13 +2910,13 @@ function _insert_path($list , $debug , $in) {
 //        if( ref($list->[0]) ne 'HASH' ) {
         if ( !is_array($list[0]) ) {
 //            return [ { '' => undef, $list->[0] => $list } ];
-            return [ '__@UNDEF@__'=> NULL , $list[0] => $list ];
+            return [ '__@UNDEF@__'=> 0 , $list[0] => $list ];
 //        }
         }
 //        else {
         else {
 //            $list->[0]{''} = undef;
-            $list[0]['__@UNDEF@__'] = NULL;
+            $list[0]['__@UNDEF@__'] = 0;
 //            return $list;
             return $list;
 //        }
@@ -2942,7 +2940,7 @@ function _insert_path($list , $debug , $in) {
         }
 
 //        if( ref($path->[$offset]) eq 'HASH' ) {
-        if ( is_array($path[$offset]) ) {
+        if ( isset( $path[$offset] ) && is_array($path[$offset]) ) {
 //            $debug and print "#   at (off=$offset len=@{[scalar @$path]}) ", _dump($path->[$offset]), "\n";
             if ($debug) { echo "#   at (off=$offset len=".count($path).",". $this->_dump([$path[$offset]]). "\n"; }
 //            my $node = $path->[$offset];
@@ -3042,7 +3040,7 @@ function _insert_path($list , $debug , $in) {
 //        if( $offset >= @$path ) {
         if( $offset >= count($path) ) {
 //            push @$path, { $token => [ $token, @in ], '' => undef };
-            $path = perl_push($path,  [ $token => [ $token, $in ], '__@UNDEF@__' => NULL ] );
+            $path = perl_push($path,  [ $token => perl_array( $token, $in ), '__@UNDEF@__' => 0 ] );
 //            $debug and print "#   added remaining @{[_dump($path)]}\n";
             if ($debug) { echo "#   added remaining ".$this->_dump($path)."\n"; }
 //            last;
@@ -3062,7 +3060,7 @@ function _insert_path($list , $debug , $in) {
 //            };
             $_temp_path = strlen($token) 
                 ?  [ $this->_node_key($token) => perl_array($token , $in) ]
-                :  [ '__@UNDEF@__' => NULL ]
+                :  [ '__@UNDEF@__' => 0 ]
             ;
             $_temp_path[ $path[$offset] ] = array_slice($path , $offset);
             array_splice($path, $offset, count($path)-$offset, [ $_temp_path ] );
@@ -3086,7 +3084,7 @@ function _insert_path($list , $debug , $in) {
 //                    $debug and print "#   add sentinel to node\n";
                     if ($debug) { echo "#   add sentinel to node\n"; }
 //                    $path->[$offset]{''} = undef;
-                    $path[$offset]['__@UNDEF@__'] = NULL;
+                    $path[$offset]['__@UNDEF@__'] = 0;
 //                }
                 }
 //                else {
@@ -3098,7 +3096,7 @@ function _insert_path($list , $debug , $in) {
 //                        $path->[$offset] => [ @{$path}[$offset..$#{$path}] ],
 //                    };
                       array_splice($path, $offset, count($path)-$offset,
-                              array('__@UNDEF@__' => NULL ,
+                              array('__@UNDEF@__' => 0 ,
                                     $path[$offset] => array_slice($path,$offset)
                               )
                       );
@@ -3217,7 +3215,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                        else {
                         else {
 //                            $new = { '' => undef, $token => [$token] };
-                            $new = [ '__@UNDEF@__' => NULL , $token => [$token] ];
+                            $new = [ '__@UNDEF@__' => 0 , $token => [$token] ];
 //                        }
                         }
 //                    }
@@ -3301,7 +3299,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                    $token_key => [ $token, @_ ],
 //                };
                 $new = [
-                    '__@UNDEF@__'         => NULL,
+                    '__@UNDEF@__'         => 0,
                     $token_key => [ $token, $_args ],
                 ];
 //                $debug and print "#   convert opt @{[_dump($new)]}\n";
@@ -3343,7 +3341,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                $token_key => [ $token, @_ ],
 //            };
             $path = perl_push( $path , [
-                  '__@UNDEF@__' => NULL,
+                  '__@UNDEF@__' => 0,
                   $token_key => [ $token, $_args ]
                 ]
             );
@@ -3605,8 +3603,8 @@ function _reduce_node($node, $ctx) {
 //                $path->[0] => $path
 //            };
             $result = [
-                '__@UNDEF@__'         => NULL,
-                $path[0] => $path
+                '__@UNDEF@__'  => 0,
+                $path[0]       => $path
             ];
 //            $debug and print "#$indent| fast fail @{[_dump($result)]}\n";
             if ( $debug ){ echo "#$indent| fast fail ".$this->_dump($result)."\n"; }
@@ -3664,7 +3662,7 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
     $result = [];
 //    $result{''} = undef if $optional;
     if ($optional) {
-        $result['__@UNDEF@__'] = NULL;
+        $result['__@UNDEF@__'] = 0;
     }
 
     if ( $debug ) { echo "#$indent| _reduce_fail1 start reduce:" . $this->_dump($reduce)." result:"  . $this->_dump($result)." fail:"  . $this->_dump($fail) . "\n"; }
@@ -3827,11 +3825,12 @@ function _scan_node( $node, $ctx ) {
         else {
 //            $debug and print "# $indent|_scan_node head=", _dump(\@path), ' tail=', _dump($end), "\n";
             if ( $debug ) { echo "# $indent|_scan_node head=", $this->_dump($path), ' tail=', $this->_dump($end), "\n"; }
+
 //            my $new_path;
             $new_path = NULL;
 //            # deal with sing, singing => s(?:ing)?ing
 //            if( keys %$end == 2 and exists $end->{''} ) {
-            if( count($end) == 2 and isset( $end['__@UNDEF@__'] ) ) {
+            if( count($end) == 2 && isset( $end['__@UNDEF@__'] ) ) {
 //                my ($key, $opt_path) = each %$end;
                 list($key, $opt_path) = each($end);
 //                ($key, $opt_path) = each %$end if $key eq '';
@@ -3841,15 +3840,18 @@ function _scan_node( $node, $ctx ) {
 //                $opt_path = [reverse @{$opt_path}];
                 $opt_path =  perl_reverse($opt_path) ;
 //                $debug and print "# $indent| check=", _dump($opt_path), "\n";
-                if ($debug) { echo "# $indent| check=", _dump($opt_path), "\n"; }
+                if ($debug) { echo "# $indent| check=", $this->_dump($opt_path), "\n"; }
 //                my $end = { '' => undef, $opt_path->[0] => [@$opt_path] };
-                $end = [ '__@UNDEF@__' => NULL, $opt_path[0] => [ $opt_path ] ];
+                $end = [ '__@UNDEF@__' => 0, $opt_path[0] => $opt_path ];
+
 //                my $head = [];
                 $head = [];
 //                my $path = [@path];
-                $path = [ $path ];
+//不要                $path = [ $path ];
+
 //                ($head, my $slide, $path) = _slide_tail( $head, $end, $path, $ctx );
                 list($head, $slide, $path) = $this->_slide_tail( $head, $end, $path, $ctx );
+
 //                if( @$head ) {
                 if( count($head) ) {
 //                    $new_path = [ @$head, $slide, @$path ];
@@ -4083,18 +4085,16 @@ function _slide_tail($head,$tail,$path,$ctx) {
     if ($debug){ echo "# $indent| slide in h=". $this->_dump($head) . ' t='. $this->_dump($tail). ' p='. $this->_dump($path). "\n"; }
 //    my $slide_path = (each %$tail)[-1];
 //    $slide_path = (each %$tail)[-1] unless defined $slide_path;
-    $temp_slide_path = each($tail);
-    if ( is_array($temp_slide_path)) {
-        $slide_path = $temp_slide_path[-1];
-    }
-    else {
-        $temp_slide_path = each($tail);
-        $slide_path = $temp_slide_path[-1];
+
+
+    list($_temp_key, $slide_path) = each($tail);
+    if ( $_temp_key === '__@UNDEF@__') {
+         list($_temp_key, $slide_path) = each($tail);
     }
     
 //    $debug and print "# $indent| slide potential ", _dump($slide_path), " over ", _dump($path), "\n";
     if ($debug){ echo "# $indent| slide potential ". $this->_dump($slide_path). " over ". $this->_dump($path), "\n" ; }
-//
+
 //    while( defined $path->[0] and $path->[0] eq $slide_path->[0] ) {
     while( $path[0] && $path[0] === $slide_path[0] ) {
 //        $debug and print "# $indent| slide=tail=$slide_path->[0]\n";
@@ -4117,7 +4117,7 @@ function _slide_tail($head,$tail,$path,$ctx) {
 //        _node_key($slide_path->[0]) => $slide_path,
 //    };
     $slide_node = [
-           '__@UNDEF@__' => NULL
+           '__@UNDEF@__' => 0
           ,$this->_node_key($slide_path[0]) => $slide_path
     ];
 //    $debug and print "# $indent| slide out h=", _dump($head),
@@ -4187,7 +4187,7 @@ function _unrev_node($node, $ctx ) {
     $new = NULL;
 //    $new->{''} = undef if $optional;
     if ($optional) {
-       $new['__@UNDEF@__'] = NULL;
+       $new['__@UNDEF@__'] = 0;
     }
 //    my $n;
 //    for $n( keys %$node ) {
@@ -4462,6 +4462,7 @@ function _re_path($_args) {
 //    # in shorter assemblies, _re_path() is the second hottest
 //    # routine. after insert(), so make it fast.
 
+
 //    if ($self->{unroll_plus}) {
     if ($this->unroll_plus) {
 //        # but we can't easily make this blockless
@@ -4502,7 +4503,7 @@ function _re_path($_args) {
 //            }
             }
 //            elsif ($i < $#arr and $arr[$i+1] =~ /\A$arr[$i]\*(\??)\Z/) {
-            else if ($i < perl_lastindex($arr) and preg_match('/\A$arr[$i]\*(\??)\Z/u' , $arr[$i+1] , $pregNum)  ) {
+            else if ($i < perl_lastindex($arr) and preg_match("/\A$arr[$i]\*(\??)\Z/u" , $arr[$i+1] , $pregNum)  ) {
 //                $str .= "$arr[$i]+" . (defined $1 ? $1 : '');
                 $str .= "$arr[$i]+" . ($pregNum[1] ? $pregNum[1] : '');
 //                ++$skip;
@@ -4569,7 +4570,7 @@ function _re_path($_args) {
                 foreach( perl_grep( function($__){ return $__ != '__@UNDEF@__'; } , array_keys($p) ) as $___ ){
                     $_temp_map[] = $this->_re_path( $p[$___] ) ;
                 }
-                $_temp_join_array[] = $this->_combine_new($_temp_map);
+                $_temp_join_array[] = $this->_combine_new($_temp_map) . '?';
             }
             else {
                 $_temp_map = [];
@@ -5525,6 +5526,7 @@ $a->add("12312");
 $a->add("12412");
 $a->add("12512");
 $a->add("12513");
+$a->add("12412AA");
 
 //$a->add( 'ab+c' );
 //$a->add( 'ab+-' );
