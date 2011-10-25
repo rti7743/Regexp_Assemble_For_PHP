@@ -107,7 +107,7 @@ function is_deeply($a,$b,$msg){
 function xcmp($a,$b) {
     $r = new Regexp_Assemble();
     is_deeply(
-        $r->_lex( $a ), [ $b ],
+        $r->_lex( $a ), array( $b ),
         sprintf( '_lex \\x%02x', ord( $b ))
     );
 }
@@ -115,7 +115,7 @@ function lcmp($a,$b) {
     $r = new Regexp_Assemble();
     is_deeply(
         $r->_lex( $a ),
-        [ $a ],
+        array( $a ),
         "_lex $a source line $b" 
     );
 }
