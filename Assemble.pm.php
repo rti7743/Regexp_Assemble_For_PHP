@@ -3588,9 +3588,9 @@ function _reduce_node($node, $ctx) {
 //    $debug and print "#$indent _reduce_node $ctx->{depth} in @{[_dump($node)]} opt=$optional\n";
     if ($debug) { echo "#$indent _reduce_node {$ctx['depth']} in " . $this->_dump($node) ." opt=$optional\n"; }
 
-        foreach(debug_backtrace() as $_) { 
-            echo $_['function'] . ":" . $_['line']."\n";
-        }
+//        foreach(debug_backtrace() as $_) { 
+//            echo $_['function'] . ":" . $_['line']."\n";
+//        }
 
 //    if( $optional and scalar keys %$node == 1 ) {
     if( $optional and count($node) == 1 ) {
@@ -5546,6 +5546,7 @@ $a->add("12512");
 $a->add("12513");
 $a->add("12412AA");
 $a->add("12412AA2");
+$a->add("12412AA5");
 
 //$a->add( 'ab+c' );
 //$a->add( 'ab+-' );
