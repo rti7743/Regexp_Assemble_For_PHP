@@ -1261,40 +1261,63 @@ English variable names).
 =cut
 */
 
-/* ADODE SKIPなくても動くので省略! 
-sub add_file {
-    my $self = shift;
-    my $rs;
-    my @file;
-    if (ref($_[0]) eq 'HASH') {
-        my $arg = shift;
-        $rs = $arg->{rs}
-            || $arg->{input_record_separator}
-            || $self->{input_record_separator}
-            || $/;
-        @file = ref($arg->{file}) eq 'ARRAY'
-            ? @{$arg->{file}}
-            : $arg->{file};
+//sub add_file {
+//    my $self = shift;
+function add_file($filename) {
+//    my $rs;
+//    my @file;
+//    if (ref($_[0]) eq 'HASH') {
+    if (is_array($filename)  ) {
+//        my $arg = shift;
+//        $rs = $arg->{rs}
+//            || $arg->{input_record_separator}
+//            || $self->{input_record_separator}
+//            || $/;
+        $rs =                isset($filename['rs']) ? $filename['rs'] : '';
+        if ($rs == '') $rs = isset($filename['input_record_separator']) ? $filename['input_record_separator'] : '';
+        if ($rs == '') $rs = $this->input_record_separator;
+        if ($rs == '') $rs = '/';
+
+//        @file = ref($arg->{file}) eq 'ARRAY'
+//            ? @{$arg->{file}}
+//            : $arg->{file};
+        $file = is_array($filename['file']) ? $filename['file'] : array($filename['file']);
+//    }
     }
+//    else {
     else {
-        $rs   = $self->{input_record_separator} || $/;
-        @file = @_;
+//        $rs   = $self->{input_record_separator} || $/;
+        $rs   = $this->input_record_separator || '/';
+//        @file = @_;
+        $file = func_get_args();
     }
-    local $/ = $rs;
-    my $file;
-    for $file (@file) {
-        open my $fh, '<', $file or do {
-            require Carp;
-            Carp::croak("cannot open $file for input: $!");
-        };
-        while (defined (my $rec = <$fh>)) {
-            $self->add($rec);
+//    local $/ = $rs;
+//    my $file;
+//    for $file (@file) {
+    foreach($file as $f) {
+//        open my $fh, '<', $file or do {
+//            require Carp;
+//            Carp::croak("cannot open $file for input: $!");
+//        };
+        $fh = fopen($f);
+        if (!$fh) {
+              trigger_error("cannot open $file.");
         }
-        close $fh;
+//        while (defined (my $rec = <$fh>)) {
+//            $self->add($rec);
+//        }
+        while( ! feof($fh) ) {
+              $self->add( fgets($fh) );
+        }
+//        close $fh;
+        fclose($fh);
+//    }
     }
-    return $self;
+//    return $self;
+    return $this;
+//}
 }
-*/
+
 
 /*
 =item insert(LIST)
