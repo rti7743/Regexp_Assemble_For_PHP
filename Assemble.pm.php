@@ -3587,6 +3587,11 @@ function _reduce_node($node, $ctx) {
     $optional = $this->_remove_optional($node);
 //    $debug and print "#$indent _reduce_node $ctx->{depth} in @{[_dump($node)]} opt=$optional\n";
     if ($debug) { echo "#$indent _reduce_node {$ctx['depth']} in " . $this->_dump($node) ." opt=$optional\n"; }
+
+        foreach(debug_backtrace() as $_) { 
+            echo $_['function'] . ":" . $_['line']."\n";
+        }
+
 //    if( $optional and scalar keys %$node == 1 ) {
     if( $optional and count($node) == 1 ) {
 //        my $path = (values %$node)[0];
@@ -3834,7 +3839,7 @@ function _scan_node( $node, $ctx ) {
 //                my ($key, $opt_path) = each %$end;
                 list($key, $opt_path) = each($end);
 //                ($key, $opt_path) = each %$end if $key eq '';
-                if ($key == '') {
+                if ($key == '__@UNDEF@__') {
                     list($key, $opt_path) = each($end);
                 }
 //                $opt_path = [reverse @{$opt_path}];
@@ -3842,7 +3847,17 @@ function _scan_node( $node, $ctx ) {
 //                $debug and print "# $indent| check=", _dump($opt_path), "\n";
                 if ($debug) { echo "# $indent| check=", $this->_dump($opt_path), "\n"; }
 //                my $end = { '' => undef, $opt_path->[0] => [@$opt_path] };
-                $end = [ '__@UNDEF@__' => 0, $opt_path[0] => $opt_path ];
+////////////    $opt_path->[0]は、リファレンスなので直接表現できない。
+////////////                $end2 = [ '__@UNDEF@__' => 0, $opt_path[0] => $opt_path ];
+//////////// このendは上のスコープにも同盟の変数がありますので end2 とします。
+                if ( is_array($opt_path[0]) ) {
+                     $end2 = [ '__@UNDEF@__' => 0, '__OPT_PATH@reference__' => $opt_path ];
+                }
+                else {
+                     $end2 = [ '__@UNDEF@__' => 0, $opt_path[0] => $opt_path ];
+                }
+
+               if ( $debug ) { echo "# $indent|_scan_node end=", $this->_dump($end2), ' path=', $this->_dump($path), "\n"; }
 
 //                my $head = [];
                 $head = [];
@@ -3850,8 +3865,7 @@ function _scan_node( $node, $ctx ) {
 //不要                $path = [ $path ];
 
 //                ($head, my $slide, $path) = _slide_tail( $head, $end, $path, $ctx );
-                list($head, $slide, $path) = $this->_slide_tail( $head, $end, $path, $ctx );
-
+                list($head, $slide, $path) = $this->_slide_tail( $head, $end2, $path, $ctx );
 //                if( @$head ) {
                 if( count($head) ) {
 //                    $new_path = [ @$head, $slide, @$path ];
@@ -4110,6 +4124,7 @@ function _slide_tail($head,$tail,$path,$ctx) {
         $head = perl_push( $head, $slide);
 //    }
     }
+
 //    $debug and print "# $indent| slide path ", _dump($slide_path), "\n";
     if ( $debug ){ echo "# {$indent}| slide path ". $this->_dump($slide_path). "\n"; }
 //    my $slide_node = {
@@ -4120,10 +4135,13 @@ function _slide_tail($head,$tail,$path,$ctx) {
            '__@UNDEF@__' => 0
           ,$this->_node_key($slide_path[0]) => $slide_path
     ];
+
 //    $debug and print "# $indent| slide out h=", _dump($head),
 //        ' s=', _dump($slide_node), ' p=', _dump($path), "\n";
     if ($debug) { echo "# $indent| slide out h=". $this->_dump($head) . ' s='. $this->_dump($slide_node). ' p='. $this->_dump($path). "\n"; }
 //    return ($head, $slide_node, $path);
+
+
     return [$head, $slide_node, $path];
 //}
 }
@@ -4220,7 +4238,7 @@ function _node_key($node) {
 //    for $k( keys %$node ) {
     foreach( array_keys($node) as $k ) {
 //        next if $k eq '';
-        if ($k == '') {
+        if ($k == '__@UNDEF@__') {
             continue;
         }
 //        $key = $k if $key eq '' or $key gt $k;
@@ -5527,6 +5545,7 @@ $a->add("12412");
 $a->add("12512");
 $a->add("12513");
 $a->add("12412AA");
+$a->add("12412AA2");
 
 //$a->add( 'ab+c' );
 //$a->add( 'ab+-' );
