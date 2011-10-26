@@ -194,6 +194,7 @@ var $flags = '';
 var $fold_meta_pairs = 1;
 var $dup_warn = 0;
 var $chomp = 1;
+var $filter = NULL;
 
 //use vars qw/$VERSION $have_Storable $Current_Lexer $Default_Lexer $Single_Char $Always_Fail/;
 //$VERSION = '0.35';
@@ -1373,7 +1374,7 @@ C<insert> directly can be a big win.
 //    my $self = shift;
 function insert() {
 //    return if $self->{filter} and not $self->{filter}->(@_);
-    if ($this->filter) {
+    if (is_callable($this->filter)) {
         $r = $this->filter( func_get_args() );
         if ($r) return $r;
     }
@@ -2909,7 +2910,7 @@ function _insert_path($list , $debug , $in) {
 //        if( @in == 0 or (@in == 1 and (not defined $in[0] or $in[0] eq ''))) {
         if (count($in) == 0 || (count($in) == 1 && (! isset($in[0]) || $in[0] == '' ) ) ) {
 //            return [{'' => undef}];
-            return array('__@UNDEF@__' => 0);
+            return array(array('__@UNDEF@__' => 0));
 //        }
         }
 //        else {
