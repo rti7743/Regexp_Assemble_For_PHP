@@ -992,6 +992,7 @@ function _fastlex($record){
 //    my $self   = shift;
 //    my $record = shift;
 function _lex($record){
+
 //    my $len    = 0;
     $len = 0;
 //    my @path   = ();
@@ -1014,7 +1015,7 @@ function _lex($record){
 
 //    my ($token, $next_token, $diff, $token_len);
     $token = '';
-    $next_token = '';
+    $next_token = NULL;
     $diff = '';
     $token_len = '';
     $pregNum = array();    //$1 とかのために使う.
@@ -1146,13 +1147,13 @@ function _lex($record){
 //            NEXT_TOKEN:
             NEXT_TOKEN:
 //            if( defined $next_token ) {
-            if (isset($next_token)){
+            if ($next_token !== NULL ){
 //                $debug and print "#   redo <$next_token>\n";
                 if ($debug){ echo "#   redo <$next_token>\n"; }
 //                $token = $next_token;
                 $token = $next_token;
 //                $next_token = undef;
-                unset($next_token);
+                $next_token = NULL;
 //                redo TOKEN;
                 goto TOKEN;
 //            }
@@ -1379,7 +1380,15 @@ function insert() {
         if ($r) return $r;
     }
 //    $self->_insertr( [@_] );
-    $this->_insertr( func_get_args() );
+    $args = func_get_args();
+    if ( isset($args[0]) && is_array($args[0]) ) {
+        //引数の最初のパラメータが配列だったら、その配列を
+        $this->_insertr( $args[0] );
+    }
+    else {
+        //そうでなければ引数全体を
+        $this->_insertr( $args );
+    }
 //    return $self;
     return $this;
 //}
@@ -1387,13 +1396,12 @@ function insert() {
 
 //sub _insertr {
 //    my $self   = shift;
-function _insertr() {
+function _insertr(array $p1) {
 //    my $dup    = $self->{stats_dup} || 0;
-    $args = func_get_args();
     $dup    = isset($this->stats_dup) ? $this->stats_dup : 0;
 
 //    $self->{path} = $self->_insert_path( $self->_path, $self->_debug(DEBUG_ADD), $_[0] );
-    $this->path = $this->_insert_path( $this->path, ($this->debug & $this->DEBUG_ADD), $args[0] );
+    $this->path = $this->_insert_path( $this->path, ($this->debug & $this->DEBUG_ADD), $p1 );
 
 //    if( not defined $self->{stats_dup} or $dup == $self->{stats_dup} ) {
     if ( !isset($this->stats_dup) || $dup == $this->stats_dup ) {
@@ -1401,8 +1409,7 @@ function _insertr() {
         ++$this->stats_add;
 
 //        $self->{stats_cooked} += defined($_) ? length($_) : 0 for @{$_[0]};
-        echo "# _insertr args[0]:" , $this->_dump($args[0]) , "\n";
-        foreach($args[0] as $p){
+        foreach($p1 as $p){
             $this->stats_cooked += strlen($p);
         }
 //    }
@@ -1412,13 +1419,13 @@ function _insertr() {
 //        if( ref $self->{dup_warn} eq 'CODE' ) {
         if ( iscallabe( $this->dup_warn ) ) {
 //            $self->{dup_warn}->($self, $_[0]); 
-            $this->dup_warn($args[0]); 
+            $this->dup_warn($p1); 
 //        }
         }
 //        else {
         else {
 //            my $pattern = join( '', @{$_[0]} );
-            $pattern = join( '', $args[0]);
+            $pattern = join( '', $p1);
 //            require Carp;
 //            Carp::carp("duplicate pattern added: /$pattern/");
             trigger_error("duplicate pattern added: /$pattern/");
@@ -2544,9 +2551,9 @@ to interpret the results is left as an exercise to the reader.
 =cut
 */
 //sub dump {
-function dump($p1) {
+function dump() {
 //    return _dump($_[0]->_path);
-    return $this->_dump($p1->path);
+    return $this->_dump($this->path);
 //}
 }
 
@@ -2916,7 +2923,7 @@ function _insert_path($list , $debug , $in) {
 //        else {
         else {
 //            return \@in;
-            return $in;  /////要注意
+            return $in;
 //        }
         }
 //    }
@@ -2948,7 +2955,7 @@ function _insert_path($list , $debug , $in) {
 //    }
     }
 //    while( defined( $token = shift @in )) {
-    while( $token = array_shift($in) ) {
+    while( ($token = array_shift($in)) !== NULL ) {
 
 //        if( ref($token) eq 'HASH' ) {
         if ( is_array($token) ) {
@@ -3114,16 +3121,18 @@ function _insert_path($list , $debug , $in) {
 //                else {
                 else {
 //                    $debug and print "#   convert <$path->[$offset]> to node for sentinel\n";
-                    if ($debug) { echo "#   convert <$path->[$offset]> to node for sentinel\n"; }
+                    if ($debug) { echo "#   convert <{$path[$offset]}> to node for sentinel\n"; }
 //                    splice @$path, $offset, @$path-$offset, {
 //                        ''               => undef,
 //                        $path->[$offset] => [ @{$path}[$offset..$#{$path}] ],
 //                    };
                       array_splice($path, $offset, count($path)-$offset,
-                              array('__@UNDEF@__' => 0 ,
-                                    $path[$offset] => array_slice($path,$offset)
+                              array(
+                                    array('__@UNDEF@__'  => 0 ,
+                                          $path[$offset] => array_slice($path,$offset)
+                                    )
                               )
-                      );
+                      );     //array_spliceのarrayは2回ネストさせる必要がある.
 //                }
                 }
 //            }
