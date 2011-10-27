@@ -387,40 +387,37 @@ $_ = $fixed;
         '/da/ /dbcd/ /dc/'
     );
 }
-/*
-sub permute {
-    my $target = shift;
-    my $path   = shift;
-    my( $x1, $x2, $x3, $x4, $x5 );
-    for $x1( 0..4 ) {
-        for $x2( 0..4 ) {
-            next if $x2 == $x1;
-            for $x3( 0..4 ) {
-                next if grep { $_ == $x3 } ($x1, $x2);
-                for $x4( 0..4 ) {
-                    next if grep { $_ == $x4 } ($x1, $x2, $x3);
-                    for $x5( 0..4 ) {
-                        next if grep { $_ == $x5 } ($x1, $x2, $x3, $x4);
-                        my $ra = Regexp::Assemble->new
-                            ->insert( @{$path->[$x1]} )
-                            ->insert( @{$path->[$x2]} )
-                            ->insert( @{$path->[$x3]} )
-                            ->insert( @{$path->[$x4]} )
-                            ->insert( @{$path->[$x5]} )
+
+function permute($target , $path) {
+    foreach( range(0,4) as $x1 ){
+        foreach( range(0,4) as $x2 ){
+            if ($x2 == $x1)   continue;
+            foreach( range(0,4) as $x3 ){
+                if ( count(array_filter( [$x1, $x2] , function($_) use($x3){ return $_ == $x3; } )) ) continue;
+                foreach( range(0,4) as $x4 ){
+                    if ( count(array_filter( [$x1, $x2, $x3] , function($_) use($x4){ return $_ == $x4; } )) ) continue;
+                    foreach( range(0,4) as $x5 ){
+                        if ( count(array_filter( [$x1, $x2, $x3, $x4] , function($_) use($x5){ return $_ == $x5; } )) ) continue;
+                        $ra = new Regexp_Assemble();
+                        $ra
+                            ->insert( $path[$x1] )
+                            ->insert( $path[$x2] )
+                            ->insert( $path[$x3] )
+                            ->insert( $path[$x4] )
+                            ->insert( $path[$x5] )
                         ;
                         is_deeply( $ra->path, $target,
-                            '/' . join( '/ /', 
-                                join( '' => @{$path->[$x1]}),
-                                join( '' => @{$path->[$x2]}),
-                                join( '' => @{$path->[$x3]}),
-                                join( '' => @{$path->[$x4]}),
-                                join( '' => @{$path->[$x5]}),
-                            ) . '/'
-                        ) or diag(
-                            $ra->dump(),
-                            ' versus ',
-                            Regexp::Assemble->_dump($target),
-                            "\n",
+                            'join: /' . join( '/ /', 
+                                array(
+                                   join( '' , $path[$x1]),
+                                   join( '' , $path[$x2]),
+                                   join( '' , $path[$x3]),
+                                   join( '' , $path[$x4]),
+                                   join( '' , $path[$x5])
+                                )
+                            ) . '/\n'
+                            .
+                            $ra->dump() . ' versus ' . $ra->_dump($target) . "\n"
                         );
                     }
                 }
@@ -431,148 +428,148 @@ sub permute {
 
 permute(
     [
-        'a', {
+        'a', [
             '__@UNDEF@__' => 0, 'b' => [
-                'b', {
+                'b', [
                     '__@UNDEF@__' => 0, 'c' => [
-                        'c', {
+                        'c', [
                             '__@UNDEF@__' => 0, 'd' => [
-                                'd', {
+                                'd', [
                                     '__@UNDEF@__' => 0, 'e' => [
-                                        'e',
-                                    ],
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
-        },
+                                        'e'
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
     ],
     [
-        [ 'a',                    ],
+        [ 'a'                     ],
         [ 'a', 'b'                ],
         [ 'a', 'b', 'c'           ],
         [ 'a', 'b', 'c', 'd'      ],
-        [ 'a', 'b', 'c', 'd', 'e' ],
+        [ 'a', 'b', 'c', 'd', 'e' ]
     ]
 );
 
 permute(
     [
-        {
+        [
             '__@UNDEF@__' => 0, 'a' => [
-                'a', {
+                'a', [
                     '__@UNDEF@__' => 0, 'b' => [
-                        'b', {
+                        'b', [
                             '__@UNDEF@__' => 0, 'c' => [
-                                'c', {
+                                'c', [
                                     '__@UNDEF@__' => 0, 'd' => [
                                         'd',
-                                    ],
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
-        },
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
     ],
     [
         [ '',                ],
         [ 'a',               ],
         [ 'a', 'b'           ],
         [ 'a', 'b', 'c'      ],
-        [ 'a', 'b', 'c', 'd' ],
+        [ 'a', 'b', 'c', 'd' ]
     ]
 );
 
 permute(
     [ 'd', 'o',
-    {
+    [
         'n' => [
             'n', 'a', 't',
-            {
+            [
                 'e' => ['e'],
-                'i' => ['i', 'o', 'n'],
-            },
+                'i' => ['i', 'o', 'n']
+            ]
         ]
         ,
         't' => [
             't',
-            {
+            [
                 'a' => ['a', 't', 'e'],
-                'i' => ['i', 'n', 'g'],
-            },
-        ],
+                'i' => ['i', 'n', 'g']
+            ]
+        ]
         ,
         '__@UNDEF@__' => 0,
-    }],
+    ]],
     [
-        [ split //, 'do'       ],
-        [ split //, 'donate'   ],
-        [ split //, 'donation' ],
-        [ split //, 'dotate'   ],
-        [ split //, 'doting'   ],
+        [ 'd','o'       ],
+        [ 'd','o','n','a','t','e'   ],
+        [ 'd','o','n','a','t','i','o','n' ],
+        [ 'd','o','t','a','t','e'   ],
+        [ 'd','o','t','i','n','g'   ]
     ]
 );
 
 permute(
     [
         'o',
-        {
-            ''  => undef,
+        [
+            '__@UNDEF@__' => 0,
             'n' => [
-                'n', {
-                    ''  => undef,
+                'n', [
+                    '__@UNDEF@__' => 0,
                     'l' => ['l', 'y'],
                     'e' => [
-                        'e', {
-                            ''  => undef,
-                            'r' => ['r'],
-                        }
-                    ],
-                },
-            ],
-        },
+                        'e', [
+                            '__@UNDEF@__' => 0,
+                            'r' => ['r']
+                        ]
+                    ]
+                ]
+            ]
+        ]
     ],
     [
-        [ split //, 'o'    ],
-        [ split //, 'on'   ],
-        [ split //, 'one'  ],
-        [ split //, 'only' ],
-        [ split //, 'oner' ],
-    ],
+         ['o']    ,
+         ['o','n']   ,
+         ['o','n','e']  ,
+         ['o','n','l','y' ] ,
+         ['o','n','e','r' ] 
+    ]
 );
 
 permute(
     [
         'a', 'm',
-        {
+        [
             'a' => [ 'a',
-                {
+                [
                     's' => ['s', 's'],
-                    'z' => ['z', 'e'],
-                },
+                    'z' => ['z', 'e']
+                ]
             ],
             'u' => [ 'u',
-                {
+                [
                     'c' => ['c', 'k'],
-                    's' => ['s', 'e'],
-                }
+                    's' => ['s', 'e']
+                ]
             ],
-            'b' => [ 'b', 'l', 'e' ],
-        },
+            'b' => [ 'b', 'l', 'e' ]
+        ]
     ],
     [
-        [ split //, 'amass' ],
-        [ split //, 'amaze' ],
-        [ split //, 'amble' ],
-        [ split //, 'amuck' ],
-        [ split //, 'amuse' ],
-    ],
+        [ 'a','m','a','s','s' ],
+        [ 'a','m','a','z','e' ],
+        [ 'a','m','b','l','e' ],
+        [ 'a','m','u','c','k' ],
+        [ 'a','m','u','s','e' ]
+    ]
 );
-
+/*
 Regexp::Assemble::Default_Lexer( '\([^(]*(?:\([^)]*\))?[^)]*\)|.' );
 
 {
