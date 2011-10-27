@@ -2915,7 +2915,7 @@ function _insert_path($list , $debug , $in) {
 //    if( @$list == 0 ) { # special case the first time
     if (count($list) == 0 ){ 
 //        if( @in == 0 or (@in == 1 and (not defined $in[0] or $in[0] eq ''))) {
-        if (count($in) == 0 || (count($in) == 1 && (! isset($in[0]) || $in[0] == '' ) ) ) {
+        if (count($in) == 0 || (count($in) == 1 && (! isset($in[0]) || $in[0] === '' ) ) ) {
 //            return [{'' => undef}];
             return array(array('__@UNDEF@__' => 0));
 //        }
@@ -4143,12 +4143,11 @@ function _slide_tail($head,$tail,$path,$ctx) {
     if ($debug){ echo "# $indent| slide potential ". $this->_dump($slide_path). " over ". $this->_dump($path), "\n" ; }
 
 //    while( defined $path->[0] and $path->[0] eq $slide_path->[0] ) {
-    while( $path[0] && $path[0] === $slide_path[0] ) {
+    while( count($path) > 0 && $path[0] === $slide_path[0] ) {
 //        $debug and print "# $indent| slide=tail=$slide_path->[0]\n";
         if ($debug){ echo "# {$indent}| slide=tail={$slide_path[0]}\n"; }
 //        my $slide = shift @$path;
-        $slide = $path ;
-        array_shift($slide);
+        $slide = array_shift($path);
 //        shift @$slide_path;
         array_shift($slide_path);
 //        push @$slide_path, $slide;
