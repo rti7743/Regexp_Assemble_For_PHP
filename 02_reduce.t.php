@@ -2,6 +2,34 @@
 require_once("Assemble.pm.php");
 require_once("testutil.php");
 
+{
+    $ra = new Regexp_Assemble();
+    $ra
+        ->insert( 't','r','e','a','t' )
+        ->insert( 't','h','r','e','a','t' )
+        ->insert( 't','e','a','t' )
+        ->_reduce()
+    ;
+    is_deeply( $ra->path,
+        [
+            't',
+            [
+                '__@UNDEF@__' => 0,
+                'h' => [
+                    [
+                        'h' => ['h'],
+                        '__@UNDEF@__' => 0
+                    ],
+                    'r'
+                ]
+            ],
+            'e', 'a', 't'
+        ],
+        '/teat/ /treat/ /threat/'
+    );
+}
+die;
+
 /*
 # 02_reduce.t
 #
@@ -359,6 +387,7 @@ perl の挙動を見てもそうなんだよな、、、うーんうーん
     );
 }
 
+
 {
     $ra = new Regexp_Assemble();
     $ra
@@ -385,6 +414,7 @@ perl の挙動を見てもそうなんだよな、、、うーんうーん
         '/teat/ /treat/ /threat/'
     );
 }
+
 
 {
     $ra = new Regexp_Assemble();

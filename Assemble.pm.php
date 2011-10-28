@@ -24,7 +24,7 @@ php5.2はアクティブサポートが終了しているようだし、まぁ�
 function _re_sort( $a, $b) {
 //    return length $b <=> length $a || $a cmp $b
     if (!is_array($a) && !is_array($b)) {
-        return $a  < $b ? 1 : ($a  > $b ? 1 : 0);
+        return $a  < $b ? -1 : ($a  > $b ? 1 : 0);
     }
 
     $_temp_len_a = count($a);
@@ -1399,6 +1399,8 @@ function insert() {
 function _insertr(array $p1) {
 //    my $dup    = $self->{stats_dup} || 0;
     $dup    = isset($this->stats_dup) ? $this->stats_dup : 0;
+
+   if ($this->debug & $this->DEBUG_ADD) { echo "# _insertr p1:".$this->_dump($p1)."\n"; }
 
 //    $self->{path} = $self->_insert_path( $self->_path, $self->_debug(DEBUG_ADD), $_[0] );
     $this->path = $this->_insert_path( $this->path, ($this->debug & $this->DEBUG_ADD), $p1 );
@@ -3354,7 +3356,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                $token_key     => [ $token, @_ ],
 //            };
             $new = array(
-                $path_end[0] => array( @$path_end ),
+                $path_end[0] => array( $path_end ),
                 $token_key   => array( $token, $_args )
             );
 //            $debug and print "#   atom->node @{[_dump($new)]}\n";
@@ -3559,7 +3561,7 @@ function _reduce_path($path, $ctx) {
 //    ) {
     if( count($tail) > 1
         && is_array($tail[0])
-        && array_keys($tail[0]) == 2
+        && count(array_keys($tail[0])) == 2
     ) {
 //        my $opt;
         $opt = NULL;
@@ -3570,7 +3572,7 @@ function _reduce_path($path, $ctx) {
 //            $debug and print "#$indent| scan k=$key p=@{[_dump($path)]}\n";
             if ($debug) { echo "#$indent| scan k=$key p=".$this->_dump($path)."\n"; }
 //            next unless $path;
-            if (! $path ) {
+            if ( $path === 0) { //undefということかな
                 continue;
             }
 //            if (@$path == 1 and ref($path->[0]) eq 'HASH') {
@@ -3596,7 +3598,7 @@ function _reduce_path($path, $ctx) {
 //            ($head, $tail, $path) = _slide_tail( $head, $tail, $path, _descend($ctx) );
             list($head, $tail, $path) = $this->_slide_tail( $head, $tail, $path, $this->_descend($ctx) );
 //            $tail = [$tail, @$path];
-            $tail = perl_array($tail, $path);
+            $tail = array_merge( array($tail) , $path );
 //        }
         }
 //    }
@@ -4009,6 +4011,7 @@ function _do_reduce($path, $ctx) {
     $ra = new Regexp_Assemble( array( 'chomp' => 0 ) );
 //    $ra->debug($debug);
     $ra->debug = $debug;
+$ra->debug = 255;
 //    $debug and print "# $indent| do @{[_dump($path)]}\n";
     if ($debug) { echo "# $indent| do ".$this->_dump($path)."\n"; }
 //    $ra->_insertr( $_ ) for
@@ -4030,14 +4033,8 @@ function _do_reduce($path, $ctx) {
 //        @$path
 //    ;
     $_temp_path = perl_sort( function($a,$b){
-            $scalar_count_a = 0;
-            foreach($a as $_) {
-                $scalar_count_a += (is_array($_) ? 1 : 0);
-            }
-            $scalar_count_b = 0;
-            foreach($b as $_) {
-                $scalar_count_b += (is_array($_) ? 1 : 0);
-            }
+            $scalar_count_a = count( perl_grep( function($_){ return is_array($_); } ,$a) );
+            $scalar_count_b = count( perl_grep( function($_){ return is_array($_); } ,$b) );
 
             if ($scalar_count_a > $scalar_count_b) {
                  return 1;
@@ -4054,14 +4051,15 @@ function _do_reduce($path, $ctx) {
             }
 
             $temp_a = count($a);
-            $temp_b = count($a);
+            $temp_b = count($b);
             if ($temp_a > $temp_b) {
                  return 1;
             } else if ($temp_a < $temp_b) {
-                 return 1;
+                 return -1;
             }
             return 0;
     } , $path );
+
     foreach($_temp_path as $_) {
         $ra->_insertr( $_ );
     }
@@ -4192,7 +4190,7 @@ function _unrev_path($path, $ctx) {
     //配列中にリファレンスが入っていると reverse できないからこうしてる？
     //一応、オリジナルのように動くようには補正はする。
     //配列の中に配列が入っている多次元配列でない場合 perl_reverse するようにしている。
-    if (!is_array($path) || count( perl_grep( function($_){ return !is_array($_); } , $path ) ) > 0 ) {
+    if (!is_array($path) || count( perl_grep( function($_){ return is_array($_); } , $path ) ) <= 0 ) {
 
 //        $debug and print "# ${indent}_unrev path fast ", _dump($path);
         if ($debug){ echo "# {$indent}_unrev path fast ". $this->_dump($path) ; }
@@ -4206,6 +4204,7 @@ function _unrev_path($path, $ctx) {
 //    }
     }
 
+
 //    $debug and print "# ${indent}unrev path in ", _dump($path), "\n";
     if ($debug){ echo "# ${indent}unrev path in ". $this->_dump($path). "\n"; }
 
@@ -4216,6 +4215,8 @@ function _unrev_path($path, $ctx) {
 //            : ref($p) eq 'ARRAY' ? _unrev_path($p, _descend($ctx) )
 //            : $p
 //        ;
+
+/*
           $new = perl_push($new ,  
                      (  !is_array($p) ? $p 
                        : ( perl_is_hash($p) ? array($this->_unrev_node($p, $this->_descend($ctx)) ) 
@@ -4223,6 +4224,14 @@ function _unrev_path($path, $ctx) {
                          )
                      )
           );
+*/
+          $new[] = 
+                     (  !is_array($p) ? $p 
+                       : ( perl_is_hash($p) ? $this->_unrev_node($p, $this->_descend($ctx) ) 
+                       :   $this->_unrev_path($p, $this->_descend($ctx)) 
+                         )
+                     )
+          ;
 //    }
     }
 //    $debug and print "# ${indent}unrev path out ", _dump($new), "\n";
