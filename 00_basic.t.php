@@ -249,9 +249,9 @@ is( $rt->_node_offset(
 );
 
 is( $rt->_node_eq(     [],     []), 1, '{} eq {}');
-is( $rt->_node_eq(      0,     []), 0, 'undef ne {}');
-is( $rt->_node_eq(     [],      0), 0, '{} ne undef');
-is( $rt->_node_eq(      0,      0), 0, 'undef ne undef');
+is( $rt->_node_eq(   NULL,     []), 0, 'undef ne {}');
+is( $rt->_node_eq(     [],   NULL), 0, '{} ne undef');
+is( $rt->_node_eq(   NULL,   NULL), 0, 'undef ne undef');
 is( $rt->_node_eq(     [],     []), 1, '[] eq []');
 //is( $rt->_node_eq(     [],     []), 0, '[] ne {}');  //PHPなので同一扱い
 //is( $rt->_node_eq(     [],     []), 0, '{} ne []');  //

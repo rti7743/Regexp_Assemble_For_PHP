@@ -1399,15 +1399,21 @@ function insert() {
         if ($r) return $r;
     }
 //    $self->_insertr( [@_] );
+    $arr = array();
     $args = func_get_args();
     if ( isset($args[0]) && is_array($args[0]) ) {
         //引数の最初のパラメータが配列だったら、その配列を
-        $this->_insertr( $args[0] );
+        foreach($args[0] as $_) {
+            $arr[] = (string)$_;
+        }
     }
     else {
         //そうでなければ引数全体を
-        $this->_insertr( $args );
+        foreach($args as $_) {
+            $arr[] = (string)$_;
+        }
     }
+    $this->_insertr( $arr );
 //    return $self;
     return $this;
 //}
@@ -3349,7 +3355,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                $debug and print "#   got off=$offset s=@{[scalar @_]} path_add=@{[_dump($path_end)]}\n";
                 if ($debug) { echo "#   got off=$offset s=".count($lostparam)." path_add=".$this->_dump($path_end)."\n"; }
 //                splice( @$path, $offset, @$path - $offset, @$path_end );
-                array_splice( $path, $offset, count($path) - $offset, $path_end ); //ここ不安 地震がない array($path_end)ではないらしい。
+                array_splice( $path, $offset, count($path) - $offset, $path_end ); //ここ不安 自信がない array($path_end)ではないらしい。
 //                $debug and print "#   got final=@{[_dump($path)]}\n";
                 if ( $debug ){ echo "#   got final=".$this->_dump($path)."\n"; }
 //            }
@@ -3554,12 +3560,15 @@ function _reduce_path($path, $ctx) {
             }
 //            push @$tail, ref($node_tail) eq 'HASH' ? $node_tail : @$node_tail;
 //ここあんまり自信がない.
-             if ( isset($node_tail[0]) ) {
+             if ( isset($node_tail[0]) 
+                  &&  !(isset($node_tail[0][0]) && $node_tail[0][0] !== 0)  // [ [0 => '0' , 1 => '1' , 2 => '2' ]] を排除する.
+                ) {
                  $tail = perl_push($tail , $node_tail);
              }
              else {
                  $tail[] = $node_tail;
              }
+
 //        }
         }
 //        else {
@@ -4095,17 +4104,13 @@ $ra->debug = 255;
             }
 
             //挙動を見ていると辞書順な気がする・・・
-var_dump($a);
             return strcmp( 
-                  is_array($a) ? join('|' , $a) : $a 
-                  ,
-                  is_array($b) ? join('|' , $b) : $b 
+                  is_array($a) ? json_encode($a) : $a   //join だと 多次元配列でエラーに...
+                  ,                                     //serilize と json_encode だと json_encode が早い？そうなので.
+                  is_array($b) ? json_encode($b) : $b 
             );
 //            return 0;
     } , $path );
-
-var_dump($_temp_path);
-
 
     foreach($_temp_path as $_) {
         $ra->_insertr( $_ );
@@ -4384,10 +4389,10 @@ function _node_key($node) {
 //    return _node_key($node->[0]) if ref($node) eq 'ARRAY';
 //    return $node unless ref($node) eq 'HASH';
     if ( !is_array($node) ){
-       return $node;
+       return (string)$node;
     }
     if ( !perl_is_hash($node) ){
-       return $this->_node_key($node[0]);
+       return (string)$this->_node_key($node[0]);
     }
 
 //    my $key = '';
@@ -4406,7 +4411,7 @@ function _node_key($node) {
 //    }
     }
 //    return $key;
-    return $key;
+    return (string)$key;
 //}
 }
 
@@ -5190,7 +5195,7 @@ function _re_path_pretty($in,$arg) {
 //sub _node_eq {
 function _node_eq($p1 , $p2 = NULL) {
 //    return 0 if not defined $_[0] or not defined $_[1];
-    if ($p2  === NULL ) {
+    if ($p2  === NULL || $p1 === NULL) {
         return false;
     }
 //    return 0 if ref $_[0] ne ref $_[1];

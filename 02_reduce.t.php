@@ -2,45 +2,6 @@
 require_once("Assemble.pm.php");
 require_once("testutil.php");
 
-{
-    $ra = new Regexp_Assemble();
-    $ra
-        ->insert(  'g','a','i','t' )
-        ->insert(  'g','r','i','t' )
-        ->insert(  's','u','m','m','i','t' )
-        ->insert(  's','u','b','m','i','t' )
-        ->insert(  'i','t' )
-        ->insert(  'e','m','i','t' )
-        ->_reduce()
-    ;
-    is_deeply( $ra->path,
-        [
-            [
-                '__@UNDEF@__' => 0,
-                'g' => ['g',
-                    [
-                        'a' => ['a'],
-                        'r' => ['r']
-                    ]
-                ],
-                'e' => [
-                    [
-                        'e' => ['e'],
-                        's' => ['s', 'u',
-                            [
-                                'b' => ['b'],
-                                'm' => ['m']
-                            ]
-                        ]
-                    ],
-                    'm'
-                ]
-            ],
-            'i', 't',
-        ],
-        '/gait/ /grit/ /summit/ /submit/ /it/ /emit/'
-    );
-}
 
 /*
 # 02_reduce.t
@@ -120,6 +81,11 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
 /*
 保留
+
+今回、array と hash を同一したので 0 と '0' の区別がつきづらい。
+'0'だと動作するので、数字で入れるのはなしにしたい。
+もちろん、perlのオリジナルは 0 だろうが '0' だろうが動作する。
+
 {
     $ra = new Regexp_Assemble();
     $ra->insert(0);
@@ -138,6 +104,23 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     );
 }
 */
+{
+    $ra = new Regexp_Assemble();
+    $ra->insert('0');
+    $ra->insert('1');
+    $ra->insert('2');
+    $ra->_reduce();
+    is_deeply( $ra->path,
+        [
+            [
+                0 => ['0'],
+                1 => ['1'],
+                2 => ['2'],
+            ]
+        ],
+        '/0/ /1/ /2/'
+    );
+}
 
 {
     $ra = new Regexp_Assemble();
