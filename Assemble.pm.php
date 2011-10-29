@@ -3045,10 +3045,11 @@ function _insert_path($list , $debug , $in) {
             else {
 //                $debug and print "#   add path ($token:@{[_dump(\@in)]}) into @{[_dump($path)]} at off=$offset to end=@{[scalar $#$path]}\n";
                 if ($debug) { echo "#   add path ($token:".$this->_dump($in).") into ".$this->_dump($path)." at off=$offset to end=".perl_lastindex($path)."\n"; }
+
 //                if( $offset == $#$path ) {
                 if ( $offset == perl_lastindex($path)  ) {
 //                    $node->{$token} = [ $token, @in ];
-                      $path[$offset][$token] = perl_array($token,$in); //nodeを参照にしていないため $path で受ける.
+                      $path[$offset][$token] = perl_array2($token,$in); //nodeを参照にしていないため $path で受ける.
                     if ($debug) { echo "#   offset({$offset}) eq lastindex=".perl_lastindex($path)." path=".$this->_dump($path)."\n"; }
 //                }
                 }
@@ -3796,8 +3797,16 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
             $path = $this->_unrev_path($path, $this->_descend($ctx) );
 //            $debug and print "#$indent| -simple opt=$optional unrev return @{[_dump($path)]}\n";
             if ( $debug ) { echo "#$indent| -simple opt=$optional unrev return".$this->_dump($path)."\n"; }
+
 //            $result{_node_key($path->[0])} = $path;
             $result[ $this->_node_key($path[0]) ] = $path;
+
+            //'' を復活させたらこれは不要です。
+            if ( isset($result['']) ) {
+                 unset($result['']);
+                 $result['__@UNDEF@__'] = 0;
+            }
+
 //            $debug and print "#$indent| -simple opt=$optional result: @{[_dump($result)]}\n";
             if ( $debug ) { echo "#$indent| -simple opt=$optional result: ".$this->_dump($result)."\n"; }
 //        }
@@ -3910,7 +3919,14 @@ function _scan_node( $node, $ctx ) {
 
       $_temp_map2 = array();
       foreach ( perl_sort($_temp_map) as $_ ) {
-        $_temp_map2[] = substr($_, strpos($_, '#')+1);  //#の区切り文字を活用
+          $_temp_separator = strpos($_, '#')+1;   //#の区切り文字を活用
+          if (strlen($_) > $_temp_separator){
+              $_temp_map2[] =  substr($_, $_temp_separator);
+          }
+          else {
+              $_temp_map2[] = '';
+              assert(isset($node['']));
+          }
       }
 
       foreach ($_temp_map2 as $n ) {
@@ -4435,6 +4451,7 @@ function _node_key($node) {
         }
 //    }
     }
+
 //    return $key;
     return (string)$key;
 //}
