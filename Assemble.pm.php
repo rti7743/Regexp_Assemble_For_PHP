@@ -57,38 +57,6 @@ function perl_lastindex(array $array)
     return array_pop($p);
 }
 
-//perl の push をエミュレーションする. その1 ネストする場合
-function perl_push(array $array , $target)
-{
-    if ( is_array($target) ){
-       if (count($array) <= 0) {
-           return $target;
-       }
-       $array[] = $target;
-       return $array;
-    }
-    else {
-       $array[] = $target;
-       return $array;
-    }
-}
-
-//perl の push をエミュレーションする. その2 直列する場合
-//http://en.yummy.stripper.jp/?eid=1168151
-function perl_push2(array $array , $target)
-{
-    if ( is_array($target) ){
-       if (count($array) <= 0) {
-           return $target;
-       }
-       return array_merge($array,$target);
-    }
-    else {
-       $array[] = $target;
-       return $array;
-    }
-}
-
 //perlのgrepに相当する関数
 //array_filter って array_map とコールバックが逆なんで統一しておく。めんどいから。
 function perl_grep($function ,array $array) {
@@ -1202,7 +1170,8 @@ function _lex($record){
 //        $debug and print "#   add remaining <$remain> case=<$case> qm=<$qm>\n";
         if ($debug){    echo "#   add remaining <$remain> case=<$case> qm=<$qm>\n";    }
 //        push @path, $remain;
-        $path = perl_push($path, $remain);
+/////        $path = perl_push($path, $remain);
+        $path[] = $remain;
 //    }
     }
 //    $debug and print "# _lex out <@path>\n";
@@ -3105,7 +3074,8 @@ function _insert_path($list , $debug , $in) {
 //        if( $offset >= @$path ) {
         if( $offset >= count($path) ) {
 //            push @$path, { $token => [ $token, @in ], '' => undef };
-            $path = perl_push($path,  array( $token => perl_array2( $token, $in ), '__@UNDEF@__' => 0 ) );
+////            $path = perl_push($path,  array( $token => perl_array2( $token, $in ), '__@UNDEF@__' => 0 ) );
+              $path[] = array( $token => perl_array2( $token, $in ), '__@UNDEF@__' => 0 );
 //            $debug and print "#   added remaining @{[_dump($path)]}\n";
             if ($debug) { echo "#   added remaining ".$this->_dump($path)."\n"; }
 //            last;
@@ -3582,14 +3552,16 @@ function _reduce_path($path, $ctx) {
             if ($debug) { echo "#$indent| head=", $this->_dump($node_head), " tail=", $this->_dump($node_tail), "\n"; }
 //            push @$head, @$node_head if scalar @$node_head;
             if ( count( $node_head) >= 1 ) {
-                 $head = perl_push2($head ,$node_head );
+//////                 $head = perl_push2($head ,$node_head );
+                 $head = array_merge($head , $node_head);
             }
 //            push @$tail, ref($node_tail) eq 'HASH' ? $node_tail : @$node_tail;
 //ここあんまり自信がない.
              if ( isset($node_tail[0]) 
                   &&  !(isset($node_tail[0][0]) && $node_tail[0][0] !== 0)  // [ [0 => '0' , 1 => '1' , 2 => '2' ]] を排除する.
                 ) {
-                 $tail = perl_push($tail , $node_tail);
+////                 $tail = perl_push($tail , $node_tail);
+                 $tail = array_merge($tail , $node_tail);   //push @tail , @node_tail なので混ぜる
              }
              else {
                  $tail[] = $node_tail;
@@ -3604,7 +3576,7 @@ function _reduce_path($path, $ctx) {
 //                $debug and print "#$indent| push $p leaves @{[_dump($path)]}\n";
                 if ( $debug ) { echo "#$indent| push $p leaves ".$this->_dump($path)."\n"; }
 //                push @$tail, $p;
-                $tail = perl_push($tail , $p);
+                  $tail[] = $p;
 //            }
             }
 //            else {
@@ -4000,7 +3972,8 @@ function _scan_node( $node, $ctx ) {
                 if ( $debug ) { echo "# $indent|_scan_node slid=", _dump($new_path), "\n"; }
 //                push @{$reduce{$new_path->[0]}}, $new_path;
                 if (!isset($reduce[$new_path[0]])) $reduce[$new_path[0]] = array();
-                $reduce[$new_path[0]] = perl_push( $reduce[$new_path[0]], $new_path );
+/////                $reduce[$new_path[0]] = perl_push( $reduce[$new_path[0]], $new_path );
+                $reduce[$new_path[0]][] = $new_path;
 //            }
             }
 //            else {
@@ -4164,7 +4137,14 @@ $ra->debug = 255;
 //    push @$common, shift @$path while( ref($path->[0]) ne 'HASH' );
 //これでいいんかな？
     while( count($path) > 0 && !is_array($path[0]) ) {
-        $common = perl_push2($common, array_shift($path));
+//        $common = perl_push2($common, array_shift($path));
+        $_temp_node = array_shift($path);
+        if ( is_array($_temp_node) ) {
+            $common = array_merge($common , $_temp_node );
+        }
+        else {
+            $common[] = $_temp_node;
+        }
     }
 
 //    my $tail = scalar( @$path ) > 1 ? [@$path] : $path->[0];
@@ -4242,9 +4222,11 @@ function _slide_tail($head,$tail,$path,$ctx) {
 //        shift @$slide_path;
         array_shift($slide_path);
 //        push @$slide_path, $slide;
-        $slide_path = perl_push( $slide_path, $slide);
+//        $slide_path = perl_push( $slide_path, $slide);
+        $slide_path[] = $slide;
 //        push @$head, $slide;
-        $head = perl_push( $head, $slide);
+//        $head = perl_push( $head, $slide);
+        $head[] = $slide;
 //    }
     }
 
@@ -4524,7 +4506,8 @@ function _make_class() {
 //            $_ =~ /^$re$/ and push @delete, $_ for keys %set;
             foreach( array_keys($set) as $_) {
                  if ( preg_match("/^{$re}$/u" , $_) ) {
-                      $delete = perl_push($delete , $_);
+//                      $delete = perl_push($delete , $_);
+                      $delete[] = $_;
                  }
             }
 //            delete @set{@delete} if @delete;
@@ -5052,7 +5035,8 @@ function _re_path_track($in,$normal,$augmented) {
                 || $n == count($in) - 1
             ) {
 //                push @{$self->{mlist}}, $normal . $simple ;
-                $this->mlist = perl_push( $this->mlist, $normal . $simple );
+//                $this->mlist = perl_push( $this->mlist, $normal . $simple );
+                $this->mlist[] = $normal . $simple;
 //                $augment .= $] < 5.009005
 //                    ? "(?{\$self->{m}=$self->{mcount}})"
 //                    : "(?{$self->{mcount}})"
