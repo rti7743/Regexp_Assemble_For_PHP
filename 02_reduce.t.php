@@ -2,6 +2,46 @@
 require_once("Assemble.pm.php");
 require_once("testutil.php");
 
+{
+    $ra = new Regexp_Assemble();
+    $ra
+        ->insert(  'g','a','i','t' )
+        ->insert(  'g','r','i','t' )
+        ->insert(  'b','a','i','t' )
+        ->insert(  'b','r','i','t' )
+        ->insert(  's','u','m','m','i','t' )
+        ->insert(  's','u','b','m','i','t' )
+        ->insert(  'e','m','i','t' )
+        ->insert(  't','r','a','n','s','m','i','t' )
+        ->_reduce()
+    ;
+    is_deeply( $ra->path,
+        [
+            [
+                'b' => [
+                    [
+                        'b' => ['b'],
+                        'g' => ['g']
+                    ],
+                    [
+                        'a' => ['a'],
+                        'r' => ['r']
+                    ]
+                ],
+                'e' => [
+                    [
+                        'e' => ['e'],
+                        's' => ['s','u',['b'=>['b'],'m'=>['m']]],
+                        't' => ['t','r','a','n','s']
+                    ],
+                    'm'
+                ]
+            ],
+            'i', 't',
+        ],
+        '/gait/ /grit/ /bait/ /brit/ /emit/ /summit/ /submit/ /transmit/'
+    );
+}
 
 /*
 # 02_reduce.t

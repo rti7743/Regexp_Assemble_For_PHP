@@ -3290,7 +3290,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                $debug and print "#   +_insert_node result=@{[_dump($path_end)]}\n";
                 if ($debug) { echo "#   +_insert_node result=".$this->_dump($path_end)."\n"; }
 //                splice( @$path, $offset, @$path_end, @$path_end );
-                array_splice( $path, $offset, count($path_end), array($path_end) );
+                array_splice( $path, $offset, count($path_end), $path_end ); //@$ なので array を重ねる必要なしかな・・
 //            }
             }
 //        }
@@ -3323,7 +3323,11 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                $path_end->[0]{$token_key} = [$token, @_];
                 $path_end[0][$token_key] = perl_array2($token, $lostparam);
 //                splice( @$path, $offset, @$path_end, @$path_end );
-                array_splice( $path, $offset, count($path_end), array($path_end) );
+                array_splice( $path, $offset, count($path_end), $path_end ); //@$ なので array を重ねる必要なしかな・・
+                
+//                $debug and print "#   next in path is node, trivial insert at $token_key after @{[_dump($path)]}\n";
+                if ($debug){ echo "#   next in path is node, trivial insert at $token_key after ",$this->_dump($path),"\n"; }
+                
 //            }
             }
 //        }
@@ -3355,7 +3359,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                $debug and print "#   got off=$offset s=@{[scalar @_]} path_add=@{[_dump($path_end)]}\n";
                 if ($debug) { echo "#   got off=$offset s=".count($lostparam)." path_add=".$this->_dump($path_end)."\n"; }
 //                splice( @$path, $offset, @$path - $offset, @$path_end );
-                array_splice( $path, $offset, count($path) - $offset, $path_end ); //ここ不安 自信がない array($path_end)ではないらしい。
+                array_splice( $path, $offset, count($path) - $offset, $path_end ); //@$ なので array を重ねる必要なしかな・・
 //                $debug and print "#   got final=@{[_dump($path)]}\n";
                 if ( $debug ){ echo "#   got final=".$this->_dump($path)."\n"; }
 //            }
