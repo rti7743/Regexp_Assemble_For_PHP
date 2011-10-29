@@ -42,8 +42,8 @@ $_ = $fixed;
     $r = $ra->path[0];
     is( is_array($r), true,  "insert('') => first element is a HASH" );
     is( count($r), 1,      "...and contains one key" );
-    ok( isset($r['__@UNDEF@__']),    "...which is an empty string" );
-    ok( $r['__@UNDEF@__'] === 0, "...and points to undef" );
+    ok( isset($r['']),    "...which is an empty string" );
+    ok( $r[''] === 0, "...and points to undef" );
 //}
 
 //{
@@ -58,7 +58,7 @@ $_ = $fixed;
     $ra = new Regexp_Assemble();
     $ra->insert();
     $ra->insert('a');
-    is_deeply( $ra->path, [['__@UNDEF@__' => 0, 'a' => ['a']]], "insert(), insert('a')" );
+    is_deeply( $ra->path, [['' => 0, 'a' => ['a']]], "insert(), insert('a')" );
 //}
 
 //{
@@ -92,19 +92,19 @@ $_ = $fixed;
 //{
     $ra = new Regexp_Assemble();
     $ra->insert( NULL );
-    is_deeply( $ra->path, [['__@UNDEF@__' => 0]], 'insert(undef)' );
+    is_deeply( $ra->path, [['' => 0]], 'insert(undef)' );
 //}
 
 //{
     $ra = new Regexp_Assemble();
     $ra->insert( '' );
-    is_deeply( $ra->path, [['__@UNDEF@__' => 0]], "insert('')" );
+    is_deeply( $ra->path, [['' => 0]], "insert('')" );
 //}
 
 //{
     $ra = new Regexp_Assemble();
     $ra->insert();
-    is_deeply( $ra->path, [['__@UNDEF@__' => 0]], 'insert()' );
+    is_deeply( $ra->path, [['' => 0]], 'insert()' );
 //}
 
 //{
@@ -204,7 +204,7 @@ $_ = $fixed;
             [
                 '1' => ['1'],
                 '2' => ['2'],
-                '__@UNDEF@__' => 0
+                '' => 0
             ]
         ],
         '/0/ /01/ /02/'
@@ -233,7 +233,7 @@ $_ = $fixed;
             'd', 'a',
             [
                 'y' => ['y'],
-                '__@UNDEF@__' => 0
+                '' => 0
             ]
         ],
         '/day/, /da/ x 2'
@@ -253,10 +253,10 @@ $_ = $fixed;
                     'o',
                     [
                         't' => ['t'],
-                        '__@UNDEF@__' => 0
+                        '' => 0
                     ]
                 ],
-                '__@UNDEF@__' => 0
+                '' => 0
             ]
         ],
         '/dot/ /do/ /d/'
@@ -429,13 +429,13 @@ function permute($target , $path) {
 permute(
     [
         'a', [
-            '__@UNDEF@__' => 0, 'b' => [
+            '' => 0, 'b' => [
                 'b', [
-                    '__@UNDEF@__' => 0, 'c' => [
+                    '' => 0, 'c' => [
                         'c', [
-                            '__@UNDEF@__' => 0, 'd' => [
+                            '' => 0, 'd' => [
                                 'd', [
-                                    '__@UNDEF@__' => 0, 'e' => [
+                                    '' => 0, 'e' => [
                                         'e'
                                     ]
                                 ]
@@ -458,13 +458,13 @@ permute(
 permute(
     [
         [
-            '__@UNDEF@__' => 0, 'a' => [
+            '' => 0, 'a' => [
                 'a', [
-                    '__@UNDEF@__' => 0, 'b' => [
+                    '' => 0, 'b' => [
                         'b', [
-                            '__@UNDEF@__' => 0, 'c' => [
+                            '' => 0, 'c' => [
                                 'c', [
-                                    '__@UNDEF@__' => 0, 'd' => [
+                                    '' => 0, 'd' => [
                                         'd',
                                     ]
                                 ]
@@ -503,7 +503,7 @@ permute(
             ]
         ]
         ,
-        '__@UNDEF@__' => 0,
+        '' => 0,
     ]],
     [
         [ 'd','o'       ],
@@ -518,14 +518,14 @@ permute(
     [
         'o',
         [
-            '__@UNDEF@__' => 0,
+            '' => 0,
             'n' => [
                 'n', [
-                    '__@UNDEF@__' => 0,
+                    '' => 0,
                     'l' => ['l', 'y'],
                     'e' => [
                         'e', [
-                            '__@UNDEF@__' => 0,
+                            '' => 0,
                             'r' => ['r']
                         ]
                     ]

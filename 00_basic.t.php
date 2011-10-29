@@ -215,12 +215,12 @@ is( $rt->_node_key(
 );
 
 is( $rt->_node_key(
-        [ '__@UNDEF@__' => 0, 'a' => 1, 'a.' => 2, 'b' => 3 ]
+        [ '' => 0, 'a' => 1, 'a.' => 2, 'b' => 3 ]
     ), 'a', '_node_key(4)'
 );
 
 is( $rt->_node_key(
-        [ '__@UNDEF@__' => 0, 'abc' => 1, 'def' => 2, 'g' => 3 ]
+        [ '' => 0, 'abc' => 1, 'def' => 2, 'g' => 3 ]
     ), 'abc', '_node_key(5)'
 );
 
@@ -230,7 +230,7 @@ is( $rt->_node_offset(
 );
 
 is( $rt->_node_offset(
-        [ ['x' => ['x'], '__@UNDEF@__' => 0], 'a', 'b', '\\d+', 'e', '\\d' ]
+        [ ['x' => ['x'], '' => 0], 'a', 'b', '\\d+', 'e', '\\d' ]
     ), 0, '_node_offset(2)'
 );
 
@@ -269,7 +269,7 @@ is( $rt->_node_eq(
 
 is( $rt->_node_eq(
         ['a'=>['a','b']],
-        ['a'=>['a','b'], '__@UNDEF@__' => 0]
+        ['a'=>['a','b'], '' => 0]
     ), 0, 'ne {a}'
 );
 
@@ -298,14 +298,14 @@ is( $rt->_node_eq(
 );
 
 is( $rt->_node_eq(
-        ['__@UNDEF@__'=>0, 'a'=>['a','b']],
-        ['__@UNDEF@__'=>0, 'a'=>['a','b']]
+        [''=>0, 'a'=>['a','b']],
+        [''=>0, 'a'=>['a','b']]
     ), 1, '{eq {* a}'
 );
 
 is( $rt->_node_eq(
-        ['__@UNDEF@__'=>0, 'a'=>['a','b']],
-        ['__@UNDEF@__'=>0, 'a'=>['a','b','c']]
+        [''=>0, 'a'=>['a','b']],
+        [''=>0, 'a'=>['a','b','c']]
     ), 0, '{ne {* a}'
 );
 
@@ -801,7 +801,7 @@ lcmp( '\\|{2,4}?', __LINE__ );
         ['c'=>['c','d'],'e'=>['e','f']],
         't',
         ['d'=>['d','f'],'b'=>['b',0]],
-        [ '__@UNDEF@__' => 0, 'a' => ['a']]
+        [ '' => 0, 'a' => ['a']]
     ];
     is_deeply( $path, $rt->_path_copy($path),
         '_path_copy({c,e} t {d,b} {* a}' );
@@ -849,18 +849,18 @@ is_deeply( $rt->_unrev_node(
     'node(0,2)' );
 
 is_deeply( $rt->_unrev_node(
-    [ '__@UNDEF@__' => 0, 'a' => ['a','b'] ], $context),
-    [ '__@UNDEF@__' => 0, 'b' => ['b','a'] ],
+    [ '' => 0, 'a' => ['a','b'] ], $context),
+    [ '' => 0, 'b' => ['b','a'] ],
     'node(*,a,b)' );
 
 is_deeply( $rt->_unrev_node(
-    [ '__@UNDEF@__' => 0, 'a' => ['a','b'], 'b' => ['b','c','d','e','f','g'] ], $context),
-    [ '__@UNDEF@__' => 0, 'b' => ['b','a'], 'g' => ['g','f','e','d','c','b'] ],
+    [ '' => 0, 'a' => ['a','b'], 'b' => ['b','c','d','e','f','g'] ], $context),
+    [ '' => 0, 'b' => ['b','a'], 'g' => ['g','f','e','d','c','b'] ],
     'node(*a,b2)' );
 
 is_deeply( $rt->_unrev_path(
-    [['x' => ['x','0'], '__@UNDEF@__' => 0 ]], $context),
-    [['0' => ['0','x'], '__@UNDEF@__' => 0 ]], 'node(* 0)' );
+    [['x' => ['x','0'], '' => 0 ]], $context),
+    [['0' => ['0','x'], '' => 0 ]], 'node(* 0)' );
 
 is_deeply( $rt->_unrev_node(
     [ 'ab' => ['ab','bc'], 'bc' => ['bc','cd','de','ef','fg','gh'], 'ef' => ['ef','gh','ij'] ], $context),
@@ -868,8 +868,8 @@ is_deeply( $rt->_unrev_node(
     'node(ab,bc,ef)' );
 
 is_deeply( $rt->_unrev_node(
-    ['__@UNDEF@__'=>0,'b'=>[[['b'=>['b'],'b?'=>[['__@UNDEF@__'=>0,'b'=>['b']],'a']]],['__@UNDEF@__'=>0,'c'=>['c']]]], $context),
-    ['__@UNDEF@__'=>0,'c'=>[['__@UNDEF@__'=>0,'c'=>['c']],[['a'=>['a',['__@UNDEF@__'=>0,'b'=>['b']]],'b'=>['b']]]]],
+    [''=>0,'b'=>[[['b'=>['b'],'b?'=>[[''=>0,'b'=>['b']],'a']]],[''=>0,'c'=>['c']]]], $context),
+    [''=>0,'c'=>[[''=>0,'c'=>['c']],[['a'=>['a',[''=>0,'b'=>['b']]],'b'=>['b']]]]],
     'node of (?:(?:ab?|b)c?)?' );
 
 is_deeply( $rt->_unrev_path(
@@ -977,12 +977,12 @@ is( $rt->_combine( '?=', ['in','og','0','1','2','3','4','5','6','7','8','9'] ),
 );
 
 is_deeply( $rt->_unrev_path(
-    [['x1'   => ['x1', 'z\\d'], '__@UNDEF@__' => 0 ]], $context),
-    [['z\\d' => ['z\\d', 'x1'], '__@UNDEF@__' => 0 ]], 'node(* metachar)' );
+    [['x1'   => ['x1', 'z\\d'], '' => 0 ]], $context),
+    [['z\\d' => ['z\\d', 'x1'], '' => 0 ]], 'node(* metachar)' );
 
 is_deeply( $rt->_unrev_path(
-    [['x'   => ['x', '\\d'], '__@UNDEF@__' => 0 ]], $context),
-    [['\\d' => ['\\d', 'x'], '__@UNDEF@__' => 0 ]], 'node(* metachar) 2' );
+    [['x'   => ['x', '\\d'], '' => 0 ]], $context),
+    [['\\d' => ['\\d', 'x'], '' => 0 ]], 'node(* metachar) 2' );
 
 is_deeply( $rt->_unrev_path(
     [['ab','cd','ef'], ['x1' => ['x1', 'y2', 'z\\d'], 'mx' => [['mx','us','ca']] ]], $context),

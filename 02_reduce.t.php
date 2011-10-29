@@ -32,11 +32,11 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
     # ran, reran
     $path  = ['r'];
-    $tail  = [ '__@UNDEF@__' => 0, 'r' => [ 'r', 'e' ] ];
+    $tail  = [ '' => 0, 'r' => [ 'r', 'e' ] ];
     $head  = ['n', 'a'];
     list($head, $slide, $path) = $r->_slide_tail( $head, $tail, $path, $context );
     is_deeply( $head, ['n', 'a', 'r'], '_slide_tail ran/reran head' );
-    is_deeply( $slide, [ '__@UNDEF@__' => 0, 'e' => ['e', 'r'] ], '_slide_tail ran/reran slide' );
+    is_deeply( $slide, [ '' => 0, 'e' => ['e', 'r'] ], '_slide_tail ran/reran slide' );
     is_deeply( $path, [], '_slide_tail ran/reran path' );
 }
 
@@ -45,11 +45,11 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
     # lit, limit
     $path  = ['i', 'l'];
-    $tail  = [ '__@UNDEF@__' => 0, 'i' => [ 'i', 'm' ] ];
+    $tail  = [ '' => 0, 'i' => [ 'i', 'm' ] ];
     $head  = ['t'];
     list($head, $slide, $path) = $r->_slide_tail( $head, $tail, $path, $context );
     is_deeply( $head, ['t', 'i'], '_slide_tail lit/limit head' );
-    is_deeply( $slide, [ '__@UNDEF@__' => 0, 'm' => ['m', 'i'] ], '_slide_tail lit/limit slide' );
+    is_deeply( $slide, [ '' => 0, 'm' => ['m', 'i'] ], '_slide_tail lit/limit slide' );
     is_deeply( $path, ['l'], '_slide_tail lit/limit path' );
 }
 
@@ -58,11 +58,11 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
     # acids/acidoids
     $path  = ['d', 'i', 'c', 'a'];
-    $tail  = [ '__@UNDEF@__' => 0, 'd' => [ 'd', 'i', 'o' ] ];
+    $tail  = [ '' => 0, 'd' => [ 'd', 'i', 'o' ] ];
     $head  = ['s'];
     list($head, $slide, $path) = $r->_slide_tail( $head, $tail, $path, $context );
     is_deeply( $head, ['s', 'd', 'i'], '_slide_tail acids/acidoids head' );
-    is_deeply( $slide, [ '__@UNDEF@__' => 0, 'o' => ['o', 'd', 'i'] ], '_slide_tail acids/acidoids slide' );
+    is_deeply( $slide, [ '' => 0, 'o' => ['o', 'd', 'i'] ], '_slide_tail acids/acidoids slide' );
     is_deeply( $path, ['c', 'a'], '_slide_tail acids/acidoids path' );
 }
 
@@ -71,11 +71,11 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
     # 007/00607
     $path  = ['0', '0'];
-    $tail  = [ '__@UNDEF@__' => 0, '0' => [ '0', '6' ] ];
+    $tail  = [ '' => 0, '0' => [ '0', '6' ] ];
     $head  = ['7'];
     list($head, $slide, $path) = $r->_slide_tail( $head, $tail, $path, $context );
     is_deeply( $head, ['7', '0'], '_slide_tail 007/00607 head' );
-    is_deeply( $slide, [ '__@UNDEF@__' => 0, '6' => ['6', '0'] ], '_slide_tail 007/00607 slide' );
+    is_deeply( $slide, [ '' => 0, '6' => ['6', '0'] ], '_slide_tail 007/00607 slide' );
     is_deeply( $path, ['0'], '_slide_tail 007/00607 path' );
 }
 
@@ -182,10 +182,10 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 //                '0' => ['0'],
 //                '1' => [
 //                    '1', [
-//                        '__@UNDEF@__' => 0,
+//                        '' => 0,
 //                        '0' => [
 //                            [
-//                                '__@UNDEF@__' => 0,
+//                                '' => 0,
 //                                '0' => ['0']
 //                            ],
 //                            0
@@ -251,7 +251,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
                 'b' => ['b'],
                 'i' => [
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'i' => ['i', 'l']
                     ],
                     'y'
@@ -299,7 +299,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     is_deeply( $ra->path,
         [
             [
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 't' => ['t']
             ],
             'h', 'a', 't'
@@ -319,7 +319,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         [
             't',
             [
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 'h' => ['h']
             ],
             'r', 'e', 'a', 't'
@@ -340,11 +340,11 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     is_deeply( $ra->path,
         [
             [
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 't' => [
                     't',
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'h' => ['h'],
                     ],
                     'r'
@@ -369,11 +369,11 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         [
             't',
             [
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 'h' => [
                     [
                         'h' => ['h'],
-                        '__@UNDEF@__' => 0
+                        '' => 0
                     ],
                     'r'
                 ]
@@ -399,7 +399,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
                 'g' => [ 'g', 'r' ],
                 'l' => [ 'l',
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'i' => ['i', 'm']
                     ]
                 ]
@@ -431,7 +431,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
                 ],
                 't' => ['t', 'e', 'n',
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         't' => ['t']
                     ]
                 ]
@@ -452,10 +452,10 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     is_deeply( $ra->path,
         [
             [
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 'd' => [  'd', 'o',
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'n' => ['n']
                     ]
                 ]
@@ -524,7 +524,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
                 'k' => [ 'k' ],
                 'a' => [ 'a', 'c',
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'i' => ['i', 'd', 'o'],
                     ],
                 ],
@@ -549,7 +549,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
                 's' => [ 's', 'c', 'h', 'o', 'o', 'l', 'k' ],
                 'a' => [ 'a', 'c',
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'i' => ['i', 'd', 'o']
                     ]
                 ]
@@ -574,14 +574,14 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
             [
                 's' => [
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         's' => ['s']
                     ],
                     'k',
                 ],
                 'a' => [ 'a', 'c',
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'i' => ['i', 'd', 'o']
                     ]
                 ]
@@ -607,10 +607,10 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
             [
                 's' => [
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         's' => ['s',
                             [
-                                '__@UNDEF@__' => 0,
+                                '' => 0,
                                 'c' => ['c', 'h', 'o', 'o', 'l']
                             ]
                         ]
@@ -619,7 +619,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
                 ],
                 'a' => [ 'a', 'c',
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'i' => ['i', 'd', 'o']
                     ]
                 ]
@@ -643,7 +643,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         [
             's', 'h', 'o', 'w',
             [
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 'e' => ['e', 'r']
             ],
             [
@@ -804,13 +804,13 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     $ra = new Regexp_Assemble();
     $ra->path = [
         't', [
-            '__@UNDEF@__' => 0,
+            '' => 0,
             'a' => ['a']
         ],
         'e', 'b'
     ];
     $path = [ 't', [
-            '__@UNDEF@__' => 0,
+            '' => 0,
             'a' => ['a']
         ],
         'e', 's'
@@ -820,7 +820,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         [
             't',
             [
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 'a' => ['a']
             ],
             'e',
@@ -838,14 +838,14 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     $ra->path = [
         'd', 'i',
         [
-            '__@UNDEF@__' => 0,
+            '' => 0,
             'o' => ['o']
         ],
         't', 'y', 'd',
     ];
     $path = [ 'd', 'i',
         [
-            '__@UNDEF@__' => 0,
+            '' => 0,
             'o' => ['o']
         ],
         't', 'a', 'b'
@@ -855,7 +855,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         [
             'd', 'i',
             [
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 'o' => ['o']
             ],
             't',
@@ -873,7 +873,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     $ra->path = [
         'd', 'i',
         [
-            '__@UNDEF@__' => 0,
+            '' => 0,
             'o' => ['o']
         ],
         't',
@@ -884,7 +884,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     ];
     $path = [ 'd', 'i',
         [
-            '__@UNDEF@__' => 0,
+            '' => 0,
             'o' => ['o']
         ],
         't', 'm', 'x'
@@ -894,7 +894,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         [
             'd', 'i',
             [
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 'o' => ['o']
             ],
             't',
@@ -913,7 +913,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     $ra->path = [
         'd', 'i',
         [
-            '__@UNDEF@__' => 0,
+            '' => 0,
             'o' => ['o']
         ],
         't',
@@ -924,7 +924,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     ];
     $path = [ 'd', 'i',
         [
-            '__@UNDEF@__' => 0,
+            '' => 0,
             'o' => ['o']
         ],
         't', 'a', 'x'
@@ -934,7 +934,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         [
             'd', 'i',
             [
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 'o' => ['o']
             ],
             't',
@@ -999,7 +999,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     is_deeply( $ra->path,
         [
             [
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 'g' => ['g',
                     [
                         'a' => ['a'],
@@ -1045,7 +1045,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
                 ],
                 'l' => [ 'l',
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'i' => ['i','m']
                     ]
                 ]
@@ -1098,7 +1098,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
                     [
                         'e' => [
                             [
-                                '__@UNDEF@__' => 0,
+                                '' => 0,
                                 'e' => ['e','b']
                             ],
                             'a'
@@ -1183,7 +1183,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
                 ],
                 'l' => ['l',
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'i' => ['i','m']
                     ]
                 ]
@@ -1234,12 +1234,12 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
                 'd' => ['d',
                     [
                         'e' => [ 'e', 'n', [
-                                '__@UNDEF@__' => 0,
+                                '' => 0,
                                 't' => ['t']
                             ]
                         ],
                         'i' => [ 'i', 'n', [
-                                '__@UNDEF@__' => 0,
+                                '' => 0,
                                 't' => ['t']
                             ]
                         ]
@@ -1248,12 +1248,12 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
                 't' => ['t',
                     [
                         'e' => [ 'e', 'n', [
-                                '__@UNDEF@__' => 0,
+                                '' => 0,
                                 't' => ['t']
                             ]
                         ],
                         'i' => [ 'i', 'n', [
-                                '__@UNDEF@__' => 0,
+                                '' => 0,
                                 't' => ['t']
                             ]
                         ]
@@ -1276,11 +1276,11 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     is_deeply( $ra->path,
         [ 'g',
             [ 
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 'a' => ['a'],
                 'r' => ['r',
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'a' => ['a',
                             [
                                 'p' => ['p','e','f','r'],
@@ -1312,14 +1312,14 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
             [
                 'a' => [ 'a',
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'm' => ['m','b'],
                         's' => ['s','l']
                     ]
                 ],
                 'i' => [
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'i' => ['i','g','g']
                     ]
                 ],
@@ -1333,7 +1333,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
                 ],
                 'r' => [ 'r',
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'a' => ['a',
                             [
                                 'p' => ['p','e','f','r'],
@@ -1364,14 +1364,14 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
             'l','i', [
                 'm' => [
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'm' => ['m','i']
                     ],
                     't'
                 ],
                 'v' => [
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'v' => ['v','i']
                     ],
                     'd'
@@ -1395,7 +1395,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
             [
                 'm' => [
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'm' => ['m','i','l','l','i']
                     ],
                     'm','e'
@@ -1422,7 +1422,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
             [
                 'a' => [
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'a' => ['a','l']
                     ]
                 ],
@@ -1446,10 +1446,10 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         [
             't',
             [
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 'h' => ['h',
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'o' => ['o','r']
                     ]
                 ],
@@ -1472,12 +1472,12 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     is_deeply( $ra->path,
         ['t',
             [
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 h   => [ 'h',
                     [
                         o => [
                             [
-                                '__@UNDEF@__' => 0,
+                                '' => 0,
                                 o  => ['o','r']
                             ]
                         ],
@@ -1503,7 +1503,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     is_deeply( $ra->path,
         ['t','i','t',
             [
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 'a' => [ 'a','n',
                     [
                         'a' => ['a','t','e'],
@@ -1518,7 +1518,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
                 ],
                 'i' => [ 'i',
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         'a' => [
                             [
                                 'e' => ['e'],
@@ -1530,7 +1530,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
                 ],
                 't' => [
                     [
-                        '__@UNDEF@__' => 0,
+                        '' => 0,
                         't' => ['t','i']
                     ],
                     'e'
@@ -1559,7 +1559,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
             ],
             's',
             [
-                '__@UNDEF@__' => 0,
+                '' => 0,
                 't' => ['t']
             ],
             'i', 'n',
