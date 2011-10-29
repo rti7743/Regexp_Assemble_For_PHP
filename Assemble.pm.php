@@ -3237,7 +3237,8 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                        ref($token) ? _dump($token) : $token, "\n";
                     if ( $debug ){ echo "#  identical nodes in sub_path ". (is_array($token) ? $this->_dump($token) : $token) . "\n"; }
 //                    push @$new_path, shift(@$old_path);
-                    $new_path = perl_push($new_path, array_shift($old_path) );
+///////                    $new_path = perl_push($new_path, array_shift($old_path) );
+                    $new_path[] = array_shift($old_path) ;
 //                    $token = shift @_;
                     $token = array_shift($lostparam);
 //                }
@@ -3248,8 +3249,10 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
                     $new = NULL;
 //                    my $token_key = $token;
                     $token_key = $token;
+                    
+                    
 //                    if( @_ ) {
-                    if( $lostparam ) {
+                    if( count($lostparam) >= 1 ) {
 //                        $new = {
 //                            _re_path($self, $old_path) => $old_path,
 //                            $token_key => [$token, @_],
@@ -3281,8 +3284,14 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
                         }
 //                    }
                     }
+//                    $debug and print "#   +_insert_node new_path=@{[_dump($new_path)]}\n";
+                    if ($debug) { echo "#   +_insert_node new_path=".$this->_dump($new_path)."\n"; }
 //                    push @$new_path, $new;
                     $new_path = perl_push( $new_path , $new );
+//                    $debug and print "#   +_insert_node new=@{[_dump($new)]}\n";
+                    if ($debug) { echo "#   +_insert_node new=".$this->_dump($new)."\n"; }
+//                    $debug and print "#   +_insert_node after new_path=@{[_dump($new_path)]}\n";
+                    if ($debug) { echo "#   +_insert_node after new_path=".$this->_dump($new_path)."\n"; }
 //                }
                 }
 //                $path_end->[0]{$token_key} = $new_path;
