@@ -4,35 +4,44 @@ require_once("testutil.php");
 
 {
     $ra = new Regexp_Assemble();
-    $ra->path = [
-        't', [
-            'a' => ['a'],
-            'i' => ['i'],
-        ],
-        'b'
-    ];
-    $path = [ 't', [
-            'a' => ['a'],
-            'i' => ['i'],
-        ],
-        's'
-    ];
-    $res = $ra->_insert_path( $ra->path, 255, $path );
-    is_deeply( $res,
+    $ra
+        ->insert(  'g','a','i','t' )
+        ->insert(  'g','r','i','t' )
+        ->insert(  's','u','m','m','i','t' )
+        ->insert(  's','u','b','m','i','t' )
+        ->insert(  'i','t' )
+        ->insert(  'e','m','i','t' )
+        ->_reduce()
+    ;
+    is_deeply( $ra->path,
         [
-            't',
             [
-                'a' => ['a'],
-                'i' => ['i']
+                '__@UNDEF@__' => 0,
+                'g' => ['g',
+                    [
+                        'a' => ['a'],
+                        'r' => ['r']
+                    ]
+                ],
+                'e' => [
+                    [
+                        'e' => ['e'],
+                        's' => ['s', 'u',
+                            [
+                                'b' => ['b'],
+                                'm' => ['m']
+                            ]
+                        ]
+                    ],
+                    'm'
+                ]
             ],
-            [
-                'b' => ['b'],
-                's' => ['s']
-            ]
+            'i', 't',
         ],
-        '_insert_path sit/sat -> bit/bat'
+        '/gait/ /grit/ /summit/ /submit/ /it/ /emit/'
     );
 }
+
 /*
 # 02_reduce.t
 #
@@ -1130,7 +1139,7 @@ perl の挙動を見てもそうなんだよな、、、うーんうーん
         '/gait/ /grit/ /bait/ /bebait/ /brit/'
     );
 }
-
+/*
 {
     $ra = new Regexp_Assemble();
     $ra
@@ -1171,7 +1180,7 @@ perl の挙動を見てもそうなんだよな、、、うーんうーん
         '/gait/ /grit/ /bait/ /brit/ /emit/ /summit/ /submit/ /transmit/'
     );
 }
-
+*/
 {
     $ra = new Regexp_Assemble();
     $ra
@@ -1232,6 +1241,7 @@ perl の挙動を見てもそうなんだよな、、、うーんうーん
     );
 }
 
+/*
 {
     $list = ['den', 'dent', 'din', 'dint', 'ten', 'tent', 'tin', 'tint'];
 
@@ -1551,6 +1561,7 @@ perl の挙動を見てもそうなんだよな、、、うーんうーん
         join( ' ', $list )
     );
 }
+*/
 
 {
     $ra = new Regexp_Assemble();
@@ -1575,7 +1586,7 @@ perl の挙動を見てもそうなんだよな、、、うーんうーん
             'i', 'n',
         ],
         'dasin/dosin/dastin/dosting'
-    ) or diag ($ra->path);
+    );
 }
 
 /*

@@ -3093,7 +3093,7 @@ function _insert_path($list , $debug , $in) {
 //        if( $offset >= @$path ) {
         if( $offset >= count($path) ) {
 //            push @$path, { $token => [ $token, @in ], '' => undef };
-            $path = perl_push($path,  array( $token => perl_array( $token, $in ), '__@UNDEF@__' => 0 ) );
+            $path = perl_push($path,  array( $token => perl_array2( $token, $in ), '__@UNDEF@__' => 0 ) );
 //            $debug and print "#   added remaining @{[_dump($path)]}\n";
             if ($debug) { echo "#   added remaining ".$this->_dump($path)."\n"; }
 //            last;
@@ -3315,7 +3315,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                $debug and print "#   next in path is node, trivial insert at $token_key\n";
                 if ($debug){ echo "#   next in path is node, trivial insert at $token_key\n"; }
 //                $path_end->[0]{$token_key} = [$token, @_];
-                $path_end[0][$token_key] = array($token, $lostparam);
+                $path_end[0][$token_key] = perl_array2($token, $lostparam);
 //                splice( @$path, $offset, @$path_end, @$path_end );
                 array_splice( $path, $offset, count($path_end), array($path_end) );
 //            }
@@ -3345,11 +3345,11 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                $debug and print "#   insert at $offset $token:@{[_dump(\@_)]} into @{[_dump($path_end)]}\n";
                 if ($debug) { echo "#   insert at $offset $token:".$this->_dump($lostparam)." into ".$this->_dump($path_end)."\n"; }
 //                $path_end = $self->_insert_path( $path_end, $debug, [$token, @_] );
-                $path_end = $this->_insert_path( $path_end, $debug, perl_array($token, $lostparam) );
+                $path_end = $this->_insert_path( $path_end, $debug, perl_array2($token, $lostparam) );
 //                $debug and print "#   got off=$offset s=@{[scalar @_]} path_add=@{[_dump($path_end)]}\n";
                 if ($debug) { echo "#   got off=$offset s=".count($lostparam)." path_add=".$this->_dump($path_end)."\n"; }
 //                splice( @$path, $offset, @$path - $offset, @$path_end );
-                array_splice( $path, $offset, count($path) - $offset, $path_end );
+                array_splice( $path, $offset, count($path) - $offset, $path_end ); //ここ不安 地震がない array($path_end)ではないらしい。
 //                $debug and print "#   got final=@{[_dump($path)]}\n";
                 if ( $debug ){ echo "#   got final=".$this->_dump($path)."\n"; }
 //            }
@@ -3401,7 +3401,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //        else {
         else {
 //            $debug and print "#   add opt @{[_dump([$token,@_])]} via $token_key\n";
-            if ( $debug ) { echo "#   add opt ".$this->_dump(array($token,$lostparam))." via $token_key\n"; }
+            if ( $debug ) { echo "#   add opt ".$this->_dump(perl_array2($token,$lostparam))." via $token_key\n"; }
 //            push @$path, {
 //                ''         => undef,
 //                $token_key => [ $token, @_ ],
@@ -4079,10 +4079,11 @@ $ra->debug = 255;
 
             $temp_b = $this->_node_offset($b);
             $temp_a = $this->_node_offset($a);
+
             if ($temp_b > $temp_a) {
                  return 1;
             } else if ($temp_b < $temp_a) {
-                 return 1;
+                 return -1;
             }
 
             $temp_a = count($a);
@@ -4092,8 +4093,19 @@ $ra->debug = 255;
             } else if ($temp_a < $temp_b) {
                  return -1;
             }
-            return 0;
+
+            //挙動を見ていると辞書順な気がする・・・
+var_dump($a);
+            return strcmp( 
+                  is_array($a) ? join('|' , $a) : $a 
+                  ,
+                  is_array($b) ? join('|' , $b) : $b 
+            );
+//            return 0;
     } , $path );
+
+var_dump($_temp_path);
+
 
     foreach($_temp_path as $_) {
         $ra->_insertr( $_ );
