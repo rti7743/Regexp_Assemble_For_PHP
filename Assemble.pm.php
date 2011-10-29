@@ -59,10 +59,7 @@ function perl_push(array $array , $target)
        if (count($array) <= 0) {
            return $target;
        }
-//    var_dump($array);
-//    var_dump($target);
        $array[] = $target;
-//    var_dump($array);
        return $array;
     }
     else {
@@ -182,7 +179,6 @@ function perl_is_hash(array $array) {
         }
         $count ++;
     }
-//var_dump($count);
     return $count !== count($array);
 }
 
@@ -2953,6 +2949,7 @@ function _insert_path($list , $debug , $in) {
         }
 //    }
     }
+
 //    $debug and print "# _insert_path @{[_dump(\@in)]} into @{[_dump($list)]}\n";
     if ($debug) { echo "# _insert_path ".$this->_dump($in)." into ".$this->_dump($list)."\n"; }
 //    my $path   = $list;
@@ -3201,7 +3198,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //        " at path=@{[_dump($path_end)]}\n";
     if ($debug) { echo "#  insert node(".$this->_dump($token).":".$this->_dump($lostparam).") (key=$token_key)" . " at path=".$this->_dump($path_end)."\n"; }
 //    if( ref($path_end->[0]) eq 'HASH' ) {
-    if ( is_array($path_end[0]) ) {
+    if ( isset($path_end[0]) && is_array($path_end[0]) ) {
 //        if( exists($path_end->[0]{$token_key}) ) {
         if( isset($path_end[0][$token_key]) ) {
 //            if( @$path_end > 1 ) {
@@ -3229,7 +3226,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                my $new_path = [];
                 $new_path = array();
 //                while( @$old_path and _node_eq( $old_path->[0], $token )) {
-                while( $old_path and $this->_node_eq( $old_path[0], $token )) {
+                while( count($old_path) >= 1 and $this->_node_eq( $old_path[0], $token )) {
 //                    $debug and print "#  identical nodes in sub_path ",
 //                        ref($token) ? _dump($token) : $token, "\n";
                     if ( $debug ){ echo "#  identical nodes in sub_path ". (is_array($token) ? $this->_dump($token) : $token) . "\n"; }
@@ -3240,7 +3237,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                }
                 }
 //                if( @$new_path ) {
-                if( is_array($new_path) && count($new_path) ) {
+                if( count($new_path) >= 1 ) {
 //                    my $new;
                     $new = NULL;
 //                    my $token_key = $token;
@@ -3264,7 +3261,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                        $debug and print "#  insert $token into old path @{[_dump($old_path)]}\n";
                         if ( $debug ) { echo "#  insert $token into old path ".$this->_dump($old_path)."\n"; };
 //                        if( @$old_path ) {
-                        if( is_array($old_path) && count($old_path) ) {
+                        if( count($old_path) >= 1 ) {
 //                            $new = ($self->_insert_path( $old_path, $debug, [$token] ))->[0];
                             $new = $this->_insert_path( $old_path, $debug, array( $token ) );
                             $new = $new[0];
@@ -3327,28 +3324,32 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
         }
 //        else {
         else {
+
 //            while( @$path_end and _node_eq( $path_end->[0], $token )) {
-            while( is_array($path_end) && $this->_node_eq( $path_end[0], $token )) {
+            while( count($path_end) >= 1 && $this->_node_eq( $path_end[0], $token )) {
 //                $debug and print "#  identical nodes @{[_dump([$token])]}\n";
-                if ($debug) { echo "#  identical nodes ".$this->_dump($token)."\n"; }
+                if ($debug) { echo "#  identical nodes ".$this->_dump([$token])."\n"; }
+
 //                shift @$path_end;
                 array_shift( $path_end );
 //                $token = shift @_;
                 $token = array_shift($lostparam);
+
 //                ++$offset;
                 ++$offset;
 //            }
             }
+
 //            if( @$path_end ) {
-            if( is_array($path_end) ) {
+            if( count($path_end) >= 1 ) {
 //                $debug and print "#   insert at $offset $token:@{[_dump(\@_)]} into @{[_dump($path_end)]}\n";
                 if ($debug) { echo "#   insert at $offset $token:".$this->_dump($lostparam)." into ".$this->_dump($path_end)."\n"; }
 //                $path_end = $self->_insert_path( $path_end, $debug, [$token, @_] );
-                $path_end = $this->_insert_path( $path_end, $debug, array($token, $lostparam) );
+                $path_end = $this->_insert_path( $path_end, $debug, perl_array($token, $lostparam) );
 //                $debug and print "#   got off=$offset s=@{[scalar @_]} path_add=@{[_dump($path_end)]}\n";
                 if ($debug) { echo "#   got off=$offset s=".count($lostparam)." path_add=".$this->_dump($path_end)."\n"; }
 //                splice( @$path, $offset, @$path - $offset, @$path_end );
-                array_splice( $path, $offset, count($path) - $offset, array($path_end) );
+                array_splice( $path, $offset, count($path) - $offset, $path_end );
 //                $debug and print "#   got final=@{[_dump($path)]}\n";
                 if ( $debug ){ echo "#   got final=".$this->_dump($path)."\n"; }
 //            }
@@ -3378,7 +3379,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //    else {
     else {
 //        if( @$path_end ) {
-        if( is_array($path_end) ) {
+        if( count($path_end) >= 1) {
 //            my $new = {
 //                $path_end->[0] => [ @$path_end ],
 //                $token_key     => [ $token, @_ ],
@@ -3548,19 +3549,23 @@ function _reduce_path($path, $ctx) {
 //            $debug and print "#$indent| head=", _dump($node_head), " tail=", _dump($node_tail), "\n";
             if ($debug) { echo "#$indent| head=", $this->_dump($node_head), " tail=", $this->_dump($node_tail), "\n"; }
 //            push @$head, @$node_head if scalar @$node_head;
-            if ( count( $node_head) ) {
+            if ( count( $node_head) >= 1 ) {
                  $head = perl_push2($head ,$node_head );
             }
 //            push @$tail, ref($node_tail) eq 'HASH' ? $node_tail : @$node_tail;
 //ここあんまり自信がない.
-            $tail = perl_push($tail ,array( $node_tail ) );
-
+             if ( isset($node_tail[0]) ) {
+                 $tail = perl_push($tail , $node_tail);
+             }
+             else {
+                 $tail[] = $node_tail;
+             }
 //        }
         }
 //        else {
         else {
 //            if( @$head ) {
-            if ( count($head) ) {
+            if ( count($head) >= 1 ) {
 //                $debug and print "#$indent| push $p leaves @{[_dump($path)]}\n";
                 if ( $debug ) { echo "#$indent| push $p leaves ".$this->_dump($path)."\n"; }
 //                push @$tail, $p;
@@ -3583,7 +3588,7 @@ function _reduce_path($path, $ctx) {
 //        (ref($tail->[0]) eq 'HASH' ? " n=" . scalar(keys %{$tail->[0]}) : '' ),
 //        "\n";
     if ( $debug ) { echo  "#$indent| tail nr=".count($tail)." t0="  , gettype($tail[0]) ,
-        is_array($tail[0]) ? " n=" . count( $tail[0] ) : '' ,
+        is_array($tail[0]) ? " n=" . count( $tail[0] ) : '' , "tail dump:" , $this->_dump($tail) , 
         "\n"; }
 //    if( @$tail > 1
 //        and ref($tail->[0]) eq 'HASH'
@@ -3932,7 +3937,7 @@ function _scan_node( $node, $ctx ) {
 //                ($head, my $slide, $path) = _slide_tail( $head, $end, $path, $ctx );
                 list($head, $slide, $path) = $this->_slide_tail( $head, $end2, $path, $ctx );
 //                if( @$head ) {
-                if( count($head) ) {
+                if( count($head) >= 1 ) {
 //                    $new_path = [ @$head, $slide, @$path ];
                     $new_path = perl_array( $head, $slide, $path );
 //                }
@@ -4108,7 +4113,7 @@ $ra->debug = 255;
     $tail = ( count($path) > 1 ) ? $path : $path[0];
 
 //    $debug and print "# $indent| _do_reduce common={[_dump($common)]} tail=@{[_dump($tail)]}\n";
-   if ($debug){ echo "# $indent| _do_reduce common=@".$this->_dump($common)." tail=".$this->_dump($tail)."\n"; }
+   if ($debug){ echo "# $indent| _do_reduce common=".$this->_dump($common)." tail=".$this->_dump($tail)."\n"; }
 //    return ($common, $tail);
    return array( $common, $tail );
 //}
@@ -5214,7 +5219,7 @@ function _node_eq($p1 , $p2 = NULL) {
 //    else {
     else {
 //        $_[0] eq $_[1];
-        return $p1 && $p2;
+        return $p1 === $p2;
 //    }
     }
 //}

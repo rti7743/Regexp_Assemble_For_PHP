@@ -2,46 +2,37 @@
 require_once("Assemble.pm.php");
 require_once("testutil.php");
 
-
-
 {
     $ra = new Regexp_Assemble();
-    $ra
-        ->insert(  's','k','i','d','s' )
-        ->insert(  'k','i','d','s' )
-        ->insert(  'a','c','i','d','s' )
-        ->insert(  'a','c','i','d','o','i','d','s' )
-        ->insert(  's','c','h','o','o','l','k','i','d','s' )
-        ->_reduce()
-    ;
-    is_deeply( $ra->path,
-        [
-            [
-                's' => [
-                    [
-                        '__@UNDEF@__' => 0,
-                        's' => ['s',
-                            [
-                                '__@UNDEF@__' => 0,
-                                'c' => ['c', 'h', 'o', 'o', 'l']
-                            ]
-                        ]
-                    ],
-                    'k'
-                ],
-                'a' => [ 'a', 'c',
-                    [
-                        '__@UNDEF@__' => 0,
-                        'i' => ['i', 'd', 'o']
-                    ]
-                ]
-            ],
-            'i', 'd', 's',
+    $ra->path = [
+        't', [
+            'a' => ['a'],
+            'i' => ['i'],
         ],
-        '/skids/ /kids/ /acids/ /acidoids/ /schoolkids/'
+        'b'
+    ];
+    $path = [ 't', [
+            'a' => ['a'],
+            'i' => ['i'],
+        ],
+        's'
+    ];
+    $res = $ra->_insert_path( $ra->path, 255, $path );
+    is_deeply( $res,
+        [
+            't',
+            [
+                'a' => ['a'],
+                'i' => ['i']
+            ],
+            [
+                'b' => ['b'],
+                's' => ['s']
+            ]
+        ],
+        '_insert_path sit/sat -> bit/bat'
     );
 }
-
 /*
 # 02_reduce.t
 #
@@ -117,6 +108,9 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     is_deeply( $slide, [ '__@UNDEF@__' => 0, '6' => ['6', '0'] ], '_slide_tail 007/00607 slide' );
     is_deeply( $path, ['0'], '_slide_tail 007/00607 path' );
 }
+
+/*
+•Û—¯
 {
     $ra = new Regexp_Assemble();
     $ra->insert(0);
@@ -134,6 +128,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         '/0/ /1/ /2/'
     );
 }
+*/
 
 {
     $ra = new Regexp_Assemble();
