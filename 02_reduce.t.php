@@ -2,33 +2,45 @@
 require_once("Assemble.pm.php");
 require_once("testutil.php");
 
+
+
 {
     $ra = new Regexp_Assemble();
     $ra
-        ->insert( 't','r','e','a','t' )
-        ->insert( 't','h','r','e','a','t' )
-        ->insert( 't','e','a','t' )
+        ->insert(  's','k','i','d','s' )
+        ->insert(  'k','i','d','s' )
+        ->insert(  'a','c','i','d','s' )
+        ->insert(  'a','c','i','d','o','i','d','s' )
+        ->insert(  's','c','h','o','o','l','k','i','d','s' )
         ->_reduce()
     ;
     is_deeply( $ra->path,
         [
-            't',
             [
-                '__@UNDEF@__' => 0,
-                'h' => [
+                's' => [
                     [
-                        'h' => ['h'],
-                        '__@UNDEF@__' => 0
+                        '__@UNDEF@__' => 0,
+                        's' => ['s',
+                            [
+                                '__@UNDEF@__' => 0,
+                                'c' => ['c', 'h', 'o', 'o', 'l']
+                            ]
+                        ]
                     ],
-                    'r'
+                    'k'
+                ],
+                'a' => [ 'a', 'c',
+                    [
+                        '__@UNDEF@__' => 0,
+                        'i' => ['i', 'd', 'o']
+                    ]
                 ]
             ],
-            'e', 'a', 't'
+            'i', 'd', 's',
         ],
-        '/teat/ /treat/ /threat/'
+        '/skids/ /kids/ /acids/ /acidoids/ /schoolkids/'
     );
 }
-die;
 
 /*
 # 02_reduce.t
@@ -292,32 +304,6 @@ perl の挙動を見てもそうなんだよな、、、うーんうーん
     );
 }
 */
-//保留しているテスト改
-{
-    $ra = new Regexp_Assemble();
-    $ra
-        ->insert( 'c', 'r', 'a', 'b' )
-        ->insert( 'd', 'a', 'b' )
-        ->insert( 'l', 'o', 'b' )
-        ->_reduce()
-    ;
-    is_deeply( $ra->path,
-        [
-            [
-                'd' => [
-                    [
-                        'r' => ['r', 'c'],
-                        'd' => ['d']
-                    ],
-                    'a'
-                ],
-                'l' => ['l', 'o']
-            ],
-            'b',
-        ],
-        '/crab/ /dab/ /lob/'
-    );
-}
 
 
 {

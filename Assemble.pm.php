@@ -139,6 +139,29 @@ function perl_array($a,$b,$c = NULL){
     return $r;
 }
 
+//perlの配列の [$a , @b]  などをエミュレート
+function perl_array2($a,$b,$c = NULL){
+    $r = array( $a );
+
+    if ( is_array($b) ) {
+        $r = array_merge($r,$b);
+    }
+    else {
+        $r[] = $b;
+    }
+
+    if ( $c !== NULL ) {
+        if ( is_array($c) ) {
+            $r = array_merge($r,$c);
+        }
+        else {
+            $r[] = $c;
+        }
+    }
+
+    return $r;
+}
+            
 function perl_reverse($p) {
     if ( is_array($p) ){
         return array_reverse($p);
@@ -1412,7 +1435,7 @@ function _insertr(array $p1) {
 
 //        $self->{stats_cooked} += defined($_) ? length($_) : 0 for @{$_[0]};
         foreach($p1 as $p){
-            $this->stats_cooked += strlen($p);
+            $this->stats_cooked += is_string($p) ? strlen($p) : 0;
         }
 //    }
     }
@@ -2987,11 +3010,11 @@ function _insert_path($list , $debug , $in) {
 //                        _re_path($self, [$node]) => [@{$path}[$offset..$#$path]],
 //                    };
                     $new = array(
-                         $token => perl_array($token, $in) ,
+                         $token => perl_array2($token, $in) , //perl_array2に変更
                          $this->_re_path($node) => array_slice($path,$offset)
                     );
 //                    splice @$path, $offset, @$path-$offset, $new;
-                    array_splice($path, $offset, count($path)-$offset, $new);
+                    array_splice($path, $offset, count($path)-$offset, array($new) );
 //                    last;
                     break;
 //                }
@@ -3028,11 +3051,11 @@ function _insert_path($list , $debug , $in) {
 //                        _node_key($node)  => [@{$path}[$offset..$#{$path}]],
 //                    };
                     $new = array(
-                         $this->_node_key( $token ) => [$token, $in],
+                         $this->_node_key( $token ) => perl_array2($token, $in), //perl_array2に変更
                          $this->_node_key( $node ) => array_slice($path,$offset)
                     );
 //                    splice( @$path, $offset, @$path - $offset, $new );
-                    array_splice( $path, $offset, count($path) - $offset, $new );
+                    array_splice( $path, $offset, count($path) - $offset, array($new) );
 //                    $debug and print "#   fused node=@{[_dump($new)]} path=@{[_dump($path)]}\n";
                     if ($debug) { echo "#   fused node=".$this->_dump($new)." path=".$this->_dump($path)."\n"; }
 //                }
@@ -3092,7 +3115,7 @@ function _insert_path($list , $debug , $in) {
 //                $path->[$offset] => [@{$path}[$offset..$#{$path}]],
 //            };
             $_temp_path = strlen($token) 
-                ?  array( $this->_node_key($token) => perl_array($token , $in) )
+                ?  array( $this->_node_key($token) => perl_array($token , $in) ) ///perl_array2?
                 :  array( '__@UNDEF@__' => 0 )
             ;
             $_temp_path[ $path[$offset] ] = array_slice($path , $offset);
@@ -3166,17 +3189,17 @@ function _insert_path($list , $debug , $in) {
 //    my $offset = shift;
 //    my $token  = shift;
 //    my $debug  = shift;
-function _insert_node($path,$offset,$token,$debug) {
-    $_args = func_get_args();
+function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 
 //    my $path_end = [@{$path}[$offset..$#{$path}]];
     $path_end = array_slice($path , $offset);
 //    # NB: $path->[$offset] and $[path_end->[0] are equivalent
 //    my $token_key = _re_path($self, [$token]);
-    $token_key = $this->_re_path($token);
+
+    $token_key = $this->_re_path(array($token));
 //    $debug and print "#  insert node(@{[_dump($token)]}:@{[_dump(\@_)]}) (key=$token_key)",
 //        " at path=@{[_dump($path_end)]}\n";
-    if ($debug) { echo "#  insert node(".$this->_dump($token).":".$this->_dump($_args).") (key=$token_key)" . " at path=".$this->_dump($path_end)."\n"; }
+    if ($debug) { echo "#  insert node(".$this->_dump($token).":".$this->_dump($lostparam).") (key=$token_key)" . " at path=".$this->_dump($path_end)."\n"; }
 //    if( ref($path_end->[0]) eq 'HASH' ) {
     if ( is_array($path_end[0]) ) {
 //        if( exists($path_end->[0]{$token_key}) ) {
@@ -3184,19 +3207,19 @@ function _insert_node($path,$offset,$token,$debug) {
 //            if( @$path_end > 1 ) {
             if( count($path_end) > 1 ) {
 //                my $path_key = _re_path($self, [$path_end->[0]]);
-                $path_key = $this->_re_path($path_end[0]);
+                $path_key = $this->_re_path( array($path_end[0]) );
 //                my $new = {
 //                    $path_key  => [ @$path_end ],
 //                    $token_key => [ $token, @_ ],
 //                };
                 $new = array(
-                    $path_key  => array( $path_end ),
-                    $token_key => array( $token, $_args )
+                    $path_key  => $path_end ,
+                    $token_key => perl_array2( $token, $lostparam )
                 );
 //                $debug and print "#   +bifurcate new=@{[_dump($new)]}\n";
                 if ($debug){ echo "#   +bifurcate new=".$this->_dump($new)."\n"; }
 //                splice( @$path, $offset, @$path_end, $new );
-                array_splice( $path, $offset, count($path_end), $new );
+                array_splice( $path, $offset, count($path_end), array($new) );
 //            }
             }
 //            else {
@@ -3213,7 +3236,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                    push @$new_path, shift(@$old_path);
                     $new_path = perl_push($new_path, array_shift($old_path) );
 //                    $token = shift @_;
-                    $token = array_shift($_args);
+                    $token = array_shift($lostparam);
 //                }
                 }
 //                if( @$new_path ) {
@@ -3223,14 +3246,14 @@ function _insert_node($path,$offset,$token,$debug) {
 //                    my $token_key = $token;
                     $token_key = $token;
 //                    if( @_ ) {
-                    if( $_args ) {
+                    if( $lostparam ) {
 //                        $new = {
 //                            _re_path($self, $old_path) => $old_path,
 //                            $token_key => [$token, @_],
 //                        };
                         $new = array(
                             $this->_re_path($old_path) => $old_path,
-                            $token_key => array( $token, $_args )
+                            $token_key => perl_array2( $token, $lostparam )
                         );
 //                        $debug and print "#  insert_node(bifurc) n=@{[_dump([$new])]}\n";
                         if ($debug) { echo "#  insert_node(bifurc) n=".$this->_dump($new)."\n"; }
@@ -3264,7 +3287,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                $debug and print "#   +_insert_node result=@{[_dump($path_end)]}\n";
                 if ($debug) { echo "#   +_insert_node result=".$this->_dump($path_end)."\n"; }
 //                splice( @$path, $offset, @$path_end, @$path_end );
-                array_splice( $path, $offset, count($path_end), $path_end );
+                array_splice( $path, $offset, count($path_end), array($path_end) );
 //            }
             }
 //        }
@@ -3279,10 +3302,15 @@ function _insert_node($path,$offset,$token,$debug) {
 //                    $path_key  => [ @$path_end ],
 //                    $token_key => [ $token, @_ ],
 //                };
+                  $new = array(
+                      $path_key  => $path_end,
+                      $token_key => perl_array2( $token, $lostparam )
+                  );
+
 //                $debug and print "#   path->node1 at $path_key/$token_key @{[_dump($new)]}\n";
                 if ( $debug ){ echo "#   path->node1 at $path_key/$token_key ".$this->_dump($new)."\n"; }
 //                splice( @$path, $offset, @$path_end, $new );
-                array_splice( $path, $offset, count($path_end), $new );
+                array_splice( $path, $offset, count($path_end), array($new) );
 //            }
             }
 //            else {
@@ -3290,9 +3318,9 @@ function _insert_node($path,$offset,$token,$debug) {
 //                $debug and print "#   next in path is node, trivial insert at $token_key\n";
                 if ($debug){ echo "#   next in path is node, trivial insert at $token_key\n"; }
 //                $path_end->[0]{$token_key} = [$token, @_];
-                $path_end[0][$token_key] = array($token, $_args);
+                $path_end[0][$token_key] = array($token, $lostparam);
 //                splice( @$path, $offset, @$path_end, @$path_end );
-                array_splice( $path, $offset, count($path_end), $path_end );
+                array_splice( $path, $offset, count($path_end), array($path_end) );
 //            }
             }
 //        }
@@ -3306,7 +3334,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                shift @$path_end;
                 array_shift( $path_end );
 //                $token = shift @_;
-                $token = array_shift($_args);
+                $token = array_shift($lostparam);
 //                ++$offset;
                 ++$offset;
 //            }
@@ -3314,13 +3342,13 @@ function _insert_node($path,$offset,$token,$debug) {
 //            if( @$path_end ) {
             if( is_array($path_end) ) {
 //                $debug and print "#   insert at $offset $token:@{[_dump(\@_)]} into @{[_dump($path_end)]}\n";
-                if ($debug) { echo "#   insert at $offset $token:".$this->_dump($_args)." into ".$this->_dump($path_end)."\n"; }
+                if ($debug) { echo "#   insert at $offset $token:".$this->_dump($lostparam)." into ".$this->_dump($path_end)."\n"; }
 //                $path_end = $self->_insert_path( $path_end, $debug, [$token, @_] );
-                $path_end = $this->_insert_path( $path_end, $debug, array($token, $_args) );
+                $path_end = $this->_insert_path( $path_end, $debug, array($token, $lostparam) );
 //                $debug and print "#   got off=$offset s=@{[scalar @_]} path_add=@{[_dump($path_end)]}\n";
-                if ($debug) { echo "#   got off=$offset s=".count($_args)." path_add=".$this->_dump($path_end)."\n"; }
+                if ($debug) { echo "#   got off=$offset s=".count($lostparam)." path_add=".$this->_dump($path_end)."\n"; }
 //                splice( @$path, $offset, @$path - $offset, @$path_end );
-                array_splice( $path, $offset, count($path) - $offset, $path_end );
+                array_splice( $path, $offset, count($path) - $offset, array($path_end) );
 //                $debug and print "#   got final=@{[_dump($path)]}\n";
                 if ( $debug ){ echo "#   got final=".$this->_dump($path)."\n"; }
 //            }
@@ -3335,7 +3363,7 @@ function _insert_node($path,$offset,$token,$debug) {
 //                };
                 $new = array(
                     '__@UNDEF@__'         => 0,
-                    $token_key => array( $token, $_args ),
+                    $token_key => perl_array2( $token, $lostparam ),
                 );
 //                $debug and print "#   convert opt @{[_dump($new)]}\n";
                 if ( $debug ) { echo "#   convert opt ".$this->_dump($new)."\n"; }
@@ -3356,13 +3384,15 @@ function _insert_node($path,$offset,$token,$debug) {
 //                $token_key     => [ $token, @_ ],
 //            };
             $new = array(
-                $path_end[0] => array( $path_end ),
-                $token_key   => array( $token, $_args )
+                $path_end[0] => $path_end ,
+                $token_key   => perl_array2( $token, $lostparam )
             );
 //            $debug and print "#   atom->node @{[_dump($new)]}\n";
             if ( $debug ){ echo "#   atom->node ".$this->_dump($new)."\n"; }
+
 //            splice( @$path, $offset, @$path_end, $new );
-            array_splice( $path, $offset, count($path_end), $new );
+            array_splice( $path, $offset, count($path_end), array($new) ); //array_spliceの仕様上 array($new)ぢゃないとダメ.
+
 //            $debug and print "#   out=@{[_dump($path)]}\n";
             if ( $debug ) { echo "#   out=".$this->_dump($path)."\n"; }
 //        }
@@ -3370,14 +3400,14 @@ function _insert_node($path,$offset,$token,$debug) {
 //        else {
         else {
 //            $debug and print "#   add opt @{[_dump([$token,@_])]} via $token_key\n";
-            if ( $debug ) { echo "#   add opt ".$this->_dump(array($token,$_args))." via $token_key\n"; }
+            if ( $debug ) { echo "#   add opt ".$this->_dump(array($token,$lostparam))." via $token_key\n"; }
 //            push @$path, {
 //                ''         => undef,
 //                $token_key => [ $token, @_ ],
 //            };
             $path = perl_push( $path , array(
                   '__@UNDEF@__' => 0,
-                  $token_key => array( $token, $_args )
+                  $token_key => perl_array2( $token, $lostparam )
                 )
             );
 //        }
@@ -4176,6 +4206,67 @@ function _slide_tail($head,$tail,$path,$ctx) {
 //}
 }
 
+
+function _unrev_phparray($path, $ctx){
+    $indent = str_repeat (' ' , $ctx['depth']);
+    $debug  =       $ctx['debug'];
+
+    //そもそも配列？
+    $is_array = is_array($path);
+    //ハッシュっぽい？
+    $is_hash = $is_array && perl_is_hash($path);
+    //二重配列？ array(array())
+    $is_doublearray = $is_array && 
+               count( perl_grep( function($_){ return is_array($_); } , $path ) ) >= 1;
+
+    //ハッシュでもなくて二重配列でもない時は高速変換できる。
+    if ( !$is_hash && !$is_doublearray ) {
+        if ($debug){ echo "# {$indent}_unrev_phparray fast ". $this->_dump($path) ; }
+        $new = perl_reverse($path);
+        if ($debug){ echo "#  -> ". $this->_dump($new). "\n" ; }
+
+        return $new;
+    }
+
+    $new = array();
+
+    //逆順にたどるよ!
+    if ($is_hash) {
+        //意味ある？
+        $optional = $this->_remove_optional($path);
+        if ( $debug ){ echo "# ${indent}_unrev_phparray hash in ". $this->_dump($path). " opt=$optional\n"; }
+
+        if ($optional) {
+           $new['__@UNDEF@__'] = 0;
+        }
+
+        foreach ( array_keys($path)  as $key ) {
+             if (!is_array($path[$key])) {
+                  $p = $path[$key];
+             }
+             else {
+                  $p = $this->_unrev_phparray($path[$key] , $this->_descend($ctx) );
+             }
+             $new[$this->_node_key( isset($p[0]) ? $p[0] : 0 )] = $p;
+        }
+        if ( $debug ){ echo "# ${indent}_unrev_phparray hash out ". $this->_dump($new). " opt=$optional\n"; }
+    }
+    else {
+        if ( $debug ){ echo "# ${indent}_unrev_phparray array in ". $this->_dump($path). " \n"; }
+
+        foreach ( array_reverse( array_keys($path) ) as $key ) {
+             if (!is_array($path[$key])) {
+                  $new[] = $path[$key];
+             }
+             else {
+                  $new[] = $this->_unrev_phparray($path[$key] , $this->_descend($ctx) );
+             }
+        }
+        if ( $debug ){ echo "# ${indent}_unrev_phparray array out ". $this->_dump($new). " \n"; }
+    }
+    return $new;
+}
+
 //sub _unrev_path {
 //    my ($path, $ctx) = @_;
 function _unrev_path($path, $ctx) {
@@ -4215,16 +4306,6 @@ function _unrev_path($path, $ctx) {
 //            : ref($p) eq 'ARRAY' ? _unrev_path($p, _descend($ctx) )
 //            : $p
 //        ;
-
-/*
-          $new = perl_push($new ,  
-                     (  !is_array($p) ? $p 
-                       : ( perl_is_hash($p) ? array($this->_unrev_node($p, $this->_descend($ctx)) ) 
-                       :   array($this->_unrev_path($p, $this->_descend($ctx)) )
-                         )
-                     )
-          );
-*/
           $new[] = 
                      (  !is_array($p) ? $p 
                        : ( perl_is_hash($p) ? $this->_unrev_node($p, $this->_descend($ctx) ) 
@@ -4265,7 +4346,12 @@ function _unrev_node($node, $ctx ) {
         $path = $this->_unrev_path($node[$n], $this->_descend($ctx) );
 
 //        $new->{_node_key($path->[0])} = $path;
-        $new[$this->_node_key( isset($path[0]) ? $path[0] : 0 )] = $path;
+        if ( is_array($path) ) {
+            $new[$this->_node_key( $path[0] ) ] = $path;
+        }
+        else {
+            $new[] = $path;
+        }
 //    }
     }
 //    $debug and print "# ${indent}unrev node out ", _dump($new), "\n";
@@ -4280,10 +4366,13 @@ function _unrev_node($node, $ctx ) {
 function _node_key($node) {
 //    return _node_key($node->[0]) if ref($node) eq 'ARRAY';
 //    return $node unless ref($node) eq 'HASH';
-
     if ( !is_array($node) ){
        return $node;
     }
+    if ( !perl_is_hash($node) ){
+       return $this->_node_key($node[0]);
+    }
+
 //    my $key = '';
     $key = '';
 //    my $k;
@@ -4508,7 +4597,7 @@ function _combine_new($args) {
 //    }
     }
 //    elsif( @short > 1 and @short == @_ ) {
-    else if( count($short) > 1 and (join('|',$short) == join('|',  $args ) ) ) {
+    else if( count($short) > 1 and (join('|',$short) == join('|',  $args ) ) && 0 ) {
 //        return _make_class($self, @short);
         return $this->_make_class($short);
 //    }
@@ -4538,22 +4627,21 @@ function _combine_new($args) {
 
 //sub _re_path {
 //    my $self = shift;
-function _re_path($_args) {
+function _re_path($p1) {
 //    # in shorter assemblies, _re_path() is the second hottest
 //    # routine. after insert(), so make it fast.
-
 
 //    if ($self->{unroll_plus}) {
     if ($this->unroll_plus) {
 //        # but we can't easily make this blockless
 //        my @arr = @{$_[0]};
-        $arr = $_args[0];
+        $arr = $p1;
 //        my $str = '';
         $str = '';
 //        my $skip = 0;
         $skip = 0;
 //        for my $i (0..$#arr) {
-          for($i = 0 ; $i < perl_lastindex($arr)  ; ++$i) {
+          for($i = 0 ; $i < count($arr)  ; ++$i) {
 //            if (ref($arr[$i]) eq 'ARRAY') {            arrayなのでhashに流す.
 //                $str .= _re_path($self, $arr[$i]);
 //            }
@@ -4571,19 +4659,19 @@ function _re_path($_args) {
                      foreach( perl_grep( function($_){ return $_ != '__@UNDEF@__'; } , array_keys($arr[$i]) ) as $_ ){
                         $_temp_map[] = $this->_re_path( $arr[$i][$_] );  //lamdba captureが長すぎるのでforeachで。
                      }
-                     $this->_combine_new($_temp_map). '?';
+                     $str .= $this->_combine_new($_temp_map). '?';
                 }
                 else {
                      $_temp_map = array();
                      foreach( array_keys($arr[$i]) as $_ ){
                         $_temp_map[] = $this->_re_path( $arr[$i][$_] );  //lamdba captureが長すぎるのでforeachで。
                      }
-                     $this->_combine_new($_temp_map);
+                     $str .= $this->_combine_new($_temp_map);
                 }
 //            }
             }
 //            elsif ($i < $#arr and $arr[$i+1] =~ /\A$arr[$i]\*(\??)\Z/) {
-            else if ($i < perl_lastindex($arr) and preg_match("/\A$arr[$i]\*(\??)\Z/u" , $arr[$i+1] , $pregNum)  ) {
+            else if ($i < (count($arr)-1) and preg_match("/\A$arr[$i]\*(\??)\Z/u" , $arr[$i+1] , $pregNum)  ) {
 //                $str .= "$arr[$i]+" . (defined $1 ? $1 : '');
                 $str .= "$arr[$i]+" . ($pregNum[1] ? $pregNum[1] : '');
 //                ++$skip;
@@ -4609,19 +4697,21 @@ function _re_path($_args) {
 //    }
     }
 
-    if (!is_array($_args))
+    if (!is_array($p1))
     {
 //        foreach(debug_backtrace() as $_) { 
 //            echo $_['function'] . ":" . $_['line']."\n";
 //        }
 //        die;
-        return $_args;
+        return $p1;
     }
 
+
 //    return join( '', @_ ) unless grep { length ref $_ } @_;
-    if ( ! count( perl_grep( function($_){ return is_array($_); } , $_args) )   ) {
-        return join( '', $_args );
+    if ( ! count( perl_grep( function($_){ return is_array($_); } , $p1) )   ) {
+        return join( '', $p1 );
     }
+
 //    my $p;
 //    return join '', map {
 //        ref($_) eq '' ? $_
@@ -4641,8 +4731,9 @@ function _re_path($_args) {
 //        : _re_path($self, $_) # ref($_) eq 'ARRAY'
 //    } @{$_[0]}
 
+
     $_temp_join_array = array();
-    foreach($_args as $_) {
+    foreach([$p1] as $_) {
         if ( is_array($_) ) {
             $p = $_;
             if ( isset($p['__@UNDEF@__']) ) {

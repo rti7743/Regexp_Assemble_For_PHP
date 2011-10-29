@@ -2,9 +2,8 @@
 require_once("Assemble.pm.php");
 require_once("testutil.php");
 
-$r = new Regexp_Assemble();
+$rt = new Regexp_Assemble();
 $context = [ 'debug' => 255, 'depth' => 0 ];
-
 
 /*
 # 00_basic.t
@@ -816,7 +815,7 @@ lcmp( '\\|{2,4}?', __LINE__ );
 //}
 
 is_deeply( $rt->path, [], 'path is empty' );
-$context = [ 'debug' => 255, 'depth' => 0 ];
+$context = [ 'debug' => 0, 'depth' => 0 ];
 
 is_deeply( $rt->_unrev_path(
     [0, 1], $context),
@@ -867,17 +866,16 @@ is_deeply( $rt->_unrev_node(
     [ 'bc' => ['bc','ab'], 'gh' => ['gh','fg','ef','de','cd','bc'], 'ij' => ['ij','gh','ef'] ],
     'node(ab,bc,ef)' );
 
-//保留
 is_deeply( $rt->_unrev_node(
     ['__@UNDEF@__'=>0,'b'=>[[['b'=>['b'],'b?'=>[['__@UNDEF@__'=>0,'b'=>['b']],'a']]],['__@UNDEF@__'=>0,'c'=>['c']]]], $context),
     ['__@UNDEF@__'=>0,'c'=>[['__@UNDEF@__'=>0,'c'=>['c']],[['a'=>['a',['__@UNDEF@__'=>0,'b'=>['b']]],'b'=>['b']]]]],
     'node of (?:(?:ab?|b)c?)?' );
 
 is_deeply( $rt->_unrev_path(
-    ['a','b', ['c'=>['c','d','e'], 'f'=>['f','g','h'], 'i'=>['i','j'], ['k' => ['k','l','m'], 'n'=>['n','o','p'], 'x' ]]], $context),
+    ['a','b', ['c'=>['c','d','e'], 'f'=>['f','g','h'], 'i'=>['i','j', ['k' => ['k','l','m'], 'n'=>['n','o','p']], 'x' ]]], $context),
     [['e'=>['e','d','c'], 'h'=>['h','g','f'], 'x'=>['x', ['m'=>['m','l','k'], 'p'=>['p','o','n']], 'j','i']], 'b','a'],
     'path(node(path))');
-die;
+
 //{
     $r = new Regexp_Assemble();
 
@@ -985,10 +983,9 @@ is_deeply( $rt->_unrev_path(
     [['x'   => ['x', '\\d'], '__@UNDEF@__' => 0 ]], $context),
     [['\\d' => ['\\d', 'x'], '__@UNDEF@__' => 0 ]], 'node(* metachar) 2' );
 
-//保留
-//is_deeply( $rt->_unrev_path(
-//    [['ab','cd','ef'], ['x1' => ['x1', 'y2', 'z\\d'], 'mx' => [['mx','us','ca']] ]], $context),
-//    [[ 'z\\d' => ['z\\d', 'y2', 'x1'], 'ca' => [['ca','us','mx']]], ['ef','cd','ab']], 'path(node)' );
+is_deeply( $rt->_unrev_path(
+    [['ab','cd','ef'], ['x1' => ['x1', 'y2', 'z\\d'], 'mx' => [['mx','us','ca']] ]], $context),
+    [[ 'z\\d' => ['z\\d', 'y2', 'x1'], 'ca' => [['ca','us','mx']]], ['ef','cd','ab']], 'path(node)' );
 
 //{
 //    my $r = $r;
