@@ -31,8 +31,6 @@ is( Regexp::Assemble->new->as_string, $Regexp::Assemble::Always_Fail, 'empty' );
 */
 
 foreach( array(
-    [ '\\s',         ['\\s'], [' '] ],
-
     [ '(?:)?',       [''] ],
     [ 'd',           ['d'] ],
     [ 'dot',         ['d', 'o', 't'] ],

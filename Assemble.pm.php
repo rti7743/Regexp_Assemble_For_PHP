@@ -104,7 +104,7 @@ function perl_sort($function , $array = NULL)
 {
     if ($array === NULL) {
        //arrayが省略された場合、 第一引数が arrayになる。
-       sort($function);
+       usort($function , function($a,$b){ return strcmp($a,$b); } );
        return $function;
     }
     else { 
@@ -4506,7 +4506,7 @@ function _make_class() {
     if (isset($set['.']) 
          || ( $this->fold_meta_pairs && (
                  (isset($set['\\d']) && isset($set['\\D']))
-              || (isset($set['\\s']) && isset($set['\\s']))
+              || (isset($set['\\s']) && isset($set['\\S']))
               || (isset($set['\\w']) && isset($set['\\W']))
          ))
        ){
@@ -4562,7 +4562,6 @@ function _make_class() {
         unset($set['^']);
         $caret = '^';
     }
-
 //    my $class = join( '' => sort keys %set );
     $class = join('' , perl_sort(array_keys($set)) );
 //    $class =~ s/0123456789/\\d/ and $class eq '\\d' and return $class;
@@ -4572,6 +4571,10 @@ function _make_class() {
            return $class;
         }
     }
+
+var_dump($dash);
+var_dump($class);
+var_dump($caret);
 //    return "[$dash$class$caret]";
     return "[$dash$class$caret]";
 //}
