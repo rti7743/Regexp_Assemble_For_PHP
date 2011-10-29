@@ -1219,13 +1219,13 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     );
 }
 
-/*
+
 {
     $list = ['den', 'dent', 'din', 'dint', 'ten', 'tent', 'tin', 'tint'];
 
     $ra = new Regexp_Assemble();
     foreach($list as $p) {
-        $ra->insert($list);
+        $ra->insert( str_split($p) );
     }
     $ra->_reduce();
     is_deeply( $ra->path, [
@@ -1268,7 +1268,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     $list = ['gait','git','grapefruit','grassquit','grit','guitguit'];
     $ra = new Regexp_Assemble();
     foreach($list as $p) {
-        $ra->insert($list);
+        $ra->insert( str_split($p) );
     }
     $ra->_reduce();
 
@@ -1303,7 +1303,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
     $ra = new Regexp_Assemble();
     foreach($list as $p) {
-        $ra->insert($list);
+        $ra->insert( str_split($p) );
     }
     $ra->_reduce();
     is_deeply( $ra->path,
@@ -1355,7 +1355,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
     $ra = new Regexp_Assemble();
     foreach($list as $p) {
-        $ra->insert($list);
+        $ra->insert( str_split($p) );
     }
     $ra->_reduce();
     is_deeply( $ra->path,
@@ -1386,7 +1386,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
     $ra = new Regexp_Assemble();
     foreach($list as $p) {
-        $ra->insert($list);
+        $ra->insert( str_split($p) );
     }
     $ra->_reduce();
     is_deeply( $ra->path,
@@ -1412,7 +1412,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
     $ra = new Regexp_Assemble();
     foreach($list as $p) {
-        $ra->insert($list);
+        $ra->insert( str_split($p) );
     }
     $ra->_reduce();
     is_deeply( $ra->path,
@@ -1438,7 +1438,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
     $ra = new Regexp_Assemble();
     foreach($list as $p) {
-        $ra->insert($list);
+        $ra->insert( str_split($p) );
     }
     $ra->_reduce();
     is_deeply( $ra->path,
@@ -1465,7 +1465,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
     $ra = new Regexp_Assemble();
     foreach($list as $p) {
-        $ra->insert($list);
+        $ra->insert( str_split($p) );
     }
     $ra->_reduce();
     is_deeply( $ra->path,
@@ -1496,7 +1496,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
     $ra = new Regexp_Assemble();
     foreach($list as $p) {
-        $ra->insert($list);
+        $ra->insert( str_split($p) );
     }
     $ra->_reduce();
     is_deeply( $ra->path,
@@ -1539,7 +1539,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         join( ' ', $list )
     );
 }
-*/
+
 
 {
     $ra = new Regexp_Assemble();
