@@ -6,6 +6,11 @@ perl の regexp::Assemble を PHP に移植しています。
 perl のルーチンと1行づつ対訳をやっています。
 間違っている所、たくさんあると思うので、手助けをお願いします。
 
+まずは動かすこと。
+次にテストを通すこと。
+その次はリファクタリンクで、
+最後がチューニングかなって。
+
 開発環境 php5.4
 サポートしたいPHPバージョン: php5.3
 (ただしテストデータは php5.4 のみ)
@@ -3014,7 +3019,7 @@ function _insert_path($list , $debug , $in) {
 //                    };
                     $new = array(
                          $token => perl_array2($token, $in) , //perl_array2に変更
-                         $this->_re_path($node) => array_slice($path,$offset)
+                         $this->_re_path( array($node) ) => array_slice($path,$offset)
                     );
 //                    splice @$path, $offset, @$path-$offset, $new;
                     array_splice($path, $offset, count($path)-$offset, array($new) );
@@ -3287,7 +3292,8 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                    $debug and print "#   +_insert_node new_path=@{[_dump($new_path)]}\n";
                     if ($debug) { echo "#   +_insert_node new_path=".$this->_dump($new_path)."\n"; }
 //                    push @$new_path, $new;
-                    $new_path = perl_push( $new_path , $new );
+//////////                    $new_path = perl_push( $new_path , $new );
+                    $new_path[] = $new ;
 //                    $debug and print "#   +_insert_node new=@{[_dump($new)]}\n";
                     if ($debug) { echo "#   +_insert_node new=".$this->_dump($new)."\n"; }
 //                    $debug and print "#   +_insert_node after new_path=@{[_dump($new_path)]}\n";
@@ -3309,7 +3315,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //            if( @$path_end > 1 ) {
             if( count($path_end) > 1 ) {
 //                my $path_key = _re_path($self, [$path_end->[0]]);
-                $path_key = $this->_re_path($path_end[0]);
+                $path_key = $this->_re_path( array($path_end[0]) );
 //                my $new = {
 //                    $path_key  => [ @$path_end ],
 //                    $token_key => [ $token, @_ ],
@@ -3388,7 +3394,8 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                $debug and print "#   convert opt @{[_dump($new)]}\n";
                 if ( $debug ) { echo "#   convert opt ".$this->_dump($new)."\n"; }
 //                push @$path, $new;
-                $path = perl_push($path , $new );
+////////                $path = perl_push($path , $new );
+                $path[] = $new;
 //            }
             }
 //        }
@@ -3425,11 +3432,16 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                ''         => undef,
 //                $token_key => [ $token, @_ ],
 //            };
-            $path = perl_push( $path , array(
+
+////////            $path = perl_push( $path , array(
+////////                  '__@UNDEF@__' => 0,
+////////                  $token_key => perl_array2( $token, $lostparam )
+////////                )
+////////            );
+            $path[]=  array(
                   '__@UNDEF@__' => 0,
                   $token_key => perl_array2( $token, $lostparam )
-                )
-            );
+                  );
 //        }
         }
 //    }
@@ -4632,7 +4644,7 @@ function _combine_new($args) {
 //    }
     }
 //    elsif( @short > 1 and @short == @_ ) {
-    else if( count($short) > 1 and (join('|',$short) == join('|',  $args ) ) && 0 ) {
+    else if( count($short) > 1 and (join('|',$short) == join('|',  $args ) )  ) {
 //        return _make_class($self, @short);
         return $this->_make_class($short);
 //    }
@@ -4662,7 +4674,7 @@ function _combine_new($args) {
 
 //sub _re_path {
 //    my $self = shift;
-function _re_path($p1) {
+function _re_path(array $p1) {
 //    # in shorter assemblies, _re_path() is the second hottest
 //    # routine. after insert(), so make it fast.
 
@@ -4682,7 +4694,7 @@ function _re_path($p1) {
 //            }
 //            elsif (ref($arr[$i]) eq 'HASH') {
               //arrayで受ける.
-              if ( is_array( $arr[$i] ) ) {
+              if (  is_array( $arr[$i] ) ) {
 //                $str .= exists $arr[$i]->{''}
 //                    ? _combine_new( $self,
 //                        map { _re_path( $self, $arr[$i]->{$_} ) } grep { $_ ne '' } keys %{$arr[$i]}
@@ -4692,21 +4704,21 @@ function _re_path($p1) {
                 if ( isset( $arr[$i]['__@UNDEF@__'] ) ){
                      $_temp_map = array();
                      foreach( perl_grep( function($_){ return $_ != '__@UNDEF@__'; } , array_keys($arr[$i]) ) as $_ ){
-                        $_temp_map[] = $this->_re_path( $arr[$i][$_] );  //lamdba captureが長すぎるのでforeachで。
+                        $_temp_map[] = is_array($arr[$i][$_]) ? $this->_re_path( $arr[$i][$_] ) : $arr[$i][$_];
                      }
                      $str .= $this->_combine_new($_temp_map). '?';
                 }
                 else {
                      $_temp_map = array();
                      foreach( array_keys($arr[$i]) as $_ ){
-                        $_temp_map[] = $this->_re_path( $arr[$i][$_] );  //lamdba captureが長すぎるのでforeachで。
+                        $_temp_map[] = is_array($arr[$i][$_]) ? $this->_re_path( $arr[$i][$_] ) : $arr[$i][$_];
                      }
                      $str .= $this->_combine_new($_temp_map);
                 }
 //            }
             }
 //            elsif ($i < $#arr and $arr[$i+1] =~ /\A$arr[$i]\*(\??)\Z/) {
-            else if ($i < (count($arr)-1) and preg_match("/\A$arr[$i]\*(\??)\Z/u" , $arr[$i+1] , $pregNum)  ) {
+            else if ($i < (count($arr)-1) and preg_match('/\A'.$arr[$i].'\*(\??)\Z/u' , $arr[$i+1] , $pregNum)  ) {
 //                $str .= "$arr[$i]+" . (defined $1 ? $1 : '');
                 $str .= "$arr[$i]+" . ($pregNum[1] ? $pregNum[1] : '');
 //                ++$skip;
@@ -4732,18 +4744,16 @@ function _re_path($p1) {
 //    }
     }
 
-    if (!is_array($p1))
-    {
-//        foreach(debug_backtrace() as $_) { 
-//            echo $_['function'] . ":" . $_['line']."\n";
-//        }
-//        die;
-        return $p1;
-    }
-
 
 //    return join( '', @_ ) unless grep { length ref $_ } @_;
-    if ( ! count( perl_grep( function($_){ return is_array($_); } , $p1) )   ) {
+/*
+    if (     ! isset( $p1['__@UNDEF@__']) 
+         &&  ! count( perl_grep( function($_){ return is_array($_); } , $p1) )  ) {
+        return join( '', $p1 );
+    }
+*/
+echo "p1:" . $this->_dump($p1) . "\n";
+    if ( ! count( perl_grep( function($_){ return is_array($_); } , $p1) )  ) {
         return join( '', $p1 );
     }
 
@@ -4766,22 +4776,22 @@ function _re_path($p1) {
 //        : _re_path($self, $_) # ref($_) eq 'ARRAY'
 //    } @{$_[0]}
 
-
     $_temp_join_array = array();
-    foreach([$p1] as $_) {
+    foreach( $p1 as $_) {
+echo "_:" . $this->_dump($_) . "\n";
         if ( is_array($_) ) {
             $p = $_;
             if ( isset($p['__@UNDEF@__']) ) {
                 $_temp_map = array();
                 foreach( perl_grep( function($__){ return $__ != '__@UNDEF@__'; } , array_keys($p) ) as $___ ){
-                    $_temp_map[] = $this->_re_path( $p[$___] ) ;
+                    $_temp_map[] = is_array($p[$___]) ? $this->_re_path( $p[$___] ) : $p[$___] ;
                 }
                 $_temp_join_array[] = $this->_combine_new($_temp_map) . '?';
             }
             else {
                 $_temp_map = array();
                 foreach( array_keys($p) as $___ ){
-                    $_temp_map[] = $this->_re_path( $p[$___] ) ;
+                    $_temp_map[] = is_array($p[$___]) ? $this->_re_path( $p[$___] ) : $p[$___] ;
                 }
                 $_temp_join_array[] = $this->_combine_new($_temp_map);
             }
@@ -5232,8 +5242,9 @@ function _node_eq($p1 , $p2 = NULL) {
                  === 
                 join('',perl_sort(array_keys($p2)) 
             )) {
-                if ( $this->_re_path(  $p1 ) === $this->_re_path(  $p2 ) ) {
-
+                if ( $this->_re_path(  array($p1) ) === $this->_re_path(   array($p2) ) ) {
+echo "A:\n" ; var_dump($this->_re_path(  array($p1) ));
+echo "B:\n" ; var_dump($this->_re_path(  array($p2) ));
                       return true;
                 }
             }

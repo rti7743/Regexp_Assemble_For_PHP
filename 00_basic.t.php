@@ -4,6 +4,7 @@ require_once("testutil.php");
 
 $rt = new Regexp_Assemble();
 $context = [ 'debug' => 255, 'depth' => 0 ];
+is( $rt->_node_eq([0,1,2],[0,1,3]), 0, 'ne [0,1,2]');
 
 /*
 # 00_basic.t
