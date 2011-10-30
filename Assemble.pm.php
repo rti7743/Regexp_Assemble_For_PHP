@@ -155,6 +155,15 @@ function perl_is_hash(array $array) {
     return $count !== count($array);
 }
 
+//正規表現メタ文字エスケープ preg_meta だと @ とかが無視されるので、作る。
+function perl_quotemeta($str) {
+   foreach( array('\\' , '.', '+', '*', '?', '[', '^', ']', '$', '(', ')', '{', '}', '=', '!', '<', '>', '|', ':', '-', '/','@') 
+            as $meta) {
+       $str = str_replace($meta , "\\{$meta}" , $str  );
+   }
+   
+   return $str;
+}
 
 /*
 # Regexp::Assemple.pm
@@ -502,7 +511,6 @@ function __constructor($args) {
     if (isset($this->file)){
         $this->add_file($this->file);
     }
-
 //    return $self;
 }
 
@@ -779,8 +787,7 @@ function _fastlex($record){
                 if ($debug){ echo "#   x $pregNum[1]\n"; }
 
 //                $token = quotemeta(chr(hex($1)));
-                $token = quotemeta(chr(hexdec($pregNum[1])));
-                if ($token == '@'){ $token = '\\@'; }
+                $token = perl_quotemeta(chr(hexdec($pregNum[1])));
 
 //                $qualifier = $2;
                 $qualifier = $pregNum[2];
@@ -936,7 +943,7 @@ function _fastlex($record){
 //            if ($class =~ /\A\[\\?(.)]\Z/) {
             if (preg_match("/\A\[\\?(.)]\Z/u" , $class , $pregNum ) ){
 //                $class = quotemeta $1;
-                $class = preg_quote($pregNum[1]);
+                $class = perl_quotemeta($pregNum[1]);
 //                $class =~ s{\A\\([!@%])\Z}{$1};
                 $class = preg_replace("#\A\\([!@%])\Z#u","\${1}",$class);
 //                $debug and print "#  class unwrap $class\n";
@@ -996,6 +1003,10 @@ function _lex($record){
 //    my $re     = defined $self->{lex} ? $self->{lex}
 //        : defined $Current_Lexer ? $Current_Lexer
 //        : $Default_Lexer;
+
+///とりあえず
+    $this->lex = $this->Default_Lexer;
+
     $re   = isset($this->lex) ? $this->lex : 
           (isset($this->Current_Lexer) ? $this->Current_Lexer : $this->Default_Lexer);
 
@@ -1013,8 +1024,10 @@ function _lex($record){
     $pregNum = array();    //$1 とかのために使う.
     $stripRecord = $record;  //削ってく.
 
+
 //    while( $record =~ /($re)/g ) {
       while( preg_match("/($re)/u" , $stripRecord , $pregNum,PREG_OFFSET_CAPTURE) ){
+
 //        $token = $1;
         $stripRecord = substr($stripRecord , strlen($pregNum[0][0]) ); // 正規表現でマッチしたところを削る.
         $token = $pregNum[1][0];
@@ -1043,14 +1056,14 @@ function _lex($record){
 //            if( substr( $token, 0, 1 ) eq '\\' ) {
             if ( substr( $token, 0, 1 ) == '\\' ){
 //                if( $token =~ /^\\([ELQU])$/ ) {
-                if ( preg_match("/^\\([ELQU])$/u" , $token , $pregNum) ){
+                if ( preg_match("/^\\\\([ELQU])$/u" , $token , $pregNum) ){
 //                    if( $1 eq 'E' ) {
                      if( $pregNum[1] == 'E' ) {
 //                        $qm and $re = defined $self->{lex} ? $self->{lex}
 //                            : defined $Current_Lexer ? $Current_Lexer
 //                            : $Default_Lexer;
                         if ($qm) {
-                             $re = isset($this->lex) ? $this->lex : $Default_Lexer;
+                             $re = isset($this->lex) ? $this->lex : $this->Default_Lexer;
                         }
 //                        $case = $qm = '';
                         $case = ''; $qm = '';
@@ -1062,7 +1075,7 @@ function _lex($record){
                         $qm = $pregNum[1];
 //                        # switch to a more precise lexer to quotemeta individual characters
 //                        $re = qr/\\?./;
-                        $re = "\\?.";
+                        $re = "\\\\?.";
 //                    }
                     }
 //                    else {
@@ -1078,24 +1091,24 @@ function _lex($record){
 //                }
                 }
 //                elsif( $token =~ /^\\([lu])(.)$/ ) {
-                else if ( preg_match("/^\\([lu])(.)$/u",$token , $pregNum) ) {
+                else if ( preg_match("/^\\\\([lu])(.)$/u",$token , $pregNum) ) {
 //                    $debug and print "#  apply case=<$1> to <$2>\n";
-                    if ($debug){    echo "#  apply case=<$1> to <$2>\n";    }
+                    if ($debug){    echo "#  apply case=<{$pregNum[1]}> to <{$pregNum[2]}>\n";    }
 //                    push @path, $1 eq 'l' ? lc($2) : uc($2);
                     $path[] = $pregNum[1] == 'l' ? 
-                    strtolower($pregNum[2]) : strtolower($pregNum[2]);
+                    strtolower($pregNum[2]) : strtoupper($pregNum[2]);
 //                    goto NEXT_TOKEN;
                     goto NEXT_TOKEN;
 //                }
                 }
 //                elsif( $token =~ /^\\x([\da-fA-F]{2})$/ ) {
-                else if ( preg_match("/^\\x([\da-fA-F]{2})$/u",$token , $pregNum) ) {
+                else if ( preg_match("/^\\\\x([\da-fA-F]{2})$/u",$token , $pregNum) ) {
 //                    $token = quotemeta(chr(hex($1)));
-                    $token = preg_quote(chr(hexdec($pregNum[1])));
+                    $token = perl_quotemeta(chr(hexdec($pregNum[1])));
 //                    $debug and print "#  cooked <$token>\n";
                     if ($debug){ echo "#  cooked <$token>\n"; }
 //                    $token =~ s/^\\([^\w$()*+.?@\[\\\]^|{\/])$/$1/; # } balance
-                    $token = preg_replace("/^\\([^\w$()*+.?@\[\\\]^|{\/])$/u","\${1}" , $token);
+                    $token = preg_replace("/^\\\\([^\w$()*+.?@\[\\\\\]^|{\/])$/u","\${1}" , $token);
 //                    $debug and print "#   giving <$token>\n";
                     if ($debug){ echo "#   giving <$token>\n"; }
 //                }
@@ -1103,7 +1116,7 @@ function _lex($record){
 //                else {
                 else {
 //                    $token =~ s/^\\([^\w$()*+.?@\[\\\]^|{\/])$/$1/; # } balance
-                    $token = preg_replace("/^\\([^\w$()*+.?@\[\\\]^|{\/])$/u","\${1}" , $token);
+                    $token = preg_replace("/^\\\\([^\w$()*+.?@\[\\\\\]^|{\/])$/u","\${1}" , $token);
 //                    $debug and print "#  backslashed <$token>\n";
                     if ($debug){ echo "#  backslashed <$token>\n"; }
 //                }
@@ -1118,7 +1131,7 @@ function _lex($record){
                 }
 //                $qm   and $token = quotemeta($token);
                 if ($qm){
-                     $token = preg_quote($token);
+                     $token = perl_quotemeta($token);
                 }
 //                $token = '\\/' if $token eq '/';
                 if ($token == '/'){
@@ -1128,7 +1141,7 @@ function _lex($record){
 //            # undo quotemeta's brute-force escapades
 //            $qm and $token =~ s/^\\([^\w$()*+.?@\[\\\]^|{}\/])$/$1/;
             if ($qm){
-                $token = preg_replace('/^\\([^\w$()*+.?@\[\\\]^|{}\/])$/u',"\${1}",$token);
+                $token = preg_replace('/^\\\\([^\w$()*+.?@\[\\\\\]^|{}\/])$/u',"\${1}",$token);
             }
 //            $debug and print "#   <$token> case=<$case> qm=<$qm>\n";
             if ($debug){ echo "#   <$token> case=<$case> qm=<$qm>\n"; }
@@ -1161,6 +1174,7 @@ function _lex($record){
 //        # /\\?./, which means there can never be a remainder, so we
 //        # don't have to bother about quotemeta. In other words:
 //        # $qm will never be true in this block.
+
 //        my $remain = substr($record,$len); 
         $remain = substr($stripRecord,$len); 
 //        $case and $remain = $case eq 'U' ? uc($remain) : lc($remain);
@@ -1175,7 +1189,7 @@ function _lex($record){
 //    }
     }
 //    $debug and print "# _lex out <@path>\n";
-    if ($debug){ echo "# _lex out <@path>\n"; }
+    if ($debug){ echo "# _lex out <",$this->_dump($path),">\n"; }
     
 //    return \@path;
     return $path;
@@ -1211,7 +1225,7 @@ function add(){
 //            : [split //, $record]
 //        ;
           $list = 
-              preg_match("/[+*?(\\\[{]/u" ,$record ) ? //# }]) restore equilibrium
+              preg_match("/[+*?(\\\\\[{]/u" ,$record ) ? //# }]) restore equilibrium
               ($this->lex ? $this->_lex($record) : $this->_fastlex($record) )
               : preg_split("//u" ,$record , -1 , PREG_SPLIT_NO_EMPTY);
 
@@ -4488,9 +4502,6 @@ function _make_class() {
         }
     }
 
-var_dump($dash);
-var_dump($class);
-var_dump($caret);
 //    return "[$dash$class$caret]";
     return "[$dash$class$caret]";
 //}
@@ -4624,7 +4635,6 @@ function _re_path(array $p1) {
 //        my $skip = 0;
         $skip = 0;
 
-var_dump($arr);
 //        for my $i (0..$#arr) {
           for($i = 0 ; $i < count($arr)  ; ++$i) {
 //            if (ref($arr[$i]) eq 'ARRAY') {            arrayなのでhashに流す.

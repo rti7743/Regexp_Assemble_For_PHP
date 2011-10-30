@@ -2,9 +2,8 @@
 require_once("Assemble.pm.php");
 require_once("testutil.php");
 
-$rt = new Regexp_Assemble();
+$r = new Regexp_Assemble();
 $context = [ 'debug' => 255, 'depth' => 0 ];
-is( $rt->_node_eq([0,1,2],[0,1,3]), 0, 'ne [0,1,2]');
 
 /*
 # 00_basic.t
@@ -90,9 +89,9 @@ $rt = new Regexp_Assemble();
 //    'default lexer is something' );
 
 /*
-is( ref( $rt->_path ), 'ARRAY', '_path() isa ARRAY' );
+is( ref( $rt->path ), 'ARRAY', '_path() isa ARRAY' );
 
-is( scalar @{$rt->_path}, 0, '_path() is empty' );
+is( scalar @{$rt->path}, 0, '_path() is empty' );
 
 {
     my $r = $r( chomp => 1 );
@@ -406,7 +405,6 @@ is( $stub->_make_class( '\\s', '\\S' ),
 );
 
 
-/*
 //ちょっとこれ飛ばします。
 xcmp( '\\x20', ' ' );
 xcmp( '\x21', '!' );
@@ -448,8 +446,6 @@ xcmp( '\x7c', '\|' );
 xcmp( '\x7d', '}' );
 xcmp( '\x7e', '~' );
 xcmp( '\x7f', '' );
-*/
-
 
 lcmp( 'X?', __LINE__ );
 lcmp( '\\?', __LINE__ );
@@ -559,140 +555,139 @@ lcmp( '\\[{2,4}?', __LINE__ );
 lcmp( '\\]{2,4}?', __LINE__ );
 lcmp( '\\|{2,4}?', __LINE__ );
 
-/*
 //_lex関係なので飛ばします。普段使うのは fastlexの方なんで。
 
 //{
     $r = new Regexp_Assemble();
     is_deeply( $r->_lex( '' ), [], '_lex empty string' );
 
-    my $str = 'abc';
-    is_deeply( $r->_lex( $str ), [ 'a', 'b', 'c' ], "_lex $str",);
+    $str = 'abc';
+    is_deeply( $r->_lex( $str ), [ 'a', 'b', 'c' ], "_lex $str");
 
     $str = 'a+b*c?';
     is_deeply( $r->_lex( $str ),
         [ 'a+', 'b*', 'c?' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = '\e\t\cb\cs';
     is_deeply( $r->_lex( $str ),
         [ '\e', '\t', '\cb', '\cs' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = 'a+\\d+';
     is_deeply( $r->_lex( $str ),
         [ 'a+', '\\d+' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = 'a/b';
     is_deeply( $r->_lex( $str ),
         [ 'a', '\\/', 'b' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = 'a+?b*?c??';
     is_deeply( $r->_lex( $str ),
         [ 'a+?', 'b*?', 'c??' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = 'abc[def]g';
     is_deeply( $r->_lex( $str ),
         [ 'a', 'b', 'c', '[def]', 'g' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = '(?:ab)?c[def]+g';
     is_deeply( $r->_lex( $str ),
         [ '(?:ab)?', 'c', '[def]+', 'g' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = '(?:ab)?c[def]{2,7}?g';
     is_deeply( $r->_lex( $str ),
         [ '(?:ab)?', 'c', '[def]{2,7}?', 'g' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = 'abc[def]g(?:hi[jk]lm[no]p)';
     is_deeply( $r->_lex( $str ),
         [ 'a', 'b', 'c', '[def]', 'g', '(?:hi[jk]lm[no]p)' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = 'abc[def]g[,.%\\]$&].\\.$';
     is_deeply( $r->_lex( $str ),
         [ 'a', 'b', 'c', '[def]', 'g', '[,.%\\]$&]', '.', '\\.', '$' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = 'abc[def]g[,.%\\]$&{]{2,4}.\\.$';
     is_deeply( $r->_lex( $str ),
         [ 'a', 'b', 'c', '[def]', 'g', '[,.%\\]$&{]{2,4}', '.', '\\.', '$' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = '\\w+\\d{2,}\\s+?\\w{1,100}?\\cx*';
     is_deeply( $r->_lex( $str  ),
         [ '\\w+', '\\d{2,}', '\\s+?', '\\w{1,100}?', '\\cx*' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = '\\012+\\.?\\xae+\\x{dead}\\x{beef}+';
     is_deeply( $r->_lex( $str  ),
         [ '\\012+', '\\.?', '\\xae+', '\\x{dead}', '\\x{beef}+' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = '\\012+\\.?\\xae+\\x{dead}\\x{beef}{2,}';
     is_deeply( $r->_lex( $str  ),
         [ '\\012+', '\\.?', '\\xae+', '\\x{dead}', '\\x{beef}{2,}' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = '\\c[\\ca\\c]\\N{foo}';
     is_deeply( $r->_lex( $str  ),
         [ '\\c[', '\\ca', '\\c]', '\\N{foo}' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = '\\b(?:ab\(cd\)ef)+?(?:ab[cd]+e)*';
     is_deeply( $r->_lex( $str  ),
         [ '\\b', '(?:ab\(cd\)ef)+?', '(?:ab[cd]+e)*' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = '\\A[^bc\]\d]+\\Z';
     is_deeply( $r->_lex( $str  ),
         [ '\\A', '[^bc\]\d]+', '\\Z' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = 'a\\d+\\w*:[\\d\\s]+.z(?!foo)d';
     is_deeply( $r->_lex( $str  ),
         [ 'a', '\\d+', '\\w*', ':', '[\\d\\s]+', '.', 'z', '(?!foo)', 'd' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = '\Qa+b*\Ec?';
     is_deeply( $r->_lex( $str ),
         [ 'a', '\+', 'b', '\*', 'c?' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = 'a\\ub';
     is_deeply( $r->_lex( $str  ),
         [ 'a', 'B' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = 'A\\lB';
     is_deeply( $r->_lex( $str  ),
         [ 'A', 'b' ],
-        "_lex $str",
+        "_lex $str"
     );
 
     $str = '\\Qx*';
@@ -744,39 +739,37 @@ lcmp( '\\|{2,4}?', __LINE__ );
     is_deeply( $r->_lex( $str ), [ 'f', 'G', 'H', ' ' ], "_lex $str" );
 
     $str = 'a\\Q+x*\\Eb+';
-    is_deeply( $r->add( $str )->_path,
+    is_deeply( $r->reset()->add( $str )->path,
         [ 'a', '\\+', 'x', '\\*', 'b+' ], "add $str" );
 
     $str = 'a\\Q+x*b+';
-    is_deeply( $r->add( $str )->_path,
+    is_deeply( $r->reset()->add( $str )->path,
         [ 'a', '\\+', 'x', '\\*', 'b', '\\+' ], "add $str" );
 
-    my $out;
     $str = 'X\\LK+L{2,4}M\\EY';
-    is_deeply( $out = $r->add( $str )->_path,
-        [ 'X', 'k+', 'l{2,4}', 'm', 'Y' ], "add $str" ) or diag("@$out");
+    is_deeply( $r->reset()->add( $str )->path,
+        [ 'X', 'k+', 'l{2,4}', 'm', 'Y' ], "add $str" ) ;
 
     $str = 'p\\Q\\L\\Eq';
-    is_deeply( $out = $r->add( $str )->_path,
-        [ 'p', 'q' ], "add $str" ) or diag("@$out");
+    is_deeply( $r->reset()->add( $str )->path,
+        [ 'p', 'q' ], "add $str" );
 
     $str = 'q\\U\\Qh{7,9}\\Ew';
-    is_deeply( $r->add( $str )->_path,
+    is_deeply( $r->reset()->add( $str )->path,
         [ 'q', 'H', '\{', '7', ',', '9', '\}', 'w' ], "add $str" );
 
     $str = 'a\\Ubc\\ldef\\Eg';
-    is_deeply( $r->add( $str )->_path,
+    is_deeply( $r->reset()->add( $str )->path,
         [ 'a', 'B', 'C', 'd', 'E', 'F', 'g' ], "add $str" );
 
     $str = 'a\\LBL+\\uxy\\QZ+';
-    is_deeply( $r->add( $str )->_path,
+    is_deeply( $r->reset()->add( $str )->path,
         [ 'a', 'b', 'l+', 'X', 'y', 'z', '\+' ], "add $str" );
 
     $str = '\Q^a[b[';
-    is_deeply( $r->add( $str )->_path,
+    is_deeply( $r->reset()->add( $str )->path,
         [ '\\^', 'a', '\\[', 'b', '\\[' ], "add $str" );
 //}
-*/
 //{
 //    my $path;
 

@@ -108,133 +108,143 @@ foreach( array(
     is($r->as_string() , $result, "insert ($args)");
 }
 
-/*
-my $xism = ($] < 5.013) ? '-xism' : '^';
 
-for my $test (
-    [ qq'(?$xism:(?:^|m)a)',    qw(^a ma) ],
-    [ qq'(?$xism:(?:[mw]|^)a)', qw(^a ma wa) ],
-    [ qq'(?$xism:(?:^|\\^)a)',  qw(^a), '\\^a' ],
-    [ qq'(?$xism:(?:^|0)a)',    qw(^a 0a) ],
-    [ qq'(?$xism:(?:[m^]|^)a)', qw(^a ma), '\\^a' ],
-    [ qq'(?$xism:(?:ma|^)a)',   qw(^a maa) ],
-    [ qq'(?$xism:a.+)',         qw(a.+) ],
-    [ qq'(?$xism:b?)',          '[b]?' ],
-    [ qq'(?$xism:\\.)',         '[.]' ],
-    [ qq'(?$xism:\\.+)',        '[.]+' ],
-    [ qq'(?$xism:\\.+)'  ,      '[\\.]+' ],
-    [ qq'(?$xism:\\^+)',        '[\\^]+' ],
-    [ qq'(?$xism:%)',           '[%]' ],
-    [ qq'(?$xism:%)',           '[\\%]' ],
-    [ qq'(?$xism:!)',           '[!]' ],
-    [ qq'(?$xism:!)',           '[\\!]' ],
-    [ qq'(?$xism:@)',           '[@]' ],
-    [ qq'(?$xism:@)',           '[\\@]' ],
-    [ qq'(?$xism:a|[bc])',      'a|[bc]' ],
-    [ qq'(?$xism:ad?|[bc])',    'ad?|[bc]' ],
-    [ qq'(?$xism:'.'b(?:$|e))',    qw(b$ be) ],
-    [ qq'(?$xism:'.'b(?:[ae]|$))', qw(b$ be ba) ],
-    [ qq'(?$xism:'.'b(?:$|\\$))',  qw(b$), 'b\\$' ],
-    [ qq'(?$xism:(?:^a[bc]|de))',  qw(^ab ^ac de) ],
-    [ qq'(?$xism:(?i:/))',              qw(/),          {flags => 'i'} ],
-    [ qq'(?$xism:(?i:(?:^a[bc]|de)))',  qw(^ab ^ac de), {flags => 'i'} ],
-    [ qq'(?$xism:(?im:(?:^a[bc]|de)))', qw(^ab ^ac de), {flags => 'im'} ],
-    [ qq'(?$xism:a(?:%[de]|=[bc]))',
+//my {$xism} = ($] < 5.013) ? '-xism' : '^:';
+$xism = '';
+
+foreach (
+[
+    [ '(?{$xism}(?:^|m)a)',    '^a', 'ma' ],
+    [ '(?{$xism}(?:[mw]|^)a)', '^a', 'ma', 'wa' ],
+    [ '(?{$xism}(?:^|\\^)a)',  '^a', '\\^a' ],
+    [ '(?{$xism}(?:^|0)a)',    '^a', '0a' ],
+    [ '(?{$xism}(?:[m^]|^)a)', '^a', 'ma', '\\^a' ],
+    [ '(?{$xism}(?:ma|^)a)',   '^a', 'maa' ],
+    [ '(?{$xism}a.+)',         'a.+' ],
+    [ '(?{$xism}b?)',          '[b]?' ],
+    [ '(?{$xism}\\.)',         '[.]' ],
+    [ '(?{$xism}\\.+)',        '[.]+' ],
+    [ '(?{$xism}\\.+)'  ,      '[\\.]+' ],
+    [ '(?{$xism}\\^+)',        '[\\^]+' ],
+    [ '(?{$xism}%)',           '[%]' ],
+    [ '(?{$xism}%)',           '[\\%]' ],
+    [ '(?{$xism}!)',           '[!]' ],
+    [ '(?{$xism}!)',           '[\\!]' ],
+    [ '(?{$xism}@)',           '[@]' ],
+    [ '(?{$xism}@)',           '[\\@]' ],
+    [ '(?{$xism}a|[bc])',      'a|[bc]' ],
+    [ '(?{$xism}ad?|[bc])',    'ad?|[bc]' ],
+    [ '(?{$xism}'.'b(?:$|e))',    'b$','be' ],
+    [ '(?{$xism}'.'b(?:[ae]|$))', 'b$','be', 'ba' ],
+    [ '(?{$xism}'.'b(?:$|\\$))',  'b$','b\\$' ],
+    [ '(?{$xism}(?:^a[bc]|de))',  '^ab','^ac', 'de' ],
+    [ '(?{$xism}(?i:/))',              '/',          ['flags' => 'i'] ],
+    [ '(?{$xism}(?i:(?:^a[bc]|de)))',  '^ab', '^ac', 'de', ['flags' => 'i'] ],
+    [ '(?{$xism}(?im:(?:^a[bc]|de)))', '^ab', '^ac', 'de', ['flags' => 'im'] ],
+    [ '(?{$xism}a(?:%[de]|=[bc]))',
         quotemeta('a%d'), quotemeta('a=b'), quotemeta('a%e'), quotemeta('a=c') ],
-    [ qq'(?$xism:\\^[,:])',     quotemeta('^:'), quotemeta('^,') ],
-    [ qq'(?$xism:a[-*=])',      quotemeta('a='), quotemeta('a*'), quotemeta('a-') ],
-    [ qq'(?$xism:l(?:im)?it)',  qw(lit limit) ],
-    [ qq'(?$xism:a(?:(?:g[qr]|h)w|[de]n|m)z)', qw(amz adnz aenz agrwz agqwz ahwz) ],
-    [ qq'(?$xism:a(?:(?:e(?:[gh]u|ft)|dkt|f)w|(?:(?:ij|g)m|hn)v)z)',
-        qw(adktwz aeftwz aeguwz aehuwz afwz agmvz ahnvz aijmvz) ],
-    [ qq'(?$xism:b(?:d(?:kt?|i)|ckt?)x)', qw(bcktx bckx bdix bdktx bdkx) ],
-    [ qq'(?$xism:d(?:[ln]dr?t|x))',  qw(dldrt dndrt dldt dndt dx) ],
-    [ qq'(?$xism:d(?:[ln][dp]t|x))', qw(dldt dndt dlpt dnpt dx) ],
-    [ qq'(?$xism:d(?:[ln][dp][mr]t|x))', qw(dldrt dndrt dldmt dndmt dlprt dnprt dlpmt dnpmt dx) ],
-    [ qq'(?$xism:'.'(?:\(scan|\*mens|\[mail))', '\\*mens', '\\(scan', '\\[mail'],
-    [ qq'(?$xism:a\\[b\\[c)', '\\Qa[b[c' ],
-    [ qq'(?$xism:a\\]b\\]c)', '\\Qa]b]c' ],
-    [ qq'(?$xism:a\\(b\\(c)', '\\Qa(b(c' ],
-    [ qq'(?$xism:a\\)b\\)c)', '\\Qa)b)c' ],
-    [ qq'(?$xism:a[(+[]b)', '\\Qa(b', '\\Qa[b', '\\Qa+b' ],
-    [ qq'(?$xism:a[-+^]b)', '\\Qa^b', '\\Qa-b', '\\Qa+b' ],
-    [ qq'(?$xism:car(?:rot)?)', qw(car carrot), {lookahead => 1} ],
-    [ qq'(?$xism:car[dpt]?)',   qw(car cart card carp), {lookahead => 1} ],
-    [ qq'(?$xism:[bc]a[nr]e)',  qw(bane bare cane care), {lookahead => 1} ],
-    [ qq'(?$xism:(?=[ru])(?:ref)?use)',       qw(refuse use), {lookahead => 1} ],
-    [ qq'(?$xism:(?=[bcd])(?:bird|cat|dog))', qw(bird cat dog), {lookahead => 1} ],
-    [ qq'(?$xism:sea(?=[hs])(?:horse|son))',  qw(seahorse season), {lookahead => 1} ],
-    [ qq'(?$xism:car(?:(?=[dr])(?:rot|d))?)', qw(car card carrot), {lookahead => 1} ],
-    [ qq'(?$xism:(?:(?:[hl]o|s?t|ch)o|[bf]a)ked)',
-        qw(looked choked hooked stoked toked baked faked) ],
-    [ qq'(?$xism:(?=[frt])(?:trans|re|f)action)',
-        qw(faction reaction transaction), {lookahead => 1} ],
-    [ qq'(?$xism:c(?=[ao])(?:or(?=[np])(?:pse|n)|ar(?=[de])(?:et|d)))',
-        qw(card caret corn corpse), {lookahead => 1} ],
-    [ qq'(?$xism:car(?:(?=[dipt])(?:[dpt]|i(?=[no])(?:ng|on)))?)',
-        qw(car cart card carp carion caring), {lookahead => 1} ],
-    [ qq'(?$xism:(?=[dfrst])(?:(?=[frt])(?:trans|re|f)a|(?=[ds])(?:dir|s)e)ction)',
-        qw(faction reaction transaction direction section), {lookahead => 1} ],
-    [ qq'(?$xism:car(?=[eir])(?:e(?=[flst])(?:(?=[ls])(?:le)?ss|ful|t)|i(?=[no])(?:ng|on)|r(?=[iy])(?:ied|y)))',
-        qw(caret caress careful careless caring carion carry carried), {lookahead => 1} ],
-    [ qq'(?$xism:(?=[uv])(?:u(?=[nr])(?:n(?=[iprs])(?:(?=[ip])(?:(?:p[or]|impr))?i|(?:sea)?|rea)|r)|v(?=[ei])(?:en(?=[it])(?:trime|i)|i))son)',
-        qw(unimprison unison unpoison unprison unreason unseason unson urson venison ventrimeson vison), {lookahead => 1} ],
-    [ qq'(?$xism:(?:a?bc?)?d)',         qw(abcd abd bcd bd d) ],
-    [ qq'(?$xism:(?:a?bc?|c)d)',        qw(abcd abd bcd bd cd) ],
-    [ qq'(?$xism:(?:(?:a?bc?)?d|c))',   qw(abcd abd bcd bd c d) ],
-    [ qq'(?$xism:(?:(?:a?bc?)?d|cd?))', qw(abcd abd bcd bd c cd d) ],
-    [ qq'(?$xism:(?:(?:ab?|b)c?)?d)',   qw(abcd abd acd ad bcd bd d) ],
-    [ qq'(?$xism:(?:(?:ab)?cd?)?e)',          qw(abcde abce cde ce e) ],
-    [ qq'(?$xism:(?:(?:(?:ab?|b)c?)?d|c))',   qw(abcd abd acd ad bcd bd c d) ],
-    [ qq'(?$xism:(?:(?:(?:ab?|b)c?)?d|cd?))', qw(abcd abd acd ad bcd bd c cd d) ],
-    [ qq'(?$xism:'.'^(?:b?cd?|ab)$)',          qw(^ab$ ^bc$ ^bcd$ ^c$ ^cd$) ],
-    [ qq'(?$xism:'.'^(?:(?:ab?c|cd?)e?|e)$)',  qw(^abc$ ^abce$ ^ac$ ^ace$ ^c$ ^cd$ ^cde$ ^ce$ ^e$) ],
-    [ qq'(?$xism:'.'^(?:abc|bcd)e?$)',         qw(^abc$ ^abce$ ^bcd$ ^bcde$) ],
-    [ qq'(?$xism:'.'^(?:abcdef|bcdefg)h?$)',   qw(^abcdef$ ^abcdefh$ ^bcdefg$ ^bcdefgh$) ],
-    [ qq'(?$xism:'.'^(?:bcdefg|abcd)h?$)',     qw(^abcd$ ^abcdh$ ^bcdefg$ ^bcdefgh$) ],
-    [ qq'(?$xism:'.'^(?:abcdef|bcd)h?$)',      qw(^abcdef$ ^abcdefh$ ^bcd$ ^bcdh$) ],
-    [ qq'(?$xism:'.'^(?:a(?:bcd|cd?)e?|e)$)',  qw(^abcd$ ^abcde$ ^ac$ ^acd$ ^acde$ ^ace$ ^e$) ],
-    [ qq'(?$xism:'.'^(?:bcd|cd?)e?$)',         qw(^bcd$ ^bcde$ ^c$ ^cd$ ^cde$ ^ce$) ],
-    [ qq'(?$xism:'.'^(?:abc|bc?)(?:de)?$)',    qw(^abc$ ^abcde$ ^b$ ^bc$ ^bcde$ ^bde$) ],
-    [ qq'(?$xism:'.'^(?:b(?:cd)?|abd)e?$)',    qw(^abd$ ^abde$ ^b$ ^bcd$ ^bcde$ ^be$) ],
-    [ qq'(?$xism:'.'^(?:ad?|bcd)e?$)',         qw(^a$ ^ad$ ^ade$ ^ae$ ^bcd$ ^bcde$) ],
-    [ qq'(?$xism:'.'^(?:a(?:bcd|cd?)e?|de)$)', qw(^abcd$ ^abcde$ ^ac$ ^acd$ ^acde$ ^ace$ ^de$) ],
-    [ qq'(?$xism:'.'^(?:a(?:bcde)?|bc?d?e)$)', qw(^a$ ^abcde$ ^bcde$ ^bce$ ^bde$ ^be$) ],
-    [ qq'(?$xism:'.'^(?:a(?:b[cd]?)?|bd?e?f)$)', qw(^a$ ^ab$ ^abc$ ^abd$ ^bdef$ ^bdf$ ^bef$ ^bf$) ],
-    [ qq'(?$xism:'.'^(?:a(?:bc?|dd)?|bd?e?f)$)', qw(^a$ ^ab$ ^abc$ ^add$ ^bdef$ ^bdf$ ^bef$ ^bf$) ],
-    [ qq'(?$xism:'.'^(?:a(?:bc?|de)?|bc?d?f)$)', qw(^a$ ^ab$ ^abc$ ^ade$ ^bcdf$ ^bcf$ ^bdf$ ^bf$) ],
-    [ qq'(?$xism:'.'^(?:a(?:bc?|de)?|cd?e?f)$)', qw(^a$ ^ab$ ^abc$ ^ade$ ^cdef$ ^cdf$ ^cef$ ^cf$) ],
-    [ qq'(?$xism:'.'^(?:a(?:bc?|e)?|bc?de?f)$)', qw(^a$ ^ab$ ^abc$ ^ae$ ^bcdef$ ^bcdf$ ^bdef$ ^bdf$) ],
-    [ qq'(?$xism:'.'^(?:a(?:bc?|e)?|b(?:cd)?e?f)$)', qw(^a$ ^ab$ ^abc$ ^ae$ ^bcdef$ ^bcdf$ ^bef$ ^bf$) ],
-    [ qq'(?$xism:'.'^(?:b(?:cde?|d?e)f|a(?:bc?|e)?)$)',
-        qw(^a$ ^ab$ ^abc$ ^ae$ ^bcdef$ ^bcdf$ ^bdef$ ^bef$) ],
-    [ qq'(?$xism:\\b(?:c[de]|ab)\\b)', qw(ab cd ce), {anchor_word => 1} ],
-    [ qq'(?$xism:\\b(?:c[de]|ab))',    qw(ab cd ce), {anchor_word_begin => 1} ],
-    [ qq'(?$xism:'.'^(?:c[de]|ab)$)',     qw(ab cd ce), {anchor_line => 1} ],
-    [ qq'(?$xism:(?:c[de]|ab))',       qw(ab cd ce), {anchor_line => 0} ],
-    [ qq'(?$xism:'.'(?:c[de]|ab)$)',      qw(ab cd ce), {anchor_line_end => 1} ],
-    [ qq'(?$xism:\\A(?:c[de]|ab)\\Z)', qw(ab cd ce), {anchor_string => 1} ],
-    [ qq'(?$xism:(?:c[de]|ab))',       qw(ab cd ce), {anchor_string => 0} ],
-    [ qq'(?$xism:x[[:punct:]][yz])',   qw(x[[:punct:]]y x[[:punct:]]z) ],
-) {
-    my $result = shift @$test;
-    my $param = ref($test->[-1]) eq 'HASH' ? pop @$test : {};
-    my $r = Regexp::Assemble->new(%$param)->add(@$test);
-    my $args = '(' . join( ') (', @$test ) . ')';
-    if (keys %$param) {
-        $args .= ' {'
-            . join( ', ', map {"$_ => $param->{$_}"} sort keys %$param)
-            . '}';
+    [ '(?{$xism}\\^[,:])',     quotemeta('^:'), quotemeta('^,') ],
+    [ '(?{$xism}a[-*=])',      quotemeta('a='), quotemeta('a*'), quotemeta('a-') ],
+    [ '(?{$xism}l(?:im)?it)',  'lit', 'limit' ],
+    [ '(?{$xism}a(?:(?:g[qr]|h)w|[de]n|m)z)', 'amz', 'adnz', 'aenz', 'agrwz', 'agqwz', 'ahwz' ],
+    [ '(?{$xism}a(?:(?:e(?:[gh]u|ft)|dkt|f)w|(?:(?:ij|g)m|hn)v)z)',
+        'adktwz', 'aeftwz', 'aeguwz', 'aehuwz', 'afwz', 'agmvz', 'ahnvz','aijmvz' ],
+    [ '(?{$xism}b(?:d(?:kt?|i)|ckt?)x)', 'bcktx', 'bckx', 'bdix', 'bdktx', 'bdkx' ],
+    [ '(?{$xism}d(?:[ln]dr?t|x))',  'dldrt', 'dndrt', 'dldt', 'dndt', 'dx' ],
+    [ '(?{$xism}d(?:[ln][dp]t|x))', 'dldt', 'dndt', 'dlpt', 'dnpt', 'dx' ],
+    [ '(?{$xism}d(?:[ln][dp][mr]t|x))', 'dldrt', 'dndrt', 'dldmt', 'dndmt', 'dlprt', 'dnprt', 'dlpmt', 'dnpmt', 'dx' ],
+    [ '(?{$xism}'.'(?:\(scan|\*mens|\[mail))', '\\*mens', '\\(scan', '\\[mail'],
+    [ '(?{$xism}a\\[b\\[c)', '\\Qa[b[c' ],
+    [ '(?{$xism}a\\]b\\]c)', '\\Qa]b]c' ],
+    [ '(?{$xism}a\\(b\\(c)', '\\Qa(b(c' ],
+    [ '(?{$xism}a\\)b\\)c)', '\\Qa)b)c' ],
+    [ '(?{$xism}a[(+[]b)', '\\Qa(b', '\\Qa[b', '\\Qa+b' ],
+    [ '(?{$xism}a[-+^]b)', '\\Qa^b', '\\Qa-b', '\\Qa+b' ],
+    [ '(?{$xism}car(?:rot)?)', 'car', 'carrot', ['lookahead' => 1] ],
+    [ '(?{$xism}car[dpt]?)',   'car', 'cart', 'card', 'carp', ['lookahead' => 1] ],
+    [ '(?{$xism}[bc]a[nr]e)',  'bane', 'bare', 'cane', 'care', ['lookahead' => 1] ],
+    [ '(?{$xism}(?=[ru])(?:ref)?use)',       'refuse', 'use', ['lookahead' => 1] ],
+    [ '(?{$xism}(?=[bcd])(?:bird|cat|dog))', 'bird', 'cat', 'dog', ['lookahead' => 1] ],
+    [ '(?{$xism}sea(?=[hs])(?:horse|son))',  'seahorse', 'season', ['lookahead' => 1] ],
+    [ '(?{$xism}car(?:(?=[dr])(?:rot|d))?)', 'car', 'card', 'carrot', ['lookahead' => 1] ],
+    [ '(?{$xism}(?:(?:[hl]o|s?t|ch)o|[bf]a)ked)',
+        'looked', 'choked', 'hooked', 'stoked', 'toked', 'baked', 'faked' ],
+    [ '(?{$xism}(?=[frt])(?:trans|re|f)action)',
+        'faction', 'reaction', 'transaction', ['lookahead' => 1] ],
+    [ '(?{$xism}c(?=[ao])(?:or(?=[np])(?:pse|n)|ar(?=[de])(?:et|d)))',
+        'card', 'caret', 'corn', 'corpse', ['lookahead' => 1] ],
+    [ '(?{$xism}car(?:(?=[dipt])(?:[dpt]|i(?=[no])(?:ng|on)))?)',
+        'car', 'cart', 'card', 'carp', 'carion', 'caring', ['lookahead' => 1] ],
+    [ '(?{$xism}(?=[dfrst])(?:(?=[frt])(?:trans|re|f)a|(?=[ds])(?:dir|s)e)ction)',
+        'faction', 'reaction', 'transaction', 'direction', 'section', ['lookahead' => 1] ],
+    [ '(?{$xism}car(?=[eir])(?:e(?=[flst])(?:(?=[ls])(?:le)?ss|ful|t)|i(?=[no])(?:ng|on)|r(?=[iy])(?:ied|y)))',
+        'caret', 'caress', 'careful', 'careless', 'caring', 'carion', 'carry', 'carried', ['lookahead' => 1] ],
+    [ '(?{$xism}(?=[uv])(?:u(?=[nr])(?:n(?=[iprs])(?:(?=[ip])(?:(?:p[or]|impr))?i|(?:sea)?|rea)|r)|v(?=[ei])(?:en(?=[it])(?:trime|i)|i))son)',
+        'unimprison', 'unison', 'unpoison', 'unprison', 'unreason', 'unseason', 'unson', 'urson', 'venison', 'ventrimeson', 'vison', ['lookahead' => 1] ],
+    [ '(?{$xism}(?:a?bc?)?d)',         'abcd', 'abd', 'bcd', 'bd', 'd' ],
+    [ '(?{$xism}(?:a?bc?|c)d)',        'abcd', 'abd', 'bcd', 'bd', 'cd' ],
+    [ '(?{$xism}(?:(?:a?bc?)?d|c))',   'abcd', 'abd', 'bcd', 'bd', 'c', 'd' ],
+    [ '(?{$xism}(?:(?:a?bc?)?d|cd?))', 'abcd', 'abd', 'bcd', 'bd', 'c', 'cd', 'd' ],
+    [ '(?{$xism}(?:(?:ab?|b)c?)?d)',   'abcd', 'abd', 'acd', 'ad', 'bcd', 'bd', 'd' ],
+    [ '(?{$xism}(?:(?:ab)?cd?)?e)',          'abcde', 'abce', 'cde', 'ce', 'e' ],
+    [ '(?{$xism}(?:(?:(?:ab?|b)c?)?d|c))',   'abcd', 'abd', 'acd', 'ad', 'bcd', 'bd', 'c', 'd' ],
+    [ '(?{$xism}(?:(?:(?:ab?|b)c?)?d|cd?))', 'abcd', 'abd', 'acd', 'ad', 'bcd', 'bd', 'c', 'cd', 'd' ],
+    [ '(?{$xism}'.'^(?:b?cd?|ab)$)',          '^ab$', '^bc$', '^bcd$', '^c$', '^cd$'],
+    [ '(?{$xism}'.'^(?:(?:ab?c|cd?)e?|e)$)',  '^abc$', '^abce$', '^ac$', '^ace$', '^c$', '^cd$', '^cde$', '^ce$', '^e$' ],
+    [ '(?{$xism}'.'^(?:abc|bcd)e?$)',         '^abc$', '^abce$', '^bcd$', '^bcde$' ],
+    [ '(?{$xism}'.'^(?:abcdef|bcdefg)h?$)',   '^abcdef$', '^abcdefh$', '^bcdefg$', '^bcdefgh$' ],
+    [ '(?{$xism}'.'^(?:bcdefg|abcd)h?$)',     '^abcd$', '^abcdh$', '^bcdefg$', '^bcdefgh$' ],
+    [ '(?{$xism}'.'^(?:abcdef|bcd)h?$)',      '^abcdef$', '^abcdefh$', '^bcd$', '^bcdh$' ],
+    [ '(?{$xism}'.'^(?:a(?:bcd|cd?)e?|e)$)',  '^abcd$', '^abcde$', '^ac$', '^acd$', '^acde$', '^ace$', '^e$' ],
+    [ '(?{$xism}'.'^(?:bcd|cd?)e?$)',         '^bcd$', '^bcde$', '^c$', '^cd$', '^cde$', '^ce$' ],
+    [ '(?{$xism}'.'^(?:abc|bc?)(?:de)?$)',    '^abc$', '^abcde$', '^b$', '^bc$', '^bcde$', '^bde$' ],
+    [ '(?{$xism}'.'^(?:b(?:cd)?|abd)e?$)',    '^abd$', '^abde$', '^b$', '^bcd$', '^bcde$', '^be$' ],
+    [ '(?{$xism}'.'^(?:ad?|bcd)e?$)',         '^a$', '^ad$', '^ade$', '^ae$', '^bcd$', '^bcde$' ],
+    [ '(?{$xism}'.'^(?:a(?:bcd|cd?)e?|de)$)', '^abcd$', '^abcde$', '^ac$', '^acd$', '^acde$', '^ace$', '^de$' ],
+    [ '(?{$xism}'.'^(?:a(?:bcde)?|bc?d?e)$)', '^a$', '^abcde$', '^bcde$', '^bce$', '^bde$', '^be$' ],
+    [ '(?{$xism}'.'^(?:a(?:b[cd]?)?|bd?e?f)$)', '^a$', '^ab$', '^abc$', '^abd$', '^bdef$', '^bdf$', '^bef$', '^bf$' ],
+    [ '(?{$xism}'.'^(?:a(?:bc?|dd)?|bd?e?f)$)', '^a$', '^ab$', '^abc$', '^add$', '^bdef$', '^bdf$', '^bef$', '^bf$' ],
+    [ '(?{$xism}'.'^(?:a(?:bc?|de)?|bc?d?f)$)', '^a$', '^ab$', '^abc$', '^ade$', '^bcdf$', '^bcf$', '^bdf$', '^bf$' ],
+    [ '(?{$xism}'.'^(?:a(?:bc?|de)?|cd?e?f)$)', '^a$', '^ab$', '^abc$', '^ade$', '^cdef$', '^cdf$', '^cef$', '^cf$' ],
+    [ '(?{$xism}'.'^(?:a(?:bc?|e)?|bc?de?f)$)', '^a$', '^ab$', '^abc$', '^ae$', '^bcdef$', '^bcdf$', '^bdef$', '^bdf$' ],
+    [ '(?{$xism}'.'^(?:a(?:bc?|e)?|b(?:cd)?e?f)$)', '^a$', '^ab$', '^abc$', '^ae$', '^bcdef$', '^bcdf$', '^bef$', '^bf$' ],
+    [ '(?{$xism}'.'^(?:b(?:cde?|d?e)f|a(?:bc?|e)?)$)',
+        '^a$', '^ab$', '^abc$', '^ae$', '^bcdef$', '^bcdf$', '^bdef$', '^bef$' ],
+    [ '(?{$xism}\\b(?:c[de]|ab)\\b)', 'ab', 'cd', 'ce', ['anchor_word' => 1] ],
+    [ '(?{$xism}\\b(?:c[de]|ab))',    'ab', 'cd', 'ce', ['anchor_word_begin' => 1] ],
+    [ '(?{$xism}'.'^(?:c[de]|ab)$)',     'ab', 'cd', 'ce', ['anchor_line' => 1] ],
+    [ '(?{$xism}(?:c[de]|ab))',       'ab', 'cd', 'ce', ['anchor_line' => 0] ],
+    [ '(?{$xism}'.'(?:c[de]|ab)$)',      'ab', 'cd', 'ce', ['anchor_line_end' => 1] ],
+    [ '(?{$xism}\\A(?:c[de]|ab)\\Z)', 'ab', 'cd', 'ce', ['anchor_string' => 1] ],
+    [ '(?{$xism}(?:c[de]|ab))',       'ab', 'cd', 'ce', ['anchor_string' => 0] ],
+    [ '(?{$xism}x[[:punct:]][yz])',   'x[[:punct:]]y', 'x[[:punct:]]z' ],
+] as $test) {
+    $result = array_shift( $test );
+
+    $param = is_array( $test[ count($test) - 1 ]  ) ? array_pop( $test ) : [];
+
+    $r = new Regexp_Assemble($param);
+    $r->add($test);
+
+    $args = '(' . join( ') (', $test ) . ')';
+    if ( count( $param ) ) {
+        
+        $args .= '{';
+        foreach($param as $key => $value) {
+            $args .= "key => $value ,";
+        }
+        $args .= '}';
     }
-    is( $r->re, $result, "add $args")
+    is( $r->re() , $result, "add $args");
 }
 
+/*
 {
     my $r = Regexp::Assemble->new->add( 'de' );
     my $re = $r->re;
-    is( "$re", qq'(?$xism:de)', 'de' );
+    is( "$re", qq'(?{$xism}de)', 'de' );
     my $re2 = $r->re;
-    is( "$re2", qq'(?$xism:de)', 'de again' );
+    is( "$re2", qq'(?{$xism}de)', 'de again' );
 }
 
 is( Regexp::Assemble->new->lookahead->add( qw/
