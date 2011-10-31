@@ -5,6 +5,32 @@ require_once("testutil.php");
 $rt = new Regexp_Assemble();
 $context = [ 'debug' => 255, 'depth' => 0 ];
 
+$xism = 'xism:';
+
+foreach (
+[
+    [ "(?{$xism}(?:^|m)a)",    '^a', 'ma' ],
+] as $test) {
+    $result = array_shift( $test );
+
+    $param = is_array( $test[ count($test) - 1 ]  ) ? array_pop( $test ) : [];
+
+    $r = new Regexp_Assemble($param);
+    $r->add($test);
+    $r->__flags = 'xism';
+
+    $args = '(' . join( ') (', $test ) . ')';
+    if ( count( $param ) ) {
+        
+        $args .= '{';
+        foreach($param as $key => $value) {
+            $args .= "key => $value ,";
+        }
+        $args .= '}';
+    }
+    is( $r->re() , $result, "add $args");
+}
+
 /*
 # 03_str.t
 #
@@ -110,7 +136,7 @@ foreach( array(
 
 
 //my {$xism} = ($] < 5.013) ? '-xism' : '^:';
-$xism = '';
+$xism = 'xism:';
 
 foreach (
 [
@@ -119,7 +145,8 @@ foreach (
     [ "(?{$xism}(?:^|\\^)a)",  '^a', '\\^a' ],
     [ "(?{$xism}(?:^|0)a)",    '^a', '0a' ],
     [ "(?{$xism}(?:[m^]|^)a)", '^a', 'ma', '\\^a' ],
-    [ "(?{$xism}(?:ma|^)a)",   '^a', 'maa' ],
+//    [ "(?{$xism}(?:ma|^)a)",   '^a', 'maa' ],
+    [ "(?{$xism}(?:^|ma)a)",   '^a', 'maa' ],
     [ "(?{$xism}a.+)",         'a.+' ],
     [ "(?{$xism}b?)",          '[b]?' ],
     [ "(?{$xism}\\.)",         '[.]' ],
@@ -225,6 +252,7 @@ foreach (
 
     $r = new Regexp_Assemble($param);
     $r->add($test);
+    $r->__flags = 'xism';
 
     $args = '(' . join( ') (', $test ) . ')';
     if ( count( $param ) ) {

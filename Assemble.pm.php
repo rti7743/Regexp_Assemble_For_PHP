@@ -155,20 +155,20 @@ function perl_quotemeta($str) {
 }
 
 //@_ をエミュレーション
-function perl_args_()
+function perl_args_($args)
 {
-    $r = array();
-    foreach( func_get_args() as $_ ) {
-         if ( is_array($_) ){
-             foreach($_ as $__){
-                 $r = perl_array($r , $__);
-             }
-         }
-         else {
-             $r = perl_array($r , $_);
-         }
-    }
-    return $r;
+   $arr = array();
+   foreach($args as $_) {
+      if ( is_array($_) ) {
+          foreach($_ as $___) {
+              $arr[] = $___;
+          }
+      }
+      else{
+         $arr[] = $_;
+      }
+   }
+   return $arr;
 }
 
 /*
@@ -1237,14 +1237,14 @@ function _lex($record){
 
 //sub add {
 //    my $self = shift;
-function add(){
+function add($p1){
 //    my $record;
     $record = NULL;
 //    my $debug  = $self->{debug} & DEBUG_LEX;
     $debug       = $this->__debug & $this->DEBUG_LEX;
 
 //    while( defined( $record = shift @_ )) {
-    foreach( func_get_args() as $record ) {
+    foreach( perl_args_(func_get_args()) as $record ) {
 //        CORE::chomp($record) if $self->{chomp};
         $record = rtrim($record);
         
@@ -1365,7 +1365,7 @@ function add_file($filename) {
 //        $rs   = $self->{input_record_separator} || $/;
         $rs   = $this->input_record_separator || '/';
 //        @file = @_;
-        $file = func_get_args();
+        $file = perl_args_(func_get_args());
     }
 //    local $/ = $rs;
 //    my $file;
@@ -1422,23 +1422,13 @@ C<insert> directly can be a big win.
 function insert() {
 //    return if $self->{filter} and not $self->{filter}->(@_);
     if (is_callable($this->__filter)) {
-        $r = $this->__filter( func_get_args() );
+        $r = $this->__filter( perl_args_(func_get_args()) );
         if ($r) return $r;
     }
 //    $self->_insertr( [@_] );
     $arr = array();
-    $args = func_get_args();
-    if ( isset($args[0]) && is_array($args[0]) ) {
-        //引数の最初のパラメータが配列だったら、その配列を
-        foreach($args[0] as $_) {
-            $arr[] = (string)$_;
-        }
-    }
-    else {
-        //そうでなければ引数全体を
-        foreach($args as $_) {
-            $arr[] = (string)$_;
-        }
+    foreach(perl_args_(func_get_args()) as $_) {
+        $arr[] = (string)$_;
     }
     $this->_insertr( $arr );
 //    return $self;
@@ -1675,7 +1665,7 @@ function as_string() {
                 $this->_reduce();
             }
 //            my $arg  = {@_};
-            $arg  = func_get_args();
+            $arg  = perl_args_(func_get_args());
 //            $arg->indent = $self->indent;
 //                if not exists $arg->{indent} and $self->{indent} > 0;
             if ( !isset($arg['indent']) && $this->__indent > 0){
@@ -1835,8 +1825,8 @@ function _build_re($str) {
 //            : qr/$str/
 //        ;
         $this->__re = strlen($this->__flags)
-             ? "/(?{$this->__flags}:{$str})/"
-             : "/{$str}/"
+             ? "(?{$this->__flags}:{$str})"
+             : "{$str}"
              ;
 //    }
     }
@@ -1848,8 +1838,8 @@ function _build_re($str) {
 //            : qr/$str/
 //        ;
         $this->__re = strlen($this->__flags)
-            ? "/(?{$this->__flags}:{$str})/"
-            : "/{$str}/";
+            ? "(?{$this->__flags}:{$str})"
+            : "{$str}";
         ;
 //    }
     }
@@ -1922,7 +1912,7 @@ function match($target) {
     $pregNum = array();
 //    $self->_build_re($self->as_string(@_)) unless defined $self->{re};
     if ($this->__re) {
-        $this->_build_re($this->as_string(func_get_args()));
+        $this->_build_re($this->as_string(perl_args_(func_get_args())));
     }
 //    $self->{m}    = undef;
     $this->__m = NULL;
@@ -2729,7 +2719,7 @@ function flags($p1 = '') {
 //    my $self = shift;
 function modifiers() {
 //    return $self->flags(@_);
-    return $this->__flags( func_get_args() );
+    return $this->__flags( perl_args_(func_get_args()) );
 //}
 }
 /*
@@ -4444,15 +4434,8 @@ function _make_class() {
 //    my %set = map { ($_,1) } @_;
     $set = array();
 
-    foreach( func_get_args() as $_ ) {
-         if ( is_array($_) ){
-             foreach($_ as $__){
-                 $set[$__] = 1;
-             }
-         }
-         else {
-             $set[$_] = 1;
-         }
+    foreach( perl_args_(func_get_args()) as $_ ) {
+        $set[$_] = 1;
     }
 
 //    delete $set{'\\d'} if exists $set{'\\w'};
