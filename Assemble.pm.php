@@ -63,12 +63,9 @@ function perl_sort_resort(array $array) {
          //sub _re_sort {
          function ( $a, $b) {
          //    return length $b <=> length $a || $a cmp $b
-             if (!is_array($a) && !is_array($b)) {
-                 return $a  < $b ? -1 : ($a  > $b ? 1 : 0);
-             }
+             $_temp_len_a = strlen($a);
+             $_temp_len_b = strlen($b);
 
-             $_temp_len_a = count($a);
-             $_temp_len_b = count($b);
              if ( $_temp_len_b > $_temp_len_a ) {
                  return 1;
              }
@@ -78,9 +75,9 @@ function perl_sort_resort(array $array) {
 
              // $a == $b
              return strcmp( 
-                   is_array($a) ? join('|' , $a) : $a 
+                   $a 
                    ,
-                   is_array($b) ? join('|' , $b) : $b 
+                   $b 
              );
          //}
          }
@@ -255,7 +252,6 @@ var $DEBUG_TIME = 8;
 var $Default_Lexer = '(?![[(\\\\]).(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\\\\(?:[bABCEGLQUXZ]|[lu].|(?:[^\w]|[aefnrtdDwWsS]|c.|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}})|N\{\w+\}|[Pp](?:\{\w+\}|.))(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?)|\[.*?(?<!\\\\)\](?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\(.*?(?<!\\\\)\)(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?'; //# ]) restore equilibrium
 
 //$Single_Char   = qr/^(?:\\(?:[aefnrtdDwWsS]|c.|[^\w\/{|}-]|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}}))|[^\$^])$/;
-//var $Single_Char   = '(?:\\(?:[aefnrtdDwWsS]|c.|[^\w\/{|}-]|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}}))|[^\$^])';
 var $Single_Char   = '(?:\\\\(?:[aefnrtdDwWsS]|c.|[^\w\/{|}-]|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}}))|[^\$^])';
 
 //# the pattern to return when nothing has been added (and thus not match anything)
@@ -524,7 +520,7 @@ function __construct($args = array() ) {
         $this->__lex = $args['lex'];
     }
     else {
-        $this->__lex = $this->Current_Lexer;
+        $this->__lex = NULL;
     }
 
 //今はディフォルトでデバッグ状態にする.
@@ -672,6 +668,7 @@ function _fastlex($record){
 
 //    my $debug       = $self->{debug} & DEBUG_LEX;
     $debug       = $this->__debug & $this->DEBUG_LEX;
+
 //    my $unroll_plus = $self->{unroll_plus};
     $unroll_plus = $this->__unroll_plus;
 
@@ -681,15 +678,18 @@ function _fastlex($record){
     $qualifier = NULL;
 
 //    $debug and print "# _lex <$record>\n";
-    if ( $debug ) { echo "# _lex <$record>\n"; } 
+    if ( $debug ) { echo "# _fastlex <$record>\n"; } 
 
 //    my $modifier        = q{(?:[*+?]\\??|\\{(?:\\d+(?:,\d*)?|,\d+)\\}\\??)?};
-    $modifier        = '(?:[*+?]\\??|\\{(?:\\d+(?:,\d*)?|,\d+)\\}\\??)?';
+//    $modifier        = '(?:[*+?]\\??|\\{(?:\\d+(?:,\d*)?|,\d+)\\}\\??)?';
+    $modifier        = '(?:[*+?]\\\\??|\\\\{(?:\\\\d+(?:,\d*)?|,\d+)\\\\}\\\\??)?';
 //    my $class_matcher   = qr/\[(?:\[:[a-z]+:\]|\\?.)*?\]/;
-    $class_matcher   = "\[(?:\[:[a-z]+:\]|\\?.)*?\]";
+//    $class_matcher   = "\[(?:\[:[a-z]+:\]|\\?.)*?\]";
+    $class_matcher   = "\[(?:\[:[a-z]+:\]|\\\\?.)*?\]";
 //    my $paren_matcher   = qr/\(.*?(?<!\\)\)$modifier/;
     $paren_matcher   = '\(.*?(?<!\\\\)\)'.$modifier;
 //    my $misc_matcher    = qr/(?:(c)(.)|(0)(\d{2}))($modifier)/;
+//    $misc_matcher    = '(?:(c)(.)|(0)(\d{2}))('.$modifier.')';
     $misc_matcher    = '(?:(c)(.)|(0)(\d{2}))('.$modifier.')';
 //    my $regular_matcher = qr/([^\\[(])($modifier)/;
     $regular_matcher = '([^\\\\[(])('.$modifier.')';
@@ -741,13 +741,13 @@ function _fastlex($record){
 //                $token = quotemeta($token);
                 $token = quotemeta($token);
 //                $token =~ s/^\\([^\w$()*+.?@\[\\\]^|{}\/])$/$1/;
-                $token = preg_replace('/^\\\\([^\w$()*+.?@\[\\\]^|{}\/])$/u' , "\${1}" , $token);
+                $token = preg_replace('/^\\\\([^\w$()*+.?@\[\\\\\]^|{}\/])$/u' , "\${1}" , $token);
 //            }
             }
 //            else {
             else {
 //                $token =~ s{\A([][{}*+?@\\/])\Z}{\\$1};
-                  $token = preg_replace('#\A([][{}*+?@\\/])\Z#u' , '\\\${1}' , $token);
+                  $token = preg_replace('#\A([][{}*+?@\\\\/])\Z#u' , '\\\\\${1}' , $token);
 //            }
             }
 
@@ -838,7 +838,7 @@ function _fastlex($record){
                 if ($debug){    echo "#  cooked <$token>\n";    }
 
 //                $token =~ s/^\\([^\w$()*+.?\[\\\]^|{\/])$/$1/; # } balance
-                $token = preg_replace("/^\\\\([^\w$()*+.?\[\\\]^|{\/])$/u","222\${1}", $token);    // } balance
+                $token = preg_replace("/^\\\\([^\w$()*+.?\[\\\\\]^|{\/])$/u","\${1}", $token);    // } balance
 
 //                $debug and print "#   giving <$token>\n";
                 if ($debug){    echo "#   giving <$token>\n";    }
@@ -952,7 +952,7 @@ function _fastlex($record){
 //                $token = $1;
                 $token = $pregNum[1];
 //                $token =~ s{[AZabefnrtz\[\]{}()\\\$*+.?@|/^]}{\\$token};
-                $token = preg_replace("#[AZabefnrtz\[\]{}()\\\$*+.?@|/^]#u","\\$token",$token);
+                $token = preg_replace('#[AZabefnrtz\[\]{}()\\\\\$*+.?@|/^]#u',"\\\\$token",$token);
 //                $debug and print "#   meta <$token>\n";
                 if ($debug){    echo "#   meta <$token>\n";    }
 //                push @path, $token;
@@ -983,11 +983,11 @@ function _fastlex($record){
             if ($debug){    echo "#  class begin <$class> <$qualifier>\n";    }
 
 //            if ($class =~ /\A\[\\?(.)]\Z/) {
-            if (preg_match("/\A\[\\?(.)]\Z/u" , $class , $pregNum ) ){
+            if (preg_match("/\A\[\\\\?(.)]\Z/u" , $class , $pregNum ) ){
 //                $class = quotemeta $1;
                 $class = perl_quotemeta($pregNum[1]);
 //                $class =~ s{\A\\([!@%])\Z}{$1};
-                $class = preg_replace("#\A\\([!@%])\Z#u","\${1}",$class);
+                $class = preg_replace("#\A\\\\([!@%])\Z#u","\${1}",$class);
 //                $debug and print "#  class unwrap $class\n";
                 if ($debug){    echo "#  class unwrap $class\n";    }
 //            }
@@ -997,8 +997,8 @@ function _fastlex($record){
 //            push @path, ($unroll_plus and $qualifier =~ s/\A\+(\?)?\Z/*/)
 //                ? ($class, "$class$qualifier" . (defined $1 ? $1 : ''))
 //                : "$class$qualifier";
-            if ($unroll_plus && preg_match("/^\\A\+(\\?)?\\Z/u",$qualifier,$pregNum)){
-                $qualifier = preg_replace("/^\\A\+(\\?)?\\Z/u","/*/",$qualifier);
+            if ($unroll_plus && preg_match("/^\A\+(\?)?\Z/u",$qualifier,$pregNum)){
+                $qualifier = preg_replace("/^\A\+(\?)?\Z/u","/*/",$qualifier);
                 $path[] = perl_array($class , "$class$qualifier". (isset($pregNum[1]) ? $pregNum[1]  : ''));
             }
             else{
@@ -1020,6 +1020,9 @@ function _fastlex($record){
 //            redo;
              continue;
 //        }
+        }
+        else {
+             if ($debug){    echo "#  match end. <{$stripRecord}>\n";    }
         }
 
 //     }
@@ -1046,7 +1049,7 @@ function _lex($record){
 //        : defined $Current_Lexer ? $Current_Lexer
 //        : $Default_Lexer;
 
-    $re   = isset($this->__lex) ? $this->__lex : 
+    $re   = $this->__lex != NULL ? $this->__lex : 
           (isset($this->Current_Lexer) ? $this->Current_Lexer : $this->Default_Lexer);
 
 //    my $debug  = $self->{debug} & DEBUG_LEX;
@@ -1102,7 +1105,7 @@ function _lex($record){
 //                            : defined $Current_Lexer ? $Current_Lexer
 //                            : $Default_Lexer;
                         if ($qm) {
-                             $re = isset($this->__lex) ? $this->__lex : $this->Default_Lexer;
+                             $re = $this->__lex != NULL ? $this->__lex : $this->Default_Lexer;
                         }
 //                        $case = $qm = '';
                         $case = ''; $qm = '';
@@ -1263,9 +1266,10 @@ function add($p1){
 //            ? $self->{lex} ? $self->_lex($record) : $self->_fastlex($record)
 //            : [split //, $record]
 //        ;
+
           $list = 
               preg_match("/[+*?(\\\\\[{]/u" ,$record ) ? //# }]) restore equilibrium
-              ($this->__lex ? $this->_lex($record) : $this->_fastlex($record) )
+              ($this->__lex != NULL ? $this->_lex($record) : $this->_fastlex($record) )
               : preg_split("//u" ,$record , -1 , PREG_SPLIT_NO_EMPTY);
 
 //        next if $self->{filter} and not $self->{filter}->(@$list);
@@ -4517,7 +4521,7 @@ function _make_class() {
     $class = join('' , perl_sort(array_keys($set)) );
 //    $class =~ s/0123456789/\\d/ and $class eq '\\d' and return $class;
     if ( preg_match('/0123456789/u',$class) ) {
-        $class = preg_replace('/0123456789/u' , '\\d' , $class);
+        $class = preg_replace('/0123456789/u' , '\\\\d' , $class);
         if ($class == '\\d') {
            return $class;
         }
@@ -4721,7 +4725,6 @@ function _re_path(array $p1) {
         return join( '', $p1 );
     }
 */
-echo "p1:" . $this->_dump($p1) . "\n";
     if ( ! count( perl_grep( function($_){ return is_array($_); } , $p1) )  ) {
         return join( '', $p1 );
     }
@@ -4747,7 +4750,6 @@ echo "p1:" . $this->_dump($p1) . "\n";
 
     $_temp_join_array = array();
     foreach( $p1 as $_) {
-echo "_:" . $this->_dump($_) . "\n";
         if ( is_array($_) ) {
             $p = $_;
             if ( isset($p['']) ) {
