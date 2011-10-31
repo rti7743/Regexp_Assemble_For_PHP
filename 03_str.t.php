@@ -5,11 +5,12 @@ require_once("testutil.php");
 $rt = new Regexp_Assemble();
 $context = [ 'debug' => 255, 'depth' => 0 ];
 
+
 $xism = 'xism:';
 
 foreach (
 [
-    [ "(?{$xism}d(?:[ln]dr?t|x))",  'dldrt', 'dndrt', 'dldt', 'dndt', 'dx' ],
+    [ "(?{$xism}(?:(?:ab?|b)c?)?d)",   'abcd', 'abd', 'acd', 'ad', 'bcd', 'bd', 'd' ],
 ] as $test) {
     $result = array_shift( $test );
 
@@ -181,7 +182,7 @@ foreach (
     [ "(?{$xism}d(?:[ln]dr?t|x))",  'dldrt', 'dndrt', 'dldt', 'dndt', 'dx' ],
     [ "(?{$xism}d(?:[ln][dp]t|x))", 'dldt', 'dndt', 'dlpt', 'dnpt', 'dx' ],
     [ "(?{$xism}d(?:[ln][dp][mr]t|x))", 'dldrt', 'dndrt', 'dldmt', 'dndmt', 'dlprt', 'dnprt', 'dlpmt', 'dnpmt', 'dx' ],
-    [ "(?{$xism}'.'(?:\(scan|\*mens|\[mail))", '\\*mens', '\\(scan', '\\[mail'],
+    [ "(?{$xism}"."(?:\(scan|\*mens|\[mail))", '\\*mens', '\\(scan', '\\[mail'],
     [ "(?{$xism}a\\[b\\[c)", '\\Qa[b[c' ],
     [ "(?{$xism}a\\]b\\]c)", '\\Qa]b]c' ],
     [ "(?{$xism}a\\(b\\(c)", '\\Qa(b(c' ],
