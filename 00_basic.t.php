@@ -89,9 +89,9 @@ $rt = new Regexp_Assemble();
 //    'default lexer is something' );
 
 /*
-is( ref( $rt->path ), 'ARRAY', '_path() isa ARRAY' );
+is( ref( $rt->__path ), 'ARRAY', '_path() isa ARRAY' );
 
-is( scalar @{$rt->path}, 0, '_path() is empty' );
+is( scalar @{$rt->__path}, 0, '_path() is empty' );
 
 {
     my $r = $r( chomp => 1 );
@@ -384,7 +384,7 @@ is( $stub->_make_class( '\\.', '\\+' ),
 );
 
 //$stub->fold_meta_pairs(0);
-$stub->fold_meta_pairs = 0;
+$stub->__fold_meta_pairs = 0;
 
 is( $stub->_make_class( '\\d', '\\D' ),
     '[\\D\\d]', '_make_class \\d \\D no fold meta pairs'
@@ -398,7 +398,7 @@ is( $stub->_make_class( '\\w', '\\W' ),
     '[\\W\\w]', '_make_class \\w \\W no fold meta pairs'
 );
 
-$stub->fold_meta_pairs = 1;
+$stub->__fold_meta_pairs = 1;
 
 is( $stub->_make_class( '\\s', '\\S' ),
     '.', '_make_class \\s \\S implicit fold_meta_pairs'
@@ -739,35 +739,35 @@ lcmp( '\\|{2,4}?', __LINE__ );
     is_deeply( $r->_lex( $str ), [ 'f', 'G', 'H', ' ' ], "_lex $str" );
 
     $str = 'a\\Q+x*\\Eb+';
-    is_deeply( $r->reset()->add( $str )->path,
+    is_deeply( $r->reset()->add( $str )->__path,
         [ 'a', '\\+', 'x', '\\*', 'b+' ], "add $str" );
 
     $str = 'a\\Q+x*b+';
-    is_deeply( $r->reset()->add( $str )->path,
+    is_deeply( $r->reset()->add( $str )->__path,
         [ 'a', '\\+', 'x', '\\*', 'b', '\\+' ], "add $str" );
 
     $str = 'X\\LK+L{2,4}M\\EY';
-    is_deeply( $r->reset()->add( $str )->path,
+    is_deeply( $r->reset()->add( $str )->__path,
         [ 'X', 'k+', 'l{2,4}', 'm', 'Y' ], "add $str" ) ;
 
     $str = 'p\\Q\\L\\Eq';
-    is_deeply( $r->reset()->add( $str )->path,
+    is_deeply( $r->reset()->add( $str )->__path,
         [ 'p', 'q' ], "add $str" );
 
     $str = 'q\\U\\Qh{7,9}\\Ew';
-    is_deeply( $r->reset()->add( $str )->path,
+    is_deeply( $r->reset()->add( $str )->__path,
         [ 'q', 'H', '\{', '7', ',', '9', '\}', 'w' ], "add $str" );
 
     $str = 'a\\Ubc\\ldef\\Eg';
-    is_deeply( $r->reset()->add( $str )->path,
+    is_deeply( $r->reset()->add( $str )->__path,
         [ 'a', 'B', 'C', 'd', 'E', 'F', 'g' ], "add $str" );
 
     $str = 'a\\LBL+\\uxy\\QZ+';
-    is_deeply( $r->reset()->add( $str )->path,
+    is_deeply( $r->reset()->add( $str )->__path,
         [ 'a', 'b', 'l+', 'X', 'y', 'z', '\+' ], "add $str" );
 
     $str = '\Q^a[b[';
-    is_deeply( $r->reset()->add( $str )->path,
+    is_deeply( $r->reset()->add( $str )->__path,
         [ '\\^', 'a', '\\[', 'b', '\\[' ], "add $str" );
 //}
 //{
@@ -808,7 +808,7 @@ lcmp( '\\|{2,4}?', __LINE__ );
         '_path_copy(ab cd ef {* a})' );
 //}
 
-is_deeply( $rt->path, [], 'path is empty' );
+is_deeply( $rt->__path, [], 'path is empty' );
 $context = [ 'debug' => 0, 'depth' => 0 ];
 
 is_deeply( $rt->_unrev_path(
@@ -880,7 +880,7 @@ is_deeply( $rt->_unrev_path(
     $ra->_reduce();
 
     ok( eq_set(
-        [ array_keys( $rt->_lookahead($ra->path[0]) ) ],
+        [ array_keys( $rt->_lookahead($ra->__path[0]) ) ],
         ['f', 'r']),
         '_lookahead refused/fused/used'
     );
@@ -894,7 +894,7 @@ is_deeply( $rt->_unrev_path(
         ->_reduce();
 
     ok( eq_set(
-        [ array_keys( $rt->_lookahead($ra->path[0]) ) ],
+        [ array_keys( $rt->_lookahead($ra->__path[0]) ) ],
         ['a', 'f', 'r']),
         '_lookahead reamused/refused/amused/fused/used'
     );
@@ -905,7 +905,7 @@ is_deeply( $rt->_unrev_path(
         ->_reduce();
 
     ok( eq_set(
-        [ array_keys( $rt->_lookahead($ra->path[0]) ) ],
+        [ array_keys( $rt->_lookahead($ra->__path[0]) ) ],
         ['r']),
         '_lookahead reran/ran'
     );
@@ -919,7 +919,7 @@ is_deeply( $rt->_unrev_path(
         ->_reduce();
 
     ok( eq_set(
-        [ array_keys( $rt->_lookahead($ra->path[0]) ) ],
+        [ array_keys( $rt->_lookahead($ra->__path[0]) ) ],
         ['b', 'c', 'g', 'h', 'u']),
         '_lookahead cruised/bruised/hosed/gazed/used'
     );

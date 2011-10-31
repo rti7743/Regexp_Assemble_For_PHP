@@ -1,4 +1,5 @@
 <?php
+
 /*
 perl の regexp::Assemble を PHP に移植しています。
 まだまだ移植中です。動きません。
@@ -24,31 +25,6 @@ php5.2はアクティブサポートが終了しているようだし、まぁ�
 
 移植した人 rti  (super.rti@gmail.com)  (@super_rti) ( http://rtilabs.net/ )
 */
-
-//sub _re_sort {
-function _re_sort( $a, $b) {
-//    return length $b <=> length $a || $a cmp $b
-    if (!is_array($a) && !is_array($b)) {
-        return $a  < $b ? -1 : ($a  > $b ? 1 : 0);
-    }
-
-    $_temp_len_a = count($a);
-    $_temp_len_b = count($b);
-    if ( $_temp_len_b > $_temp_len_a ) {
-        return 1;
-    }
-    else if ( $_temp_len_b < $_temp_len_a ) {
-        return -1;
-    }
-
-    // $a == $b
-    return strcmp( 
-          is_array($a) ? join('|' , $a) : $a 
-          ,
-          is_array($b) ? join('|' , $b) : $b 
-    );
-//}
-}
 
 //最後の添字を取得する.
 function perl_lastindex(array $array)
@@ -81,6 +57,37 @@ function perl_sort($function , $array = NULL)
     }
 }
 
+//resort でソートする. 
+function perl_sort_resort(array $array) {
+   usort($array , 
+         //sub _re_sort {
+         function ( $a, $b) {
+         //    return length $b <=> length $a || $a cmp $b
+             if (!is_array($a) && !is_array($b)) {
+                 return $a  < $b ? -1 : ($a  > $b ? 1 : 0);
+             }
+
+             $_temp_len_a = count($a);
+             $_temp_len_b = count($b);
+             if ( $_temp_len_b > $_temp_len_a ) {
+                 return 1;
+             }
+             else if ( $_temp_len_b < $_temp_len_a ) {
+                 return -1;
+             }
+
+             // $a == $b
+             return strcmp( 
+                   is_array($a) ? join('|' , $a) : $a 
+                   ,
+                   is_array($b) ? join('|' , $b) : $b 
+             );
+         //}
+         }
+   );
+   return $array;
+}
+
 //perl の配列/Array定義のエミュレーション.
 function perl_array($a,$b,$c = NULL){
     if ( is_array($a) ) {
@@ -110,26 +117,8 @@ function perl_array($a,$b,$c = NULL){
 }
 
 //perlの配列の [$a , @b]  などをエミュレート
-function perl_array2($a,$b,$c = NULL){
-    $r = array( $a );
-
-    if ( is_array($b) ) {
-        $r = array_merge($r,$b);
-    }
-    else {
-        $r[] = $b;
-    }
-
-    if ( $c !== NULL ) {
-        if ( is_array($c) ) {
-            $r = array_merge($r,$c);
-        }
-        else {
-            $r[] = $c;
-        }
-    }
-
-    return $r;
+function perl_array2($a,array $b,$c = NULL){
+    return perl_array(array($a),$b,$c);
 }
             
 function perl_reverse($p) {
@@ -165,6 +154,23 @@ function perl_quotemeta($str) {
    return $str;
 }
 
+//@_ をエミュレーション
+function perl_args_()
+{
+    $r = array();
+    foreach( func_get_args() as $_ ) {
+         if ( is_array($_) ){
+             foreach($_ as $__){
+                 $r = perl_array($r , $__);
+             }
+         }
+         else {
+             $r = perl_array($r , $_);
+         }
+    }
+    return $r;
+}
+
 /*
 # Regexp::Assemple.pm
 #
@@ -174,29 +180,7 @@ function perl_quotemeta($str) {
 //package Regexp::Assemble;
 class Regexp_Assemble{
 
-var $path = array();
-var $debug = 255;
-var $indent = 0;
-var $lex = 0;
-
-var $track = 0;
-var $mutable = 0;
-var $reduce = 1;
-var $lookahead = 0;
-var $unroll_plus = 0;
-var $anchor_word_begin = 0;
-var $anchor_line_begin = 0;
-var $anchor_string_begin = 0;
-var $anchor_word_end = 0;
-var $anchor_line_end = 0;
-var $anchor_string_end = 0;
-var $anchor_string_end_absolute = 0;
-var $flags = '';
-var $fold_meta_pairs = 1;
-var $dup_warn = 0;
-var $chomp = 1;
-var $filter = NULL;
-
+//定数
 //use vars qw/$VERSION $have_Storable $Current_Lexer $Default_Lexer $Single_Char $Always_Fail/;
 //$VERSION = '0.35';
 var $VERSION = '0.35';
@@ -277,7 +261,40 @@ var $Single_Char   = '(?:\\\\(?:[aefnrtdDwWsS]|c.|[^\w\/{|}-]|0\d{2}|x(?:[\da-fA
 //# the pattern to return when nothing has been added (and thus not match anything)
 //$Always_Fail = "^\\b\0";
 var $Always_Fail = '^\\\\b\0';
+var $__Current_Lexer;
 
+
+//変数
+var $__path;
+var $__lex ;
+var $__debug;
+
+var $__indent;
+var $__track;
+var $__mutable;
+var $__reduce;
+var $__lookahead;
+var $__unroll_plus;
+var $__anchor_word_begin;
+var $__anchor_line_begin;
+var $__anchor_string_begin;
+var $__anchor_word_end;
+var $__anchor_line_end;
+var $__anchor_string_end;
+var $__anchor_string_end_absolute;
+var $__flags;
+var $__fold_meta_pairs;
+var $__dup_warn ;
+var $__chomp ;
+var $__filter ;
+var $__pre_filter ;
+
+var $__m;
+var $__mcount;
+var $__mlist;
+
+var $__re;
+var $__str;
 /*
 =head1 METHODS
 
@@ -388,9 +405,8 @@ A more detailed explanation of these attributes follows.
 //sub new {
 //    my $class = shift;
 //    my %args  = @_;
-function __constructor($args) {
+function __construct($args = array() ) {
 //    my $anc;
-    $anc = 0;
 //    for $anc (qw(word line string)) {
     foreach( array("word","line","string") as $anc){
 //        if (exists $args{"anchor_$anc"}) {
@@ -399,7 +415,7 @@ function __constructor($args) {
             $val = $args["anchor_$anc"];
             unset($args["anchor_$anc"]);
 //            for my $anchor ("anchor_${anc}_begin", "anchor_${anc}_end") {
-              foreach(array("anchor_${anc}_begin", "anchor_${anc}_end") as $anchor){
+              foreach(array("anchor_{$anc}_begin", "anchor_{$anc}_end") as $anchor){
 //                $args{$anchor} = $val unless exists $args{$anchor};
                   if (!isset($args[$anchor])) $args[$anchor] = $val;
 //            }
@@ -424,72 +440,95 @@ function __constructor($args) {
 //   }
     }
 
-/*
-    exists $args{$_} or $args{$_} = 0 for qw(
-        anchor_word_begin
-        anchor_word_end
-        anchor_line_begin
-        anchor_line_end
-        anchor_string_begin
-        anchor_string_end
-        anchor_string_end_absolute
-        debug
-        dup_warn
-        indent
-        lookahead
-        mutable
-        track
-        unroll_plus
-    );
-*/
-    foreach( array(   'anchor_word_begin'
-                     ,'anchor_word_end'
-                     ,'anchor_line_begin'
-                     ,'anchor_line_end'
-                     ,'anchor_string_begin'
-                     ,'anchor_string_end'
-                     ,'anchor_string_end_absolute'
-                     ,'debug'
-                     ,'dup_warn'
-                     ,'indent'
-                     ,'lookahead'
-                     ,'mutable'
-                     ,'track'
-                     ,'unroll_plus'
-                     ) as $_){
-         if ( !isset($args[$_]) )  $args[$_] = 0;
+//    exists $args{$_} or $args{$_} = 0 for qw(
+//        anchor_word_begin
+//        anchor_word_end
+//        anchor_line_begin
+//        anchor_line_end
+//        anchor_string_begin
+//        anchor_string_end
+//        anchor_string_end_absolute
+//        debug
+//        dup_warn
+//        indent
+//        lookahead
+//        mutable
+//        track
+//        unroll_plus
+//    );
+    foreach( array(
+         'anchor_word_begin'
+        ,'anchor_word_end'
+        ,'anchor_line_begin'
+        ,'anchor_line_end'
+        ,'anchor_string_begin'
+        ,'anchor_string_end'
+        ,'anchor_string_end_absolute'
+        ,'debug'
+        ,'dup_warn'
+        ,'indent'
+        ,'lookahead'
+        ,'mutable'
+        ,'track'
+        ,'unroll_plus'
+        ,'debug'   //追加.
+             ) as $_
+    ){
+         $this->{"__{$_}"} = isset($args[$_]) ? $args[$_] : 0;
     }
 
-/*
-    exists $args{$_} or $args{$_} = 1 for qw(
-        fold_meta_pairs
-        reduce
-        chomp
-    );
-*/
-    foreach( array(     'fold_meta_pairs'
-          ,'reduce'
-          ,'chomp'
-          )
-        as $_)
-    {
-        if ( !isset($args[$_]) ) $args[$_] = 1;
+
+//    exists $args{$_} or $args{$_} = 1 for qw(
+//        fold_meta_pairs
+//        reduce
+//        chomp
+//    );
+    foreach( array(
+         'fold_meta_pairs'
+        ,'reduce'
+        ,'chomp'
+             ) as $_
+    ){
+         $this->{"__{$_}"} = isset($args[$_]) ? $args[$_] : 1;
     }
 
 //    @args{qw(re str path)} = (undef, undef, []);
-    $args['re'] = NULL;
-    $args['str'] = NULL;
-    $args['path'] = array();
+    $this->__re = NULL;
+    $this->__str = NULL;
+    $this->__path = array();
+
+    //追加でコイツラも初期化する.
+    $this->__filter = NULL;
+    $this->__pre_filter = NULL;
+
+    //未初期化があると嫌なんで・・
+    $this->__m      = NULL;
+    $this->__mcount = 0;
+    $this->__mlist  = array();
 
 //    $args{flags} ||= delete $args{modifiers} || '';
-    if (!isset($args['flags'])){
-        unset($args['modifiers']);
-        $args['flags'] = '';
+    if (isset($args['modifiers'])) {
+        $this->__flags = $args['modifiers'];
     }
+    else if (isset($args['flags'])) {
+        $this->__flags = $args['flags'];
+    }
+    else {
+        $this->__flags = '';
+    }
+
+    //これ追加. 
+    $this->Current_Lexer = $this->Default_Lexer;
 //    $args{lex}     = $Current_Lexer if defined $Current_Lexer;
-    if ( isset($this->Current_Lexer) ){
-        $args['lex']     = $this->Current_Lexer;
+    if (isset($args['lex'])) {
+        $this->__lex = $args['lex'];
     }
+    else {
+        $this->__lex = $this->Current_Lexer;
+    }
+
+//今はディフォルトでデバッグ状態にする.
+$this->__debug = 255;
 
 //    my $self = bless \%args, $class;    //class
 
@@ -502,15 +541,18 @@ function __constructor($args) {
 
 //    $self->{input_record_separator} = delete $self->{rs}
 //        if exists $self->{rs};
-    if ( isset($this->rs) ){
-        $this->input_record_separator = $this->rs;
-        unset($this->rs);
+    if ( isset($args['re']) ){
+        $this->__input_record_separator = $this->rs;
     }
 
 //    exists $self->{file} and $self->add_file($self->{file});
-    if (isset($this->file)){
-        $this->add_file($this->file);
+    if (isset($args['file'])){
+        $this->add_file($args['file']);
     }
+
+
+
+
 //    return $self;
 }
 
@@ -629,9 +671,9 @@ function _fastlex($record){
     $qm = '';
 
 //    my $debug       = $self->{debug} & DEBUG_LEX;
-    $debug       = $this->debug & $this->DEBUG_LEX;
+    $debug       = $this->__debug & $this->DEBUG_LEX;
 //    my $unroll_plus = $self->{unroll_plus};
-    $unroll_plus = $this->unroll_plus;
+    $unroll_plus = $this->__unroll_plus;
 
 //    my $token;
     $token = NULL;
@@ -1004,14 +1046,11 @@ function _lex($record){
 //        : defined $Current_Lexer ? $Current_Lexer
 //        : $Default_Lexer;
 
-///とりあえず
-    $this->lex = $this->Default_Lexer;
-
-    $re   = isset($this->lex) ? $this->lex : 
+    $re   = isset($this->__lex) ? $this->__lex : 
           (isset($this->Current_Lexer) ? $this->Current_Lexer : $this->Default_Lexer);
 
 //    my $debug  = $self->{debug} & DEBUG_LEX;
-    $debug       = $this->debug & $this->DEBUG_LEX;
+    $debug       = $this->__debug & $this->DEBUG_LEX;
 
 //    $debug and print "# _lex <$record>\n";
     if ($debug){    echo "# _lex <$record>\n";    }
@@ -1063,7 +1102,7 @@ function _lex($record){
 //                            : defined $Current_Lexer ? $Current_Lexer
 //                            : $Default_Lexer;
                         if ($qm) {
-                             $re = isset($this->lex) ? $this->lex : $this->Default_Lexer;
+                             $re = isset($this->__lex) ? $this->__lex : $this->Default_Lexer;
                         }
 //                        $case = $qm = '';
                         $case = ''; $qm = '';
@@ -1202,7 +1241,7 @@ function add(){
 //    my $record;
     $record = NULL;
 //    my $debug  = $self->{debug} & DEBUG_LEX;
-    $debug       = $this->debug & $this->DEBUG_LEX;
+    $debug       = $this->__debug & $this->DEBUG_LEX;
 
 //    while( defined( $record = shift @_ )) {
     foreach( func_get_args() as $record ) {
@@ -1210,7 +1249,7 @@ function add(){
         $record = rtrim($record);
         
 //        next if $self->{pre_filter} and not $self->{pre_filter}->($record);
-        if ( isset($this->pre_filter) && ! $this->pre_filter($record) ) {
+        if ( is_callable($this->__pre_filter) && ! $this->__pre_filter($record) ) {
             continue;
         }
 
@@ -1226,11 +1265,11 @@ function add(){
 //        ;
           $list = 
               preg_match("/[+*?(\\\\\[{]/u" ,$record ) ? //# }]) restore equilibrium
-              ($this->lex ? $this->_lex($record) : $this->_fastlex($record) )
+              ($this->__lex ? $this->_lex($record) : $this->_fastlex($record) )
               : preg_split("//u" ,$record , -1 , PREG_SPLIT_NO_EMPTY);
 
 //        next if $self->{filter} and not $self->{filter}->(@$list);
-          if ( isset($this->filter) && ! $this->filter($list) ) {
+          if ( is_callable($this->__filter) && ! $this->__filter($list) ) {
               continue;
           }
 
@@ -1382,8 +1421,8 @@ C<insert> directly can be a big win.
 //    my $self = shift;
 function insert() {
 //    return if $self->{filter} and not $self->{filter}->(@_);
-    if (is_callable($this->filter)) {
-        $r = $this->filter( func_get_args() );
+    if (is_callable($this->__filter)) {
+        $r = $this->__filter( func_get_args() );
         if ($r) return $r;
     }
 //    $self->_insertr( [@_] );
@@ -1413,10 +1452,10 @@ function _insertr(array $p1) {
 //    my $dup    = $self->{stats_dup} || 0;
     $dup    = isset($this->stats_dup) ? $this->stats_dup : 0;
 
-   if ($this->debug & $this->DEBUG_ADD) { echo "# _insertr p1:".$this->_dump($p1)."\n"; }
+   if ($this->__debug & $this->DEBUG_ADD) { echo "# _insertr p1:".$this->_dump($p1)."\n"; }
 
 //    $self->{path} = $self->_insert_path( $self->_path, $self->_debug(DEBUG_ADD), $_[0] );
-    $this->path = $this->_insert_path( $this->path, ($this->debug & $this->DEBUG_ADD), $p1 );
+    $this->__path = $this->_insert_path( $this->__path, ($this->__debug & $this->DEBUG_ADD), $p1 );
 
 //    if( not defined $self->{stats_dup} or $dup == $self->{stats_dup} ) {
     if ( !isset($this->stats_dup) || $dup == $this->stats_dup ) {
@@ -1430,9 +1469,9 @@ function _insertr(array $p1) {
 //    }
     }
 //    elsif( $self->{dup_warn} ) {
-    else if( $this->dup_warn ) {
+    else if( $this->__dup_warn ) {
 //        if( ref $self->{dup_warn} eq 'CODE' ) {
-        if ( iscallabe( $this->dup_warn ) ) {
+        if ( iscallabe( $this->__dup_warn ) ) {
 //            $self->{dup_warn}->($self, $_[0]); 
             $this->dup_warn($p1); 
 //        }
@@ -1447,8 +1486,8 @@ function _insertr(array $p1) {
         }
     }
 //    $self->{str} = $self->{re} = undef;
-    $this->str = NULL;
-    $this->re = NULL;
+    $this->__str = NULL;
+    $this->__re = NULL;
 //}
 }
 
@@ -1520,7 +1559,7 @@ function pre_filter($pre_filter = NULL) {
 //    }
     }
 //    $self->{pre_filter} = $pre_filter;
-    $this->pre_filter = $pre_filter;
+    $this->__pre_filter = $pre_filter;
 //    return $self;
     return $this;
 //}
@@ -1571,7 +1610,7 @@ function filter($filter = NULL) {
 //    }
     }
 //    $self->{filter} = $filter;
-    $this->filter = $filter;
+    $this->__filter = $filter;
 //    return $self;
     return $this;
 //}
@@ -1616,59 +1655,59 @@ clone the object and reduce the clone, leaving the original object intact.
 function as_string() {
 //    if( not defined $self->{str} ) {
 
-    if ( !$this->str ) {
+    if ( !$this->__str ) {
 //        if( $self->{track} ) {
-        if ( $this->track ) {
+        if ( $this->__track ) {
 //            $self->{m}      = undef;
-            $this->m      = NULL;
+            $this->__m      = NULL;
 //            $self->{mcount} = 0;
-            $this->mcount = 0;
+            $this->__mcount = 0;
 //            $self->{mlist}  = [];
-            $this->mlist  = array();
+            $this->__mlist  = array();
 //            $self->{str}    = _re_path_track($self, $self->_path, '', '');
-            $this->str    = $this->_re_path_track($this->path, '', '');
+            $this->__str    = $this->_re_path_track($this->__path, '', '');
 //        }
         }
 //        else {
         else {
 //            $self->_reduce unless ($self->{mutable} or not $self->{reduce});
-            if (! ($this->mutable || !$this->reduce) ) {
+            if (! ($this->__mutable || !$this->__reduce) ) {
                 $this->_reduce();
             }
 //            my $arg  = {@_};
             $arg  = func_get_args();
 //            $arg->indent = $self->indent;
 //                if not exists $arg->{indent} and $self->{indent} > 0;
-            if ( !isset($arg['indent']) && $this->indent > 0){
-                $arg['indent'] = $this->indent;
+            if ( !isset($arg['indent']) && $this->__indent > 0){
+                $arg['indent'] = $this->__indent;
             }
 //            if( exists $arg->{indent} and $arg->{indent} > 0 ) {
             if( isset($arg['indent']) &&  $arg['indent'] && $arg['indent'] > 0 ) {
 //                $arg->{depth} = 0;
                 $arg['depth'] = 0;
 //                $self->{str}  = _re_path_pretty($self, $self->_path, $arg);
-                $this->str  = $this->_re_path_pretty($this->path, $arg);
+                $this->__str  = $this->_re_path_pretty($this->__path, $arg);
 //            }
             }
 //            elsif( $self->{lookahead} ) {
-            else if( $this->lookahead ) {
+            else if( $this->__lookahead ) {
 //                $self->{str}  = _re_path_lookahead($self, $self->_path);
-                $this->str  = $this->_re_path_lookahead($this->path);
+                $this->__str  = $this->_re_path_lookahead($this->__path);
 //            }
             }
 //            else {
             else {
 //                $self->{str}  = _re_path($self, $self->_path);
-                $this->str  = $this->_re_path($this->path);
+                $this->__str  = $this->_re_path($this->__path);
 //            }
             }
 //        }
         }
 //        if (not length $self->{str}) {
-        if (! strlen($this->str) ) {
+        if (! strlen($this->__str) ) {
 //            # explicitly fail to match anything if no pattern was generated
 //            $self->{str} = $Always_Fail;
-            $this->str = $this->Always_Fail;
+            $this->__str = $this->Always_Fail;
 //        }
         }
 //        else {
@@ -1680,9 +1719,9 @@ function as_string() {
 //                : ''
 //            ;
             $begin = 
-                  $this->anchor_word_begin   ? '\\b'
-                : $this->anchor_line_begin   ? '^'
-                : $this->anchor_string_begin ? '\A'
+                  $this->__anchor_word_begin   ? '\\b'
+                : $this->__anchor_line_begin   ? '^'
+                : $this->__anchor_string_begin ? '\A'
                 : ''
             ;
 //            my $end = 
@@ -1693,24 +1732,24 @@ function as_string() {
 //                : ''
 //            ;
             $end = 
-                  $this->anchor_word_end            ? '\\b'
-                : $this->anchor_line_end            ? '$'
-                : $this->anchor_string_end          ? '\Z'
-                : $this->anchor_string_end_absolute ? '\z'
+                  $this->__anchor_word_end            ? '\\b'
+                : $this->__anchor_line_end            ? '$'
+                : $this->__anchor_string_end          ? '\Z'
+                : $this->__anchor_string_end_absolute ? '\z'
                 : ''
             ;
 //            $self->{str} = "$begin$self->{str}$end";
-            $this->str = "{$begin}{$this->str}{$end}";
+            $this->__str = "{$begin}{$this->__str}{$end}";
 //        }
         }
 //        $self->{path} = [] unless $self->{mutable};
-        if (!$this->mutable) {
-           $this->path = array();
+        if (!$this->__mutable) {
+           $this->__path = array();
         }
 //    }
     }
 //    return $self->{str};
-    return $this->str;
+    return $this->__str;
 //}
 }
 /*
@@ -1762,11 +1801,11 @@ C<match> and C<matched> methods must be used instead, see below.
 //    my $self = shift;
 function re($args = array() ) {
 //    $self->_build_re($self->as_string(@_)) unless defined $self->{re};
-    if (!$this->re) {
+    if (!$this->__re) {
         $this->_build_re($this->as_string($args));
     }
 //    return $self->{re};
-    return $this->re;
+    return $this->__re;
 //}
 }
 
@@ -1774,13 +1813,13 @@ function re($args = array() ) {
 //    my $self = shift;
 function __toString() {
 //    return $self->{re} if $self->{re};
-    if ($this->re) {
-        return $this->re;
+    if ($this->__re) {
+        return $this->__re;
     }
 //    $self->_build_re($self->as_string());
     $this->_build_re($this->as_string());
 //    return $self->{re};
-    return $this->re;
+    return $this->__re;
 //};
 }
 
@@ -1789,14 +1828,14 @@ function __toString() {
 //    my $str   = shift;
 function _build_re($str) {
 //    if( $self->{track} ) {
-    if ( $this->track ) {
+    if ( $this->__track ) {
 //        use re 'eval';
 //        $self->{re} = length $self->{flags}
 //            ? qr/(?$self->{flags}:$str)/
 //            : qr/$str/
 //        ;
-        $this->re = strlen($this->flags)
-             ? "/(?{$this->flags}:{$str})/"
+        $this->__re = strlen($this->__flags)
+             ? "/(?{$this->__flags}:{$str})/"
              : "/{$str}/"
              ;
 //    }
@@ -1808,8 +1847,8 @@ function _build_re($str) {
 //            ? qr/(?$self->{flags}:$str)/
 //            : qr/$str/
 //        ;
-        $this->re = strlen($this->flags)
-            ? "/(?{$this->flags}:{$str})/"
+        $this->__re = strlen($this->__flags)
+            ? "/(?{$this->__flags}:{$str})/"
             : "/{$str}/";
         ;
 //    }
@@ -1882,31 +1921,31 @@ not require any Perl code to be executed during the match.
 function match($target) {
     $pregNum = array();
 //    $self->_build_re($self->as_string(@_)) unless defined $self->{re};
-    if ($this->re) {
+    if ($this->__re) {
         $this->_build_re($this->as_string(func_get_args()));
     }
 //    $self->{m}    = undef;
-    $this->m = NULL;
+    $this->__m = NULL;
 //    $self->{mvar} = [];
-    $this->mvar = array();
+    $this->__mvar = array();
 
 //    if( not $target =~ /$self->{re}/ ) {
-    if( !preg_match("/{$this->re}/u",$target,$pregNum, PREG_OFFSET_CAPTURE) ) {
+    if( !preg_match("/{$this->__re}/u",$target,$pregNum, PREG_OFFSET_CAPTURE) ) {
 //        $self->{mbegin} = [];
-        $this->mbegin = array();
+        $this->__mbegin = array();
 //        $self->{mend}   = [];
-        $this->mend = array();
+        $this->__mend = array();
 //        return undef;
         return NULL;
 //    }
     }
 //    $self->{m}      = $^R if $] >= 5.009005;
     $lastindex = perl_lastindex($pregNum);
-    $this->m = $pregNum[$lastindex][0];
+    $this->__m = $pregNum[$lastindex][0];
 //    $self->{mbegin} = _path_copy([@-]);
-    $this->mbegin = $this->_path_copy($pregNum[1][1]);
+    $this->__mbegin = $this->_path_copy($pregNum[1][1]);
 //    $self->{mend}   = _path_copy([@+]);
-    $this->mend = $this->_path_copy($pregNum[$lastindex][1]);
+    $this->__mend = $this->_path_copy($pregNum[$lastindex][1]);
 //    my $n = 0;
     $n = 0;
 //kokokara
@@ -1916,14 +1955,14 @@ function match($target) {
 //        push @{$self->{mvar}}, substr($target, $-[$n], $+[$n] - $-[$n])
 //            if defined $-[$n] and defined $+[$n];
           if ($pregNum[$n][1] && $pregNum[-1 * $n][1] ) {
-               $this->mvar[] = substr($target, $pregNum[$n][1], $pregNum[-1 * $n][1] - $pregNum[$n][1]);
+               $this->__mvar[] = substr($target, $pregNum[$n][1], $pregNum[-1 * $n][1] - $pregNum[$n][1]);
           }
 //    }
     }
 //    if( $self->{track} ) {
-    if( $this->track ) {
+    if( $this->__track ) {
 //        return defined $self->{m} ? $self->{mlist}[$self->{m}] : 1;
-        return $this->m ? $this->mlist[$this->m] : 1;
+        return $this->__m ? $this->__mlist[$this->__m] : 1;
 //    }
     }
 //    else {
@@ -1962,19 +2001,19 @@ tracked mode, this method returns C<undef>.
 //    my $self = shift;
 function source($p1) {
 //    return unless $self->{track};
-    if (! $this->track ) {
-        return $this->track;
+    if (! $this->__track ) {
+        return $this->__track;
     }
 //    defined($_[0]) and return $self->{mlist}[$_[0]];
     if ($p1) {
-       return $this->mlist[$p1];
+       return $this->__mlist[$p1];
     }
 //    return unless defined $self->{m};
-    if ( ! $this->m ) {
-       return $this->m;
+    if ( ! $this->__m ) {
+       return $this->__m;
     }
 //    return $self->{mlist}[$self->{m}];
-    return $this->mlist[$this->{m}];
+    return $this->__mlist[$this->{m}];
 //}
 }
 /*
@@ -1990,7 +2029,7 @@ this, C<mvar> should be able to supply all your needs.
 //    my $self = shift;
 function mbegin() {
 //    return exists $self->{mbegin} ? $self->{mbegin} : [];
-    return is_array($this->mbegin) ? $this->mbegin : array();
+    return is_array($this->__mbegin) ? $this->__mbegin : array();
 //}
 }
 /*
@@ -2005,7 +2044,7 @@ last match.
 //    my $self = shift;
 function mend() {
 //    return exists $self->{mend} ? $self->{mend} : [];
-    return is_array($this->mend) ? $this->mend : array();
+    return is_array($this->__mend) ? $this->__mend : array();
 //}
 }
 /*
@@ -2026,11 +2065,11 @@ reference to an array containing all captures.
 //    my $self = shift;
 function mvar($p1 = NULL) {
 //    return undef unless exists $self->{mvar};
-    if ( ! is_array($this->mvar) ) {
+    if ( ! is_array($this->__mvar) ) {
         return NULL;
     }
 //    return defined($_[0]) ? $self->{mvar}[$_[0]] : $self->{mvar};
-    return $_[0] === NULL ? $this->mvar[$p1] : $this->mvar;
+    return $_[0] === NULL ? $this->__mvar[$p1] : $this->__mvar;
 //}
 }
 /*
@@ -2052,9 +2091,9 @@ without have to check whether anything was captured.
 //    my $self = shift;
 function capture() {
 //    if( $self->{mvar} ) {
-    if( $this->mvar ) {
+    if( $this->__mvar ) {
 //        my @capture = @{$self->{mvar}};
-        $capture = $this->mvar;
+        $capture = $this->__mvar;
 //        shift @capture;
         array_shift($capture);
 //        return @capture;
@@ -2085,7 +2124,7 @@ limitations in the implementation of C<(?{...})> at the time.
 //    my $self = shift;
 function matched() {
 //    return defined $self->{m} ? $self->{mlist}[$self->{m}] : undef;
-    return $this->m ? $this->mlist[$this->m] : NULL;
+    return $this->__m ? $this->__mlist[$this->__m] : NULL;
 //}
 }
 /*
@@ -2180,7 +2219,7 @@ additional (C<(?-xism...>) fluff added by the compilation.
 //    my $self = shift;
 function stats_length() {
 //    return (defined $self->{str} and $self->{str} ne $Always_Fail) ? length $self->{str} : 0;
-    return ( isset($this->str) && $this->str < $this->Always_Fail) ? strlen($this->str) : 0;
+    return ( isset($this->__str) && $this->__str < $this->Always_Fail) ? strlen($this->__str) : 0;
 //}
 }
 /*
@@ -2303,7 +2342,7 @@ to 0 to disable.
 //    my $state = shift;
 function anchor_word($state) {
 //    $self->anchor_word_begin($state)->anchor_word_end($state);
-    $this->anchor_word_begin($state)->anchor_word_end($state);
+    $this->__anchor_word_begin($state)->__anchor_word_end($state);
 //    return $self;
     return $this;
 //}
@@ -2364,7 +2403,7 @@ to 0 to disable.
 //    my $state = shift;
 function anchor_line($state) {
 //    $self->anchor_line_begin($state)->anchor_line_end($state);
-    $this->anchor_line_begin($state)->anchor_line_end($state);
+    $this->__anchor_line_begin($state)->__anchor_line_end($state);
 //    return $self;
     return $this;
 //}
@@ -2446,7 +2485,7 @@ to 0 to disable.
 //    my $state = defined($_[0]) ? $_[0] : 1;
 function anchor_string($state = 1) {
 //    $self->anchor_string_begin($state)->anchor_string_end($state);
-    $this->anchor_string_begin($state)->anchor_string_end($state);
+    $this->__anchor_string_begin($state)->__anchor_string_end($state);
 //    return $self;
     return $this;
 //}
@@ -2471,8 +2510,7 @@ to 0 to disable.
 //    my $state = defined($_[0]) ? $_[0] : 1;
 function anchor_string_absolute($state = 1) {
 //    $self->anchor_string_begin($state)->anchor_string_end_absolute($state);
-    $self->anchor_string_begin($state)->anchor_string_end_absolute($state);
-    $this->anchor_string_begin($state)->anchor_string_end_absolute($state);
+    $this->__anchor_string_begin($state)->__anchor_string_end_absolute($state);
 //    return $self;
     return $this;
 //}
@@ -2568,7 +2606,7 @@ to interpret the results is left as an exercise to the reader.
 //sub dump {
 function dump() {
 //    return _dump($_[0]->_path);
-    return $this->_dump($this->path);
+    return $this->_dump($this->__path);
 //}
 }
 
@@ -2596,7 +2634,7 @@ call C<chomp> with a false value.
 //    my $self = shift;
 function chomp($p1 = 1) {
 //    $self->{chomp} = defined($_[0]) ? $_[0] : 1;
-    $this->chomp = $p1;
+    $this->__chomp = $p1;
 //    return $self;
     return $this;
 //}
@@ -2681,7 +2719,7 @@ C<Regexp::List>.
 //    my $self = shift;
 function flags($p1 = '') {
 //    $self->{flags} = defined($_[0]) ? $_[0] : '';
-    $this->flags = $p1;
+    $this->__flags = $p1;
 //    return $self;
     return $this;
 //}
@@ -2691,7 +2729,7 @@ function flags($p1 = '') {
 //    my $self = shift;
 function modifiers() {
 //    return $self->flags(@_);
-    return $this->flags( func_get_args() );
+    return $this->__flags( func_get_args() );
 //}
 }
 /*
@@ -2721,7 +2759,7 @@ reduced to C<di[gm]>.
 //    my $self = shift;
 function track($p1 = 1) {
 //    $self->{track} = defined($_[0]) ? $_[0] : 1;
-    $this->track = $p1;
+    $this->__track = $p1;
 //    return $self;
     return $this;
 //}
@@ -2804,11 +2842,11 @@ function reset() {
 //    # reinitialise the internal state of the object
 //    my $self = shift;
 //    $self->{path} = [];
-    $this->path = array();
+    $this->__path = array();
 //    $self->{re}   = undef;
-    $this->re   = NULL;
+    $this->__re   = NULL;
 //    $self->{str}  = undef;
-    $this->str   = NULL;
+    $this->__str   = NULL;
 //    return $self;
     return $this;
 //}
@@ -2850,11 +2888,11 @@ function Default_Lexer($p1) {
 //        }
         }
 //        $Current_Lexer = $_[0];
-        $Current_Lexer = $p1;
+        $this->__Current_Lexer = $p1;
 //    }
     }
 //    return defined $Current_Lexer ? $Current_Lexer : $Default_Lexer;
-    return $this->Current_Lexer ? $this->Current_Lexer : $this->Default_Lexer;
+    return $this->__Current_Lexer ? $this->__Current_Lexer : $this->Default_Lexer;
 //}
 }
 
@@ -3440,11 +3478,11 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //    my $self    = shift;
 function _reduce() {
 //    my $context = { debug => $self->_debug(DEBUG_TAIL), depth => 0 };
-    $context = array( 'debug' => ($this->debug & $this->DEBUG_TAIL), 'depth' => 0 );
+    $context = array( 'debug' => ($this->__debug & $this->DEBUG_TAIL), 'depth' => 0 );
 /*
 //skip debug
 //    if ($self->_debug(DEBUG_TIME)) {
-     if ($this->debug($this->DEBUG_TIME)) {
+     if ($this->__debug($this->DEBUG_TIME)) {
 //        $self->_init_time_func;
         $this->_init_time_func();
 //        my $now = $self->{_time_func}->();
@@ -3468,13 +3506,13 @@ function _reduce() {
 */
 
 //    my ($head, $tail) = _reduce_path( $self->_path, $context );
-    list($head, $tail) = $this->_reduce_path( $this->path, $context );
+    list($head, $tail) = $this->_reduce_path( $this->__path, $context );
 //    $context->{debug} and print "# final head=", _dump($head), ' tail=', _dump($tail), "\n";
     if ( $context['debug'] ) { echo "# final head=", $this->_dump($head), ' tail=', $this->_dump($tail), "\n"; }
 //    if( !@$head ) {
     if( ! count($head) ) {
 //        $self->{path} = $tail;
-        $this->path = $tail;
+        $this->__path = $tail;
 //    }
     }
 //    else {
@@ -3483,7 +3521,7 @@ function _reduce() {
 //            @{_unrev_path( $tail, $context )},
 //            @{_unrev_path( $head, $context )},
 //        ];
-        $this->path = perl_array(
+        $this->__path = perl_array(
             $this->_unrev_path( $tail, $context ),
             $this->_unrev_path( $head, $context )
         );
@@ -3515,7 +3553,7 @@ skip debug
 */
 
 //    $context->{debug} and print "# final path=", _dump($self->{path}), "\n";
-    if ( $context['debug'] ) { echo "# final path=", $this->_dump($this->path), "\n"; }
+    if ( $context['debug'] ) { echo "# final path=", $this->_dump($this->__path), "\n"; }
 //    return $self;
     return $this;
 //}
@@ -4076,8 +4114,8 @@ function _do_reduce($path, $ctx) {
 //    my $ra = Regexp::Assemble->new(chomp=>0);
     $ra = new Regexp_Assemble( array( 'chomp' => 0 ) );
 //    $ra->debug($debug);
-    $ra->debug = $debug;
-$ra->debug = 255;
+    $ra->__debug = $debug;
+$ra->__debug = 255;
 //    $debug and print "# $indent| do @{[_dump($path)]}\n";
     if ($debug) { echo "# $indent| do ".$this->_dump($path)."\n"; }
 //    $ra->_insertr( $_ ) for
@@ -4139,7 +4177,7 @@ $ra->debug = 255;
     }
 
 //    $path = $ra->_path;
-    $path = $ra->path;
+    $path = $ra->__path;
 //    my $common = [];
     $common = array();
 //    push @$common, shift @$path while( ref($path->[0]) ne 'HASH' );
@@ -4433,7 +4471,7 @@ function _make_class() {
 //        ))
 //    ;
     if (isset($set['.']) 
-         || ( $this->fold_meta_pairs && (
+         || ( $this->__fold_meta_pairs && (
                  (isset($set['\\d']) && isset($set['\\D']))
               || (isset($set['\\s']) && isset($set['\\S']))
               || (isset($set['\\w']) && isset($set['\\W']))
@@ -4545,16 +4583,16 @@ function _combine($type , $args) {
     }
 
     if( count($short) == 1 ) {
-        $long = perl_array( perl_sort('_re_sort' , $long )  , $short );
+        $long = perl_array( perl_sort_resort( $long )  , $short );
     }
     else if ( count($short) > 1 ) {
         //# yucky but true
         $combine = perl_array( 
-               $this->_make_class($short),  perl_sort( '_re_sort' , $long) );
+               $this->_make_class($short),  perl_sort_resort( $long) );
         $long = $combine;
     }
     else {
-        $long = perl_sort( '_re_sort' , $long);
+        $long = perl_sort_resort( $long);
     }
     $_temp_do = join( '|', $long );
     
@@ -4609,9 +4647,9 @@ function _combine_new($args) {
             . join( '|' ,
                 count($short) > 1
                     ? perl_array( 
-                          $this->_make_class($short), perl_sort( '_re_sort' , $long) )
+                          $this->_make_class($short), perl_sort_resort( $long) )
                     : perl_array( 
-                          perl_sort( '_re_sort' ,$long) , $short )
+                          perl_sort_resort( $long) , $short )
             )
         . ')';
 //    }
@@ -4626,7 +4664,7 @@ function _re_path(array $p1) {
 //    # routine. after insert(), so make it fast.
 
 //    if ($self->{unroll_plus}) {
-    if ($this->unroll_plus) {
+    if ($this->__unroll_plus) {
 //        # but we can't easily make this blockless
 //        my @arr = @{$_[0]};
         $arr = $p1;
@@ -4980,15 +5018,15 @@ function _re_path_track($in,$normal,$augmented) {
                 || $n == count($in) - 1
             ) {
 //                push @{$self->{mlist}}, $normal . $simple ;
-//                $this->mlist = perl_push( $this->mlist, $normal . $simple );
-                $this->mlist[] = $normal . $simple;
+//                $this->__mlist = perl_push( $this->__mlist, $normal . $simple );
+                $this->__mlist[] = $normal . $simple;
 //                $augment .= $] < 5.009005
 //                    ? "(?{\$self->{m}=$self->{mcount}})"
 //                    : "(?{$self->{mcount}})"
 //                ;
-                $augment .="(?{$this->mcount})";
+                $augment .="(?{$this->__mcount})";
 //                ++$self->{mcount};
-                ++$this->mcount;
+                ++$this->__mcount;
 //            }
             }
 //        }
@@ -5006,7 +5044,7 @@ function _re_path_track($in,$normal,$augmented) {
                  $path[] = $this->_re_path_track( $in[$n][$_], $normal.$simple , $augmented.$augment );
             }
 //            $o = '(?:' . join( '|' => sort _re_sort @$path ) . ')';
-            $o = '(?:' . join( '|' , perl_sort( '_re_sort' , $path) ) . ')';
+            $o = '(?:' . join( '|' , perl_sort_resort( $path) ) . ')';
 //            $o .= '?' if exists $in->[$n]{''};
             if ( isset( $in[$n][''] ) ) {
                  $o .= '?';
@@ -5119,7 +5157,7 @@ function _re_path_pretty($in,$arg) {
 //                        sort _re_sort @$path
 //                    );
                     $_temp_map_array = array();
-                    foreach( perl_sort( '_re_sort' , $path ) as $_ ) {
+                    foreach( perl_sort_resort( $path ) as $_ ) {
                             if ($r++) {
                                 $_ = preg_replace("/^\(\?:/u" ,"/\n$indent(?:/" , $_ );
                             }
@@ -5132,7 +5170,7 @@ function _re_path_pretty($in,$arg) {
 //                else {
                 else {
 //                    $out .= join( "\n$indent|" => ( (sort _re_sort @long), _make_class($self, @short) ));
-                    $out .= join( "\n$indent|" , perl_array( perl_sort( '_re_sort' , $long) , $this->_make_class($short) ) );
+                    $out .= join( "\n$indent|" , perl_array( perl_sort_resort( $long) , $this->_make_class($short) ) );
 //                }
                 }
 //                $out .= "\n$pre)";

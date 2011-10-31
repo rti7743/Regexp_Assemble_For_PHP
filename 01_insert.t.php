@@ -3,7 +3,6 @@ require_once("Assemble.pm.php");
 require_once("testutil.php");
 
 
-
 /*
 # 01_insert.t
 #
@@ -39,7 +38,7 @@ $_ = $fixed;
 //{
     $ra = new Regexp_Assemble();
     $ra->insert( '' );
-    $r = $ra->path[0];
+    $r = $ra->__path[0];
     is( is_array($r), true,  "insert('') => first element is a HASH" );
     is( count($r), 1,      "...and contains one key" );
     ok( isset($r['']),    "...which is an empty string" );
@@ -49,7 +48,7 @@ $_ = $fixed;
 //{
     $ra = new Regexp_Assemble();
     $ra->insert( 'a' );
-    $r = $ra->path;
+    $r = $ra->__path;
     is( count($r) , 1,  "'a' => path of length 1" );
     is( $r[0], 'a',   "'a' => ...and is an 'a'" );
 //}
@@ -58,13 +57,13 @@ $_ = $fixed;
     $ra = new Regexp_Assemble();
     $ra->insert();
     $ra->insert('a');
-    is_deeply( $ra->path, [['' => 0, 'a' => ['a']]], "insert(), insert('a')" );
+    is_deeply( $ra->__path, [['' => 0, 'a' => ['a']]], "insert(), insert('a')" );
 //}
 
 //{
     $ra = new Regexp_Assemble();
     $ra->insert( 'a', 'b' );
-    $r = $ra->path;
+    $r = $ra->__path;
     is( count($r), 2,  "'ab' => path of length 2" );
     is( join( '' , $r ), 'ab', "'ab' => ...and is 'a', 'b'" );
     is( $ra->dump(), '[a b]', 'dump([a b])' );
@@ -75,7 +74,7 @@ $_ = $fixed;
     $ra->insert( 'a', 'b' );
     $ra->insert( 'a', 'c' );
     is( $ra->dump(), '[a {b=>[b] c=>[c]}]', 'dump([a {b c}])' );
-    $r = $ra->path;
+    $r = $ra->__path;
     is( count($r), 2,         "'ab,ac' => path of length 2" );
     is( $r[0], 'a',         "'ab,ac' => ...and first atom is 'a'" );
     is( is_array($r[1]), true, "'ab,ac' => ...and second is a node" );
@@ -92,25 +91,25 @@ $_ = $fixed;
 //{
     $ra = new Regexp_Assemble();
     $ra->insert( NULL );
-    is_deeply( $ra->path, [['' => 0]], 'insert(undef)' );
+    is_deeply( $ra->__path, [['' => 0]], 'insert(undef)' );
 //}
 
 //{
     $ra = new Regexp_Assemble();
     $ra->insert( '' );
-    is_deeply( $ra->path, [['' => 0]], "insert('')" );
+    is_deeply( $ra->__path, [['' => 0]], "insert('')" );
 //}
 
 //{
     $ra = new Regexp_Assemble();
     $ra->insert();
-    is_deeply( $ra->path, [['' => 0]], 'insert()' );
+    is_deeply( $ra->__path, [['' => 0]], 'insert()' );
 //}
 
 //{
     $ra = new Regexp_Assemble();
     $ra->insert( ['0'] );
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         ['0'],
         "/0/"
     );
@@ -119,7 +118,7 @@ $_ = $fixed;
 //{
     $ra = new Regexp_Assemble();
     $ra->insert( ["d"] );
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         ['d'],
         "/d/"
     );
@@ -127,51 +126,52 @@ $_ = $fixed;
 
 //{
     $r = new Regexp_Assemble();
-    $r->lex = '\([^(]*(?:\([^)]*\))?[^)]*\)|.';
+    $r->__lex = '\([^(]*(?:\([^)]*\))?[^)]*\)|.';
 
     $r->reset()->add( 'ab(cd)ef' );
-    is_deeply( $r->path,
+    is_deeply( $r->__path,
         [ 'a', 'b', '(cd)', 'e', 'f' ],
         'ab(cd)ef (with parenthetical lexer)'
     );
 
     $r->reset()->add( 'ab(cd(ef)gh)ij' );
-    is_deeply( $r->path,
+    is_deeply( $r->__path,
         [ 'a', 'b', '(cd(ef)gh)', 'i', 'j' ],
         'ab(cd(ef)gh)ij (with parenthetical lexer)'
     );
 
     $r->reset()->add( 'ab((ef)gh)ij' );
-    is_deeply( $r->path,
+    is_deeply( $r->__path,
         [ 'a', 'b', '((ef)gh)', 'i', 'j' ],
         'ab((ef)gh)ij (with parenthetical lexer)'
     );
 
     $r->reset()->add( 'ab(cd(ef))ij' );
-    is_deeply( $r->path,
+    is_deeply( $r->__path,
         [ 'a', 'b', '(cd(ef))', 'i', 'j' ],
         'ab(cd(ef))ij (with parenthetical lexer)'
     );
 
     $r->reset()->add( 'ab((ef))ij' );
-    is_deeply( $r->path,
+    is_deeply( $r->__path,
         [ 'a', 'b', '((ef))', 'i', 'j' ],
         'ab((ef))ij (with parenthetical lexer)'
     );
 //}
 
+//•Û—¯
 //{
-    $r = new Regexp_Assemble(['lex' => '\\d']);
-    is_deeply( $r->add( '0\Q0C,+' )->path,
-        [ '0', '0', 'C', ',', '\\+' ],
-        '0\\Q0C,+ with \\d lexer'
-    );
+//    $r = new Regexp_Assemble(['lex' => '\\d']);
+//    is_deeply( $r->add( '0\Q0C,+' )->__path,
+//        [ '0', '0', 'C', ',', '\\+' ],
+//        '0\\Q0C,+ with \\d lexer'
+//    );
 //}
 
 //{
     $ra = new Regexp_Assemble();
     $ra->insert( ['d','a','b'] );
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         ['d','a','b'],
         '/dab/'
     );
@@ -181,7 +181,7 @@ $_ = $fixed;
     $ra = new Regexp_Assemble();
     $ra->insert( ['0','1'] );
     $ra->insert( ['0','2'] );
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             '0',
             [
@@ -198,7 +198,7 @@ $_ = $fixed;
     $ra->insert( ['0'] );
     $ra->insert( ['0','1'] );
     $ra->insert( ['0','2'] );
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             '0',
             [
@@ -215,7 +215,7 @@ $_ = $fixed;
     $ra = new Regexp_Assemble();
     $ra->insert( ['d','a','m'] );
     $ra->insert( ['d','a','m'] );
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             'd', 'a', 'm'
         ],
@@ -228,7 +228,7 @@ $_ = $fixed;
     $ra->insert( ['d','a','y'] );
     $ra->insert( ['d','a'] );
     $ra->insert( ['d','a'] );
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             'd', 'a',
             [
@@ -245,7 +245,7 @@ $_ = $fixed;
     $ra->insert( ['d','o','t'] );
     $ra->insert( ['d','o'] );
     $ra->insert( ['d'] );
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             'd',
             [
@@ -267,7 +267,7 @@ $_ = $fixed;
     $ra = new Regexp_Assemble();
     $ra->insert( ['b','i','g'] );
     $ra->insert( ['b','i','d'] );
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             'b', 'i',
             [
@@ -283,7 +283,7 @@ $_ = $fixed;
     $ra = new Regexp_Assemble();
     $ra->insert( ['d','a','r','t'] );
     $ra->insert( ['d','a','m','p'] );
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             'd', 'a',
             [
@@ -299,7 +299,7 @@ $_ = $fixed;
     $ra = new Regexp_Assemble();
     $ra->insert( ['a','m','b','l','e'] );
     $ra->insert( ['i','d','l','e'] );
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'a' => ['a', 'm', 'b', 'l', 'e'],
@@ -315,7 +315,7 @@ $_ = $fixed;
     $ra->insert( ['a','m','b','l','e'] );
     $ra->insert( ['a','m','p','l','e'] );
     $ra->insert( ['i','d','l','e'] );
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'a' => [
@@ -336,7 +336,7 @@ $_ = $fixed;
     $ra = new Regexp_Assemble();
     $ra->insert( ['d','a','m'] );
     $ra->insert( ['d','a','r','e'] );
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             'd', 'a',
             [
@@ -355,7 +355,7 @@ $_ = $fixed;
         ->insert(['d','b'])
         ->insert(['d','c'])
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             'd',
             [
@@ -375,7 +375,7 @@ $_ = $fixed;
         ->insert(['d','b','c','d'])
         ->insert(['d','c'])
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             'd',
             [
@@ -406,7 +406,7 @@ function permute($target , $path) {
                             ->insert( $path[$x4] )
                             ->insert( $path[$x5] )
                         ;
-                        is_deeply( $ra->path, $target,
+                        is_deeply( $ra->__path, $target,
                             'join: /' . join( '/ /', 
                                 array(
                                    join( '' , $path[$x1]),

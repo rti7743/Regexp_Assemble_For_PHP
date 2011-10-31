@@ -92,7 +92,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     $ra->insert(1);
     $ra->insert(2);
     $ra->_reduce();
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 0 => [0],
@@ -110,7 +110,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     $ra->insert('1');
     $ra->insert('2');
     $ra->_reduce();
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 0 => ['0'],
@@ -130,7 +130,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 'b','i','r','d' )
         ->insert( 'w','o','r','m' )
         ->_reduce();
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'b' => ['b','i','r','d'],
@@ -151,7 +151,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 'p','r','o','a','p','p','r','o','v','a','l' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             'p', 'r', 'o', 'a',
             [
@@ -176,7 +176,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 //        ->insert( '1','0' )
 //        ->insert( '1','0','0' )
 //        ->_reduce();
-//    is_deeply( $ra->path,
+//    is_deeply( $ra->__path,
 //        [
 //            [
 //                '0' => ['0'],
@@ -205,7 +205,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 'd', 'a', 'b' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'c' => ['c'],
@@ -224,7 +224,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 'd', 'a', 'b' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'c' => ['c', 'r'],
@@ -244,7 +244,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 'd', 'a', 'i', 'l', 'y' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             'd', 'a',
             [
@@ -270,7 +270,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 'l', 'o', 'b' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'c' => [
@@ -296,7 +296,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 't','h','a','t' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 '' => 0,
@@ -315,7 +315,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 't','h','r','e','a','t' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             't',
             [
@@ -337,7 +337,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 'e','a','t' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 '' => 0,
@@ -365,7 +365,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 't','e','a','t' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             't',
             [
@@ -393,7 +393,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 'l','i','m','i','t' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'g' => [ 'g', 'r' ],
@@ -419,7 +419,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 't','e','n','t' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'b' => [
@@ -449,7 +449,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 'd','o','n' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 '' => 0,
@@ -477,7 +477,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 'd','c','f' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'b' => [
@@ -518,7 +518,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 'a','c','i','d','o','i','d','s' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'k' => [ 'k' ],
@@ -543,7 +543,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 'a','c','i','d','o','i','d','s' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 's' => [ 's', 'c', 'h', 'o', 'o', 'l', 'k' ],
@@ -569,7 +569,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 'a','c','i','d','o','i','d','s' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 's' => [
@@ -602,7 +602,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert(  's','c','h','o','o','l','k','i','d','s' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 's' => [
@@ -639,7 +639,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 's','h','o','w','l','e','s','s' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             's', 'h', 'o', 'w',
             [
@@ -664,7 +664,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 'b','l','a','z','e' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'b' => ['b', 'l', 'a', 'z', 'e'],
@@ -689,7 +689,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 'g','l','a','z','e' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             'g',
             [
@@ -715,7 +715,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert(  'g','r','a','z','e' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             'g',
             [
@@ -734,7 +734,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
 {
     $ra = new Regexp_Assemble();
-    $ra->path = [
+    $ra->__path = [
         't', [
             'a' => ['a'],
             'i' => ['i'],
@@ -747,7 +747,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ],
         's'
     ];
-    $res = $ra->_insert_path( $ra->path, 0, $path );
+    $res = $ra->_insert_path( $ra->__path, 0, $path );
     is_deeply( $res,
         [
             't',
@@ -766,7 +766,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
 {
     $ra = new Regexp_Assemble();
-    $ra->path = [
+    $ra->__path = [
         't', [
             'a' => ['a'],
             'i' => ['i']
@@ -782,7 +782,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ],
         'f'
     ];
-    $res = $ra->_insert_path( $ra->path, 0, $path );
+    $res = $ra->_insert_path( $ra->__path, 0, $path );
     is_deeply( $res,
         [
             't',
@@ -802,7 +802,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
 {
     $ra = new Regexp_Assemble();
-    $ra->path = [
+    $ra->__path = [
         't', [
             '' => 0,
             'a' => ['a']
@@ -815,7 +815,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ],
         'e', 's'
     ];
-    $res = $ra->_insert_path( $ra->path, 0, $path );
+    $res = $ra->_insert_path( $ra->__path, 0, $path );
     is_deeply( $res,
         [
             't',
@@ -835,7 +835,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
 {
     $ra = new Regexp_Assemble();
-    $ra->path = [
+    $ra->__path = [
         'd', 'i',
         [
             '' => 0,
@@ -850,7 +850,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ],
         't', 'a', 'b'
     ];
-    $res = $ra->_insert_path( $ra->path, 0, $path );
+    $res = $ra->_insert_path( $ra->__path, 0, $path );
     is_deeply( $res,
         [
             'd', 'i',
@@ -870,7 +870,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
 {
     $ra = new Regexp_Assemble();
-    $ra->path = [
+    $ra->__path = [
         'd', 'i',
         [
             '' => 0,
@@ -889,7 +889,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ],
         't', 'm', 'x'
     ];
-    $res = $ra->_insert_path( $ra->path, 0, $path );
+    $res = $ra->_insert_path( $ra->__path, 0, $path );
     is_deeply( $res,
         [
             'd', 'i',
@@ -910,7 +910,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
 
 {
     $ra = new Regexp_Assemble();
-    $ra->path = [
+    $ra->__path = [
         'd', 'i',
         [
             '' => 0,
@@ -929,7 +929,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ],
         't', 'a', 'x'
     ];
-    $res = $ra->_insert_path( $ra->path, 0, $path );
+    $res = $ra->_insert_path( $ra->__path, 0, $path );
     is_deeply( $res,
         [
             'd', 'i',
@@ -961,7 +961,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert( 's','u','b','m','i','t' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'g' => ['g',
@@ -996,7 +996,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert(  'e','m','i','t' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 '' => 0,
@@ -1034,7 +1034,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert(  'l','i','m','i','t' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'g' => ['g',
@@ -1065,7 +1065,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert(  'b','r','i','t' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'b' => ['b'],
@@ -1091,7 +1091,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert(  'b','r','i','t' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'b' => ['b',
@@ -1132,7 +1132,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert(  't','r','a','n','s','m','i','t' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'b' => [
@@ -1170,7 +1170,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert(  't','r','a','n','s','m','i','t' )
         ->_reduce()
     ;
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'c' => [
@@ -1202,7 +1202,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         ->insert(  'a','p','o','c','r','e','n','i','c' )
         ->_reduce()
     ;
-    is_deeply( $ra->path, 
+    is_deeply( $ra->__path, 
         [
             'a','p','o','c','r',
             [
@@ -1229,7 +1229,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         $ra->insert( str_split($p) );
     }
     $ra->_reduce();
-    is_deeply( $ra->path, [
+    is_deeply( $ra->__path, [
             [
                 'd' => ['d',
                     [
@@ -1273,7 +1273,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     }
     $ra->_reduce();
 
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [ 'g',
             [ 
                 '' => 0,
@@ -1307,7 +1307,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         $ra->insert( str_split($p) );
     }
     $ra->_reduce();
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [ 'g',
             [
                 'a' => [ 'a',
@@ -1359,7 +1359,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         $ra->insert( str_split($p) );
     }
     $ra->_reduce();
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             'l','i', [
                 'm' => [
@@ -1390,7 +1390,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         $ra->insert( str_split($p) );
     }
     $ra->_reduce();
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             [
                 'm' => [
@@ -1416,7 +1416,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         $ra->insert( str_split($p) );
     }
     $ra->_reduce();
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             's',
             [
@@ -1442,7 +1442,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         $ra->insert( str_split($p) );
     }
     $ra->_reduce();
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             't',
             [
@@ -1469,7 +1469,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         $ra->insert( str_split($p) );
     }
     $ra->_reduce();
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         ['t',
             [
                 '' => 0,
@@ -1500,7 +1500,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
         $ra->insert( str_split($p) );
     }
     $ra->_reduce();
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         ['t','i','t',
             [
                 '' => 0,
@@ -1550,7 +1550,7 @@ $context = [ 'debug' => 0, 'depth' => 0 ];
     $ra->add( 'dostin' );
 
     $ra->_reduce();
-    is_deeply( $ra->path,
+    is_deeply( $ra->__path,
         [
             'd',
             [
