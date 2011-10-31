@@ -308,6 +308,7 @@ var $__mlist;
 
 var $__re;
 var $__str;
+var $__stats_raw;
 /*
 =head1 METHODS
 
@@ -518,6 +519,7 @@ function __construct($args = array() ) {
     $this->__m      = NULL;
     $this->__mcount = 0;
     $this->__mlist  = array();
+    $this->__stats_raw = 0;
 
 //    $args{flags} ||= delete $args{modifiers} || '';
     if (isset($args['modifiers'])) {
@@ -1277,7 +1279,7 @@ function add($p1){
         if ($debug){    echo "# add <$record>\n";    }
 
 //        $self->{stats_raw} += length $record;
-        $this->stats_raw += strlen($record);
+        $this->__stats_raw += strlen($record);
 
 //        my $list = $record =~ /[+*?(\\\[{]/ # }]) restore equilibrium
 //            ? $self->{lex} ? $self->_lex($record) : $self->_fastlex($record)
@@ -2193,7 +2195,7 @@ count as 4 bytes.
 //    my $self = shift;
 function stats_raw() {
 //    return $self->{stats_raw} || 0;
-    return $this->stats_raw || 0;
+    return $this->__stats_raw || 0;
 //}
 }
 /*
@@ -2265,6 +2267,12 @@ to the object in question, and the lexed pattern.
 //    $self->{dup_warn} = defined($_[0]) ? $_[0] : 1;
 //    return $self;
 //}
+function dup_warn ($p1 = 1) {
+    $this->__dup_warn = $p1;
+    return $this;
+}
+
+
 /*
 =back
 
@@ -2316,6 +2324,10 @@ to 0 to disable.
 //    $self->{anchor_word_begin} = defined($_[0]) ? $_[0] : 1;
 //    return $self;
 //}
+function anchor_word_begin ($p1 = 1) {
+    $this->__anchor_word_begin = $p1;
+    return $this;
+}
 
 /*
 =item anchor_word_end
@@ -2335,6 +2347,12 @@ to 0 to disable.
 //    $self->{anchor_word_end} = defined($_[0]) ? $_[0] : 1;
 //    return $self;
 //}
+function anchor_word_end ($p1 = 1) {
+    $this->__anchor_word_end = $p1;
+    return $this;
+}
+
+
 /*
 =item anchor_word
 
@@ -2354,7 +2372,8 @@ to 0 to disable.
 //    my $state = shift;
 function anchor_word($state) {
 //    $self->anchor_word_begin($state)->anchor_word_end($state);
-    $this->__anchor_word_begin($state)->__anchor_word_end($state);
+    $this->__anchor_word_begin = $state;
+    $this->__anchor_word_end   = $state;
 //    return $self;
     return $this;
 //}
@@ -2377,6 +2396,10 @@ to 0 to disable.
 //    $self->{anchor_line_begin} = defined($_[0]) ? $_[0] : 1;
 //    return $self;
 //}
+function anchor_line_begin ($p1 = 1) {
+    $this->__anchor_line_begin = $p1;
+    return $this;
+}
 
 /*
 =item anchor_line_end
@@ -2395,7 +2418,10 @@ to 0 to disable.
 //    $self->{anchor_line_end} = defined($_[0]) ? $_[0] : 1;
 //    return $self;
 //}
-
+function anchor_line_end ($p1 = 1) {
+    $this->__anchor_line_end = $p1;
+    return $this;
+}
 /*
 =item anchor_line
 
@@ -2415,7 +2441,8 @@ to 0 to disable.
 //    my $state = shift;
 function anchor_line($state) {
 //    $self->anchor_line_begin($state)->anchor_line_end($state);
-    $this->__anchor_line_begin($state)->__anchor_line_end($state);
+    $this->__anchor_line_begin = $state;
+    $this->__anchor_line_end = $state;
 //    return $self;
     return $this;
 //}
@@ -2454,7 +2481,10 @@ to 0 to disable.
 //    $self->{anchor_string_end} = defined($_[0]) ? $_[0] : 1;
 //    return $self;
 //}
-
+function anchor_string_end ($p1 = 1) {
+    $this->__anchor_string_end = $p1;
+    return $this;
+}
 
 /*
 =item anchor_string_end_absolute
@@ -2477,6 +2507,10 @@ you want.
 //    $self->{anchor_string_end_absolute} = defined($_[0]) ? $_[0] : 1;
 //    return $self;
 //}
+function anchor_string_end_absolute ($p1 = 1) {
+    $this->__anchor_string_end_absolute = $p1;
+    return $this;
+}
 
 /*
 =item anchor_string
@@ -2497,7 +2531,8 @@ to 0 to disable.
 //    my $state = defined($_[0]) ? $_[0] : 1;
 function anchor_string($state = 1) {
 //    $self->anchor_string_begin($state)->anchor_string_end($state);
-    $this->__anchor_string_begin($state)->__anchor_string_end($state);
+    $this->__anchor_string_begin = $state;
+    $this->__anchor_string_end   = $state;
 //    return $self;
     return $this;
 //}
@@ -2522,7 +2557,8 @@ to 0 to disable.
 //    my $state = defined($_[0]) ? $_[0] : 1;
 function anchor_string_absolute($state = 1) {
 //    $self->anchor_string_begin($state)->anchor_string_end_absolute($state);
-    $this->__anchor_string_begin($state)->__anchor_string_end_absolute($state);
+    $this->__anchor_string_begin = $state;
+    $this->__anchor_string_end_absolute = $state;
 //    return $self;
     return $this;
 //}
@@ -2604,6 +2640,16 @@ Calling C<debug> with no arguments turns debugging off.
 //    }
 //    return $self;
 //}
+function debug ($p1 = 0) {
+    $this->__debug = $p1;
+//    if ($self->_debug(DEBUG_TIME)) {
+//      if ($this->debug(DEBUG_TIME)) {
+//        # hmm, debugging time was switched on after instantiation
+//        $self->_init_time_func;
+//        $self->{_begin_time} = $self->{_time_func}->();
+//    }
+    return $this;
+}
 
 /*
 =item dump
@@ -2677,6 +2723,10 @@ modifier is also set).
 //    $self->{fold_meta_pairs} = defined($_[0]) ? $_[0] : 1;
 //    return $self;
 //}
+function fold_meta_pairs ($p1 = 1) {
+    $this->__fold_meta_pairs = $p1;
+    return $this;
+}
 
 /*
 =item indent(NUMBER)
@@ -2695,6 +2745,10 @@ When called without a parameter, no indenting is performed.
 //    $self->{indent} = defined($_[0]) ? $_[0] : 0;
 //    return $self;
 //}
+function indent ($p1 = 0) {
+    $this->__indent = $p1;
+    return $this;
+}
 
 /*
 =item lookahead(0|1)
@@ -2711,6 +2765,10 @@ probably be worse off.
 //    $self->{lookahead} = defined($_[0]) ? $_[0] : 1;
 //    return $self;
 //}
+function lookahead ($p1 = 1) {
+    $this->__lookahead = $p1;
+    return $this;
+}
 
 /*
 =item flags(STRING)
@@ -2791,6 +2849,10 @@ to assemble with other patterns. Not enabled by default.
 //    $self->{unroll_plus} = defined($_[0]) ? $_[0] : 1;
 //    return $self;
 //}
+function unroll_plus ($p1 = 1) {
+    $this->__unroll_plus = $p1;
+    return $this;
+}
 
 /*
 =item lex(SCALAR)
@@ -2805,6 +2867,12 @@ You can examine the C<eg/naive> script as a starting point.
 //    $self->{lex} = qr($_[0]);
 //    return $self;
 //}
+function lex ($p1 ) {
+    $this->__lex = $p1;
+    return $this;
+}
+
+
 /*
 =item reduce(0|1)
 
@@ -2824,6 +2892,10 @@ that can consume a non-negligible amount of time).
 //    $self->{reduce} = defined($_[0]) ? $_[0] : 1;
 //    return $self;
 //}
+function reduce ($p1 = 1) {
+    $this->__reduce = $p1;
+    return $this;
+}
 
 /*
 =item mutable(0|1)
@@ -2839,6 +2911,10 @@ to replace its functionality.
 //    $self->{mutable} = defined($_[0]) ? $_[0] : 1;
 //    return $self;
 //}
+function mutable ($p1 = 1) {
+    $this->__mutable = $p1;
+    return $this;
+}
 
 /*
 =item reset
@@ -4358,9 +4434,9 @@ function _unrev_path($path, $ctx) {
         return $new;
 //    }
     }
-        foreach(debug_backtrace() as $_) { 
-            echo $_['function'] . ":" . $_['line']."\n";
-        }
+//        foreach(debug_backtrace() as $_) { 
+//            echo $_['function'] . ":" . $_['line']."\n";
+//        }
 
 //    $debug and print "# ${indent}unrev path in ", _dump($path), "\n";
     if ($debug){ echo "# ${indent}unrev path in ". $this->_dump($path). "\n"; }
