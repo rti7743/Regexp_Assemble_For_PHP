@@ -2,15 +2,11 @@
 require_once("Assemble.pm.php");
 require_once("testutil.php");
 
-$rt = new Regexp_Assemble();
-$context = [ 'debug' => 255, 'depth' => 0 ];
-
-
 $xism = 'xism:';
 
 foreach (
 [
-    [ "(?{$xism}(?:(?:ab?|b)c?)?d)",   'abcd', 'abd', 'acd', 'ad', 'bcd', 'bd', 'd' ],
+    [ "(?{$xism}\\b(?:c[de]|ab)\\b)", 'ab', 'cd', 'ce', ['anchor_word' => 1] ],
 ] as $test) {
     $result = array_shift( $test );
 
@@ -263,7 +259,7 @@ foreach (
         
         $args .= '{';
         foreach($param as $key => $value) {
-            $args .= "key => $value ,";
+            $args .= "$key => $value ,";
         }
         $args .= '}';
     }

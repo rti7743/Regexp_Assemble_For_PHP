@@ -1730,11 +1730,12 @@ function as_string() {
 //                : ''
 //            ;
             $begin = 
-                  $this->__anchor_word_begin   ? '\\b'
-                : $this->__anchor_line_begin   ? '^'
-                : $this->__anchor_string_begin ? '\A'
-                : ''
+                   $this->__anchor_word_begin   ? '\\b'
+                :( $this->__anchor_line_begin   ? '^'
+                :( $this->__anchor_string_begin ? '\A'
+                : ''))
             ;
+
 //            my $end = 
 //                  $self->{anchor_word_end}            ? '\\b'
 //                : $self->{anchor_line_end}            ? '$'
@@ -1743,11 +1744,11 @@ function as_string() {
 //                : ''
 //            ;
             $end = 
-                  $this->__anchor_word_end            ? '\\b'
-                : $this->__anchor_line_end            ? '$'
-                : $this->__anchor_string_end          ? '\Z'
-                : $this->__anchor_string_end_absolute ? '\z'
-                : ''
+                   $this->__anchor_word_end            ? '\\b'
+                :( $this->__anchor_line_end            ? '$'
+                :( $this->__anchor_string_end          ? '\Z'
+                :( $this->__anchor_string_end_absolute ? '\z'
+                : '')))
             ;
 //            $self->{str} = "$begin$self->{str}$end";
             $this->__str = "{$begin}{$this->__str}{$end}";
