@@ -1,7 +1,9 @@
 <?php
 require_once("Assemble.pm.php");
 require_once("testutil.php");
-match( 'un*ed', 'unimped','unimpeded','unimpelled');
+//match_list( 'POSIX', ['X[0[:alpha:]%]','Y[1-4[:punct:]a-c]'] , ['X0','X%','Xa','Xf','Y1','Y;','Y!','yc'] );
+
+//match_list( 'c.z', ['c^z','c-z','c5z','cmz'] , ['c^z','c-z','c5z','cmz'] );
 
 /*
 # 04_match.t
