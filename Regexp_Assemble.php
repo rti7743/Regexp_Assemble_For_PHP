@@ -26,163 +26,6 @@ php5.2はアクティブサポートが終了しているようだし、まぁ�
 移植した人 rti  (super.rti@gmail.com)  (@super_rti) ( http://rtilabs.net/ )
 */
 
-//最後の添字を取得する.
-function perl_lastindex(array $array)
-{
-    $p = array_keys($array);
-    return array_pop($p);
-}
-
-//perlのgrepに相当する関数
-//array_filter って array_map とコールバックが逆なんで統一しておく。めんどいから。
-function perl_grep($function ,array $array) {
-    if ( ! is_array($array) )
-    {
-    	return array();
-    }
-    return array_filter($array , $function);
-}
-
-//perl の sort phpのsort関数はC言語と同じ自己破壊のクソ仕様なんで・・・
-function perl_sort($function , $array = NULL)
-{
-    if ($array === NULL) {
-       //arrayが省略された場合、 第一引数が arrayになる。
-       usort($function , function($a,$b){ return strcmp($a,$b); } );
-       return $function;
-    }
-    else { 
-       usort($array , $function);
-       return $array;
-    }
-}
-
-//resort でソートする. 
-function perl_sort_resort(array $array) {
-   usort($array , 
-         //sub _re_sort {
-         function ( $a, $b) {
-         //    return length $b <=> length $a || $a cmp $b
-             $_temp_len_a = strlen($a);
-             $_temp_len_b = strlen($b);
-
-             if ( $_temp_len_b > $_temp_len_a ) {
-                 return 1;
-             }
-             else if ( $_temp_len_b < $_temp_len_a ) {
-                 return -1;
-             }
-
-             // $a == $b
-             return strcmp( 
-                   $a 
-                   ,
-                   $b 
-             );
-         //}
-         }
-   );
-   return $array;
-}
-
-//perl の配列/Array定義のエミュレーション.
-function perl_array($a,$b,$c = NULL){
-    if ( is_array($a) ) {
-        $r = $a;
-    }
-    else {
-        $r = array( $a );
-    }
-
-    if ( is_array($b) ) {
-        $r = array_merge($r,$b);
-    }
-    else {
-        $r[] = $b;
-    }
-
-    if ( $c !== NULL ) {
-        if ( is_array($c) ) {
-            $r = array_merge($r,$c);
-        }
-        else {
-            $r[] = $c;
-        }
-    }
-
-    return $r;
-}
-
-//perlの配列の [$a , @b]  などをエミュレート
-function perl_array2($a,array $b,$c = NULL){
-    return perl_array(array($a),$b,$c);
-}
-            
-function perl_reverse($p) {
-    if ( is_array($p) ){
-        return array_reverse($p);
-    }
-    else {
-        return strrev($p);
-    }
-}
-
-//ハッシュぽいか調べるみたいな・・・
-function perl_is_hash(array $array) {
-    //キーが0から連番で数字で入っていれば多分配列。
-    //そうでなければ、ハッシュとみなす.
-    $count = 0;
-    foreach(array_keys($array) as $n) {
-        if ($n !== $count++) {
-            //個数が違うのでハッシュだろう
-            return true;
-        }
-    }
-    
-    //文字列の数字の 0 ならばハッシュである.
-    if ( $count >= 1 ) {
-        if ($array[0] === '0') {
-            return true;
-        }
-        //なんか、もう一個下のレイヤーも調べないとだめらしい。
-        if ( isset($array[0][0]) && $array[0][0] === '0') {
-            return true;
-        }
-    }
-    return false;
-}
-
-//正規表現メタ文字エスケープ preg_meta だと @ とかが無視されるので、作る。
-function perl_quotemeta($str) {
-   foreach( array('\\' , '.', '+', '*', '?', '[', '^', ']', '$', '(', ')', '{', '}', '=', '!', '<', '>', '|', ':', '-', '/','@') 
-            as $meta) {
-       $str = str_replace($meta , "\\{$meta}" , $str  );
-   }
-   
-   return $str;
-}
-
-//@_ をエミュレーション
-function perl_args_($args)
-{
-   $arr = array();
-   foreach($args as $_) {
-      if ( is_array($_) ) {
-          $arr = array_merge($arr , $_);
-      }
-      else{
-         $arr[] = $_;
-      }
-   }
-   return $arr;
-}
-
-//未初期化警告を出さないインクリメント
-function perl_inclement(&$p) {
-    if ( isset($p) ) $p = 0;
-    return ++$p ;
-}
-
 /*
 # Regexp::Assemple.pm
 #
@@ -299,6 +142,8 @@ var $__dup_warn ;
 var $__chomp ;
 var $__filter ;
 var $__pre_filter ;
+
+var $__mvar;
 
 var $__m;
 var $__mcount;
@@ -522,6 +367,7 @@ function __construct($args = array() ) {
     $this->__stats_raw = 0;
     $this->__mbegin = array();
     $this->__mend = array();
+    $this->__mvar = array();
 
 //    $args{flags} ||= delete $args{modifiers} || '';
     if (isset($args['modifiers'])) {
@@ -544,8 +390,8 @@ function __construct($args = array() ) {
         $this->__lex = NULL;
     }
 
-//今はディフォルトでデバッグ状態にする.
-$this->__debug = 255;
+//フルデバッグしまっか？
+//$this->__debug = 255;
 
 //    my $self = bless \%args, $class;    //class
 
@@ -835,7 +681,7 @@ function _fastlex($record){
 //                    : "\\$token$qualifier";
                 if ($unroll_plus && preg_match("/\A\+(\?)?\Z/u",$qualifier,$pregNum) ){
                      $qualifier = preg_replace('/\A\+(\?)?\Z/u','*' , $qualifier);
-                     $path[] = perl_array( "\\$token" , "\\$token$qualifier".(isset($pregNum[1]) ? $pregNum[1] : '') );
+                     $path[] = $this->_perl_array( "\\$token" , "\\$token$qualifier".(isset($pregNum[1]) ? $pregNum[1] : '') );
                 }
                 else{
                      $path[] = "\\$token$qualifier";
@@ -850,7 +696,7 @@ function _fastlex($record){
                 if ($debug){ echo "#   x $pregNum[1]\n"; }
 
 //                $token = quotemeta(chr(hex($1)));
-                $token = perl_quotemeta(chr(hexdec($pregNum[1])));
+                $token = $this->_perl_quotemeta(chr(hexdec($pregNum[1])));
 
 //                $qualifier = $2;
                 $qualifier = $pregNum[2];
@@ -869,7 +715,7 @@ function _fastlex($record){
 //                    : "$token$qualifier";
                 if ($unroll_plus && preg_match("/\A\+(\?)?\Z/u",$qualifier,$pregNum)){
                      $qualifier = preg_replace('/\A\+(\?)?\Z/u','*' , $qualifier);
-                     $path[] = perl_array("$token" , "$token$qualifier" .  isset($pregNum[1]) ? $pregNum[1] : '' );
+                     $path[] = $this->_perl_array("$token" , "$token$qualifier" .  isset($pregNum[1]) ? $pregNum[1] : '' );
                 }
                 else{
                      $path[] = "$token$qualifier";
@@ -924,7 +770,7 @@ function _fastlex($record){
             else if ( preg_match("/^$misc_matcher/u",$stripRecord , $pregNum) ){
                 $stripRecord = substr($stripRecord , strlen($pregNum[0]) ); // \G なので削る
 
-                $arg = perl_grep( function($_){ return $_ !== ''; }  , array_slice($pregNum , 1) );
+                $arg = $this->_perl_grep( function($_){ return $_ !== ''; }  , array_slice($pregNum , 1) );
 
 //                if ($] < 5.007) {   //skip old version
 //                    my $len = 0;
@@ -962,7 +808,7 @@ function _fastlex($record){
                       }
                 }
 //                $path[-1] .= join( '', @arg ); # if @arg;
-                $path[perl_lastindex($path)] .= join( '', $arg ); // if @arg;
+                $path[$this->_perl_lastindex($path)] .= join( '', $arg ); // if @arg;
 //                redo;
                 continue;
             }
@@ -1006,7 +852,7 @@ function _fastlex($record){
 //            if ($class =~ /\A\[\\?(.)]\Z/) {
             if (preg_match("/\A\[\\\\?(.)]\Z/u" , $class , $pregNum ) ){
 //                $class = quotemeta $1;
-                $class = perl_quotemeta($pregNum[1]);
+                $class = $this->_perl_quotemeta($pregNum[1]);
 //                $class =~ s{\A\\([!@%])\Z}{$1};
                 $class = preg_replace("#\A\\\\([!@%])\Z#u","\${1}",$class);
 //                $debug and print "#  class unwrap $class\n";
@@ -1020,7 +866,7 @@ function _fastlex($record){
 //                : "$class$qualifier";
             if ($unroll_plus && preg_match("/^\A\+(\?)?\Z/u",$qualifier,$pregNum)){
                 $qualifier = preg_replace("/^\A\+(\?)?\Z/u","/*/",$qualifier);
-                $path[] = perl_array($class , "$class$qualifier". (isset($pregNum[1]) ? $pregNum[1]  : ''));
+                $path[] = $this->_perl_array($class , "$class$qualifier". (isset($pregNum[1]) ? $pregNum[1]  : ''));
             }
             else{
                 $path[] = "$class$qualifier";
@@ -1167,7 +1013,7 @@ function _lex($record){
 //                elsif( $token =~ /^\\x([\da-fA-F]{2})$/ ) {
                 else if ( preg_match("/^\\\\x([\da-fA-F]{2})$/u",$token , $pregNum) ) {
 //                    $token = quotemeta(chr(hex($1)));
-                    $token = perl_quotemeta(chr(hexdec($pregNum[1])));
+                    $token = $this->_perl_quotemeta(chr(hexdec($pregNum[1])));
 //                    $debug and print "#  cooked <$token>\n";
                     if ($debug){ echo "#  cooked <$token>\n"; }
 //                    $token =~ s/^\\([^\w$()*+.?@\[\\\]^|{\/])$/$1/; # } balance
@@ -1194,7 +1040,7 @@ function _lex($record){
                 }
 //                $qm   and $token = quotemeta($token);
                 if ($qm){
-                     $token = perl_quotemeta($token);
+                     $token = $this->_perl_quotemeta($token);
                 }
 //                $token = '\\/' if $token eq '/';
                 if ($token == '/'){
@@ -1247,7 +1093,7 @@ function _lex($record){
 //        $debug and print "#   add remaining <$remain> case=<$case> qm=<$qm>\n";
         if ($debug){    echo "#   add remaining <$remain> case=<$case> qm=<$qm>\n";    }
 //        push @path, $remain;
-/////        $path = perl_push($path, $remain);
+/////        $path = $this->_perl_push($path, $remain);
         $path[] = $remain;
 //    }
     }
@@ -1268,12 +1114,13 @@ function add($p1){
     $debug       = $this->__debug & $this->DEBUG_LEX;
 
 //    while( defined( $record = shift @_ )) {
-    foreach( perl_args_(func_get_args()) as $record ) {
+    foreach( $this->_perl_args_(func_get_args()) as $record ) {
 //        CORE::chomp($record) if $self->{chomp};
         $record = rtrim($record);
         
 //        next if $self->{pre_filter} and not $self->{pre_filter}->($record);
-        if ( is_callable($this->__pre_filter) && ! $this->__pre_filter($record) ) {
+        if ( is_callable($this->__pre_filter) 
+          && ! call_user_func_array($this->__pre_filter,$record) ) {
             continue;
         }
 
@@ -1294,7 +1141,8 @@ function add($p1){
               : preg_split("//u" ,$record , -1 , PREG_SPLIT_NO_EMPTY);
 
 //        next if $self->{filter} and not $self->{filter}->(@$list);
-          if ( is_callable($this->__filter) && ! $this->__filter($list) ) {
+          if ( is_callable($this->__filter) 
+            && ! call_user_func_array($this->__filter, array($list)  ) ) {
               continue;
           }
 
@@ -1390,7 +1238,7 @@ function add_file($filename) {
 //        $rs   = $self->{input_record_separator} || $/;
         $rs   = $this->input_record_separator || '/';
 //        @file = @_;
-        $file = perl_args_(func_get_args());
+        $file = $this->_perl_args_(func_get_args());
     }
 //    local $/ = $rs;
 //    my $file;
@@ -1447,12 +1295,13 @@ C<insert> directly can be a big win.
 function insert() {
 //    return if $self->{filter} and not $self->{filter}->(@_);
     if (is_callable($this->__filter)) {
-        $r = $this->__filter( perl_args_(func_get_args()) );
-        if ($r) return $r;
+        $r = call_user_func_array($this->__filter,array( $this->_perl_args_(func_get_args()) )  );
+        if (!$r) return $r;
     }
+    
 //    $self->_insertr( [@_] );
     $arr = array();
-    foreach(perl_args_(func_get_args()) as $_) {
+    foreach($this->_perl_args_(func_get_args()) as $_) {
         $arr[] = (string)$_;
     }
     $this->_insertr( $arr );
@@ -1486,9 +1335,9 @@ function _insertr(array $p1) {
 //    elsif( $self->{dup_warn} ) {
     else if( $this->__dup_warn ) {
 //        if( ref $self->{dup_warn} eq 'CODE' ) {
-        if ( iscallabe( $this->__dup_warn ) ) {
+        if ( is_callable( $this->__dup_warn ) ) {
 //            $self->{dup_warn}->($self, $_[0]); 
-            $this->dup_warn($p1); 
+            $r = call_user_func_array($this->__dup_warn, array($p1) );
 //        }
         }
 //        else {
@@ -1567,7 +1416,7 @@ This method is chainable.
 //    my $pre_filter = shift;
 function pre_filter($pre_filter = NULL) {
 //    if( defined $pre_filter and ref($pre_filter) ne 'CODE' ) {
-    if( !iscallabe($pre_filter)) {
+    if( !is_callable($pre_filter)) {
 //        require Carp;
 //        Carp::croak("pre_filter method not passed a coderef");
         trigger_error("pre_filter method not passed a coderef");
@@ -1618,7 +1467,7 @@ This method is chainable.
 //    my $filter = shift;
 function filter($filter = NULL) {
 //    if( defined $filter and ref($filter) ne 'CODE' ) {
-    if( !iscallabe($filter)) {
+    if( !is_callable($filter)) {
 //        require Carp;
 //        Carp::croak("filter method not passed a coderef");
         trigger_error("filter method not passed a coderef");
@@ -1690,7 +1539,7 @@ function as_string() {
                 $this->_reduce();
             }
 //            my $arg  = {@_};
-            $arg  = perl_args_(func_get_args());
+            $arg  = $this->_perl_args_(func_get_args());
 //            $arg->indent = $self->indent;
 //                if not exists $arg->{indent} and $self->{indent} > 0;
             if ( !isset($arg['indent']) && $this->__indent > 0){
@@ -1937,8 +1786,11 @@ not require any Perl code to be executed during the match.
 function match($target) {
     $pregNum = array();
 //    $self->_build_re($self->as_string(@_)) unless defined $self->{re};
-    if ($this->__re) {
-        $this->_build_re($this->as_string(perl_args_(func_get_args())));
+
+    if (!$this->__re) {
+        $this->_build_re($this->as_string(
+             $this->_perl_args_( array_slice( func_get_args() , 1) ) //$target より次の第二引数以降がほしい.
+        ));
     }
 //    $self->{m}    = undef;
     $this->__m = NULL;
@@ -1946,7 +1798,7 @@ function match($target) {
     $this->__mvar = array();
 
 //    if( not $target =~ /$self->{re}/ ) {
-    if( !preg_match("/{$this->__re}/u",$target,$pregNum, PREG_OFFSET_CAPTURE) ) {
+    if( !preg_match('/'.$this->__re.'/u',$target,$pregNum, PREG_OFFSET_CAPTURE) ) {
 //        $self->{mbegin} = [];
         $this->__mbegin = array();
 //        $self->{mend}   = [];
@@ -1955,11 +1807,13 @@ function match($target) {
         return NULL;
 //    }
     }
+    
+    
 //    $self->{m}      = $^R if $] >= 5.009005;
-    $lastindex = perl_lastindex($pregNum);
+    $lastindex = $this->_perl_lastindex($pregNum);
     $this->__m = $pregNum[$lastindex][0];
 //    $self->{mbegin} = _path_copy([@-]);
-    $this->__mbegin = $this->_path_copy($pregNum[1][1]);
+    $this->__mbegin = $this->_path_copy($pregNum[0][1]);
 //    $self->{mend}   = _path_copy([@+]);
     $this->__mend = $this->_path_copy($pregNum[$lastindex][1]);
 //    my $n = 0;
@@ -1967,11 +1821,12 @@ function match($target) {
 
 //http://imawamukashi.web.fc2.com/Perl/TokushuHensu.html#array_last_match_start
 //    for( my $n = 0; $n < @-; ++$n ) {
-    for($n = 0 ; $n < count($pregNum) ; $n ++ ) {
+    $pregMax = count($pregNum);
+    for($n = 0 ; $n < $pregMax ; $n ++ ) {
 //        push @{$self->{mvar}}, substr($target, $-[$n], $+[$n] - $-[$n])
 //            if defined $-[$n] and defined $+[$n];
-          if ($pregNum[$n][1] && $pregNum[-1 * $n][1] ) {
-               $this->__mvar[] = substr($target, $pregNum[$n][1], $pregNum[-1 * $n][1] - $pregNum[$n][1]);
+          if ($pregNum[$n][1] && $pregNum[$pregMax - $n][1] ) {
+               $this->__mvar[] = substr($target, $pregNum[$n][1], $pregNum[$pregMax - $n][1] - $pregNum[$n][1]);
           }
 //    }
     }
@@ -2015,7 +1870,7 @@ tracked mode, this method returns C<undef>.
 */
 //sub source {
 //    my $self = shift;
-function source($p1) {
+function source($p1 = NULL) {
 //    return unless $self->{track};
     if (! $this->__track ) {
         return $this->__track;
@@ -2085,7 +1940,7 @@ function mvar($p1 = NULL) {
         return NULL;
     }
 //    return defined($_[0]) ? $self->{mvar}[$_[0]] : $self->{mvar};
-    return $_[0] === NULL ? $this->__mvar[$p1] : $this->__mvar;
+    return $p1 === NULL ? $this->__mvar[$p1] : $this->__mvar;
 //}
 }
 /*
@@ -2270,7 +2125,7 @@ to the object in question, and the lexed pattern.
 //    return $self;
 //}
 function dup_warn ($p1 = 1) {
-    $this->__dup_warn = $p1;
+    $this->__dup_warn = $p1; //PHPでは無理じゃね？
     return $this;
 }
 
@@ -2806,7 +2661,7 @@ function flags($p1 = '') {
 //    my $self = shift;
 function modifiers() {
 //    return $self->flags(@_);
-    return $this->__flags( perl_args_(func_get_args()) );
+    return $this->__flags( $this->_perl_args_(func_get_args()) );
 //}
 }
 /*
@@ -2835,6 +2690,10 @@ reduced to C<di[gm]>.
 //sub track {
 //    my $self = shift;
 function track($p1 = 1) {
+    if ($p1 == 1) {
+       trigger_error("Tracking of a regular expression is not made in PHP.");
+    }
+
 //    $self->{track} = defined($_[0]) ? $_[0] : 1;
     $this->__track = $p1;
 //    return $self;
@@ -3103,6 +2962,7 @@ function _insert_path($list , $debug , $in) {
         }
 //    }
     }
+    
 //    while( defined( $token = shift @in )) {
     while( ($token = array_shift($in)) !== NULL ) {
 
@@ -3128,13 +2988,13 @@ function _insert_path($list , $debug , $in) {
 //            if( exists( $node->{$token} )) {
             if( isset( $node[$token] ) ) {
 //                if ($offset < $#$path) {
-                if ($offset < perl_lastindex($path) ) { 
+                if ($offset < $this->_perl_lastindex($path) ) { 
 //                    my $new = {
 //                        $token => [$token, @in],
 //                        _re_path($self, [$node]) => [@{$path}[$offset..$#$path]],
 //                    };
                     $new = array(
-                         $token => perl_array2($token, $in) , //perl_array2に変更
+                         $token => $this->_perl_array(array($token), $in) ,  //token をarrayで囲む必要あり
                          $this->_re_path( array($node) ) => array_slice($path,$offset)
                     );
 //                    splice @$path, $offset, @$path-$offset, $new;
@@ -3151,7 +3011,7 @@ function _insert_path($list , $debug , $in) {
 //                    $offset = 0;
 //                    redo;
                     //オリジナルは参照を使って実装しているが、再起を使って実装してみる。
-                    $path[$offset][$token] = $this->_insert_path( $path[$offset][$token] , $debug , perl_array($token, $in) ) ;
+                    $path[$offset][$token] = $this->_insert_path( $path[$offset][$token] , $debug , $this->_perl_array($token, $in) ) ;
                     return $path;
 //                }
                 }
@@ -3160,13 +3020,13 @@ function _insert_path($list , $debug , $in) {
 //            else {
             else {
 //                $debug and print "#   add path ($token:@{[_dump(\@in)]}) into @{[_dump($path)]} at off=$offset to end=@{[scalar $#$path]}\n";
-                if ($debug) { echo "#   add path ($token:".$this->_dump($in).") into ".$this->_dump($path)." at off=$offset to end=".perl_lastindex($path)."\n"; }
+                if ($debug) { echo "#   add path ($token:".$this->_dump($in).") into ".$this->_dump($path)." at off=$offset to end=".$this->_perl_lastindex($path)."\n"; }
 
 //                if( $offset == $#$path ) {
-                if ( $offset == perl_lastindex($path)  ) {
+                if ( $offset == $this->_perl_lastindex($path)  ) {
 //                    $node->{$token} = [ $token, @in ];
-                      $path[$offset][$token] = perl_array2($token,$in); //nodeを参照にしていないため $path で受ける.
-                    if ($debug) { echo "#   offset({$offset}) eq lastindex=".perl_lastindex($path)." path=".$this->_dump($path)."\n"; }
+                      $path[$offset][$token] = $this->_perl_array(array($token),$in); //nodeを参照にしていないため $path で受ける. token をarrayで囲む必要あり
+                    if ($debug) { echo "#   offset({$offset}) eq lastindex=".$this->_perl_lastindex($path)." path=".$this->_dump($path)."\n"; }
 //                }
                 }
 //                else {
@@ -3176,7 +3036,7 @@ function _insert_path($list , $debug , $in) {
 //                        _node_key($node)  => [@{$path}[$offset..$#{$path}]],
 //                    };
                     $new = array(
-                         $this->_node_key( $token ) => perl_array2($token, $in), //perl_array2に変更
+                         $this->_node_key( $token ) => $this->_perl_array(array($token), $in), //token をarrayで囲む必要あり
                          $this->_node_key( $node ) => array_slice($path,$offset)
                     );
 //                    splice( @$path, $offset, @$path - $offset, $new );
@@ -3214,15 +3074,14 @@ function _insert_path($list , $debug , $in) {
 //            }
             }
 //            print "# at path ($msg)\n";
-            echo "# at path ($msg)\n";
+//            echo "# at path ($msg)\n";
 //        }
         }
 
 //        if( $offset >= @$path ) {
         if( $offset >= count($path) ) {
 //            push @$path, { $token => [ $token, @in ], '' => undef };
-////            $path = perl_push($path,  array( $token => perl_array2( $token, $in ), '' => 0 ) );
-              $path[] = array( $token => perl_array2( $token, $in ), '' => 0 );
+              $path[] = array( $token => $this->_perl_array( array($token), $in ), '' => 0 ); //token をarrayで囲む必要あり
 //            $debug and print "#   added remaining @{[_dump($path)]}\n";
             if ($debug) { echo "#   added remaining ".$this->_dump($path)."\n"; }
 //            last;
@@ -3241,7 +3100,7 @@ function _insert_path($list , $debug , $in) {
 //                $path->[$offset] => [@{$path}[$offset..$#{$path}]],
 //            };
             $_temp_path = strlen($token) 
-                ?  array( $this->_node_key($token) => perl_array($token , $in) ) ////perl_array2?
+                ?  array( $this->_node_key($token) => $this->_perl_array($token , $in) ) ////ここは囲まないでもいいんだよなぁ・・なんで？
                 :  array( '' => 0 )
             ;
             $_temp_path[ $path[$offset] ] = array_slice($path , $offset);
@@ -3340,7 +3199,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                };
                 $new = array(
                     $path_key  => $path_end ,
-                    $token_key => perl_array2( $token, $lostparam )
+                    $token_key => $this->_perl_array( array($token), $lostparam ) //token をarrayで囲む必要あり
                 );
 //                $debug and print "#   +bifurcate new=@{[_dump($new)]}\n";
                 if ($debug){ echo "#   +bifurcate new=".$this->_dump($new)."\n"; }
@@ -3360,7 +3219,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                        ref($token) ? _dump($token) : $token, "\n";
                     if ( $debug ){ echo "#  identical nodes in sub_path ". (is_array($token) ? $this->_dump($token) : $token) . "\n"; }
 //                    push @$new_path, shift(@$old_path);
-///////                    $new_path = perl_push($new_path, array_shift($old_path) );
+///////                    $new_path = $this->_perl_push($new_path, array_shift($old_path) );
                     $new_path[] = array_shift($old_path) ;
 //                    $token = shift @_;
                     $token = array_shift($lostparam);
@@ -3372,10 +3231,6 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
                     $new = NULL;
 //                    my $token_key = $token;
                     $token_key2 = $token; //同じ関数の中に同名の変数を作るんじゃねーよ
-                    if (is_array($token_key2)){
-                        //リファレンスになることがあるらしい....
-                        $token_key2 = '__ref:' .json_encode($token_key2);
-                    }
 
 //                    if( @_ ) {
                     if( count($lostparam) >= 1 ) {
@@ -3385,7 +3240,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                        };
                         $new = array(
                             $this->_re_path($old_path) => $old_path,
-                            $token_key2 => perl_array2( $token, $lostparam )
+                            $this->_perl_reference_to_key($token_key2) => $this->_perl_array( array($token), $lostparam ) //token をarrayで囲む必要あり
                         );
                         
 //                        $debug and print "#  insert_node(bifurc) n=@{[_dump([$new])]}\n";
@@ -3414,7 +3269,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                    $debug and print "#   +_insert_node new_path=@{[_dump($new_path)]}\n";
                     if ($debug) { echo "#   +_insert_node new_path=".$this->_dump($new_path)."\n"; }
 //                    push @$new_path, $new;
-//////////                    $new_path = perl_push( $new_path , $new );
+//////////                    $new_path = $this->_perl_push( $new_path , $new );
                     $new_path[] = $new ;
 //                    $debug and print "#   +_insert_node new=@{[_dump($new)]}\n";
                     if ($debug) { echo "#   +_insert_node new=".$this->_dump($new)."\n"; }
@@ -3447,7 +3302,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                };
                   $new = array(
                       $path_key  => $path_end,
-                      $token_key => perl_array2( $token, $lostparam )
+                      $token_key => $this->_perl_array( array($token), $lostparam )  //token をarrayで囲む必要あり
                   );
 
 //                $debug and print "#   path->node1 at $path_key/$token_key @{[_dump($new)]}\n";
@@ -3461,7 +3316,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                $debug and print "#   next in path is node, trivial insert at $token_key\n";
                 if ($debug){ echo "#   next in path is node, trivial insert at $token_key\n"; }
 //                $path_end->[0]{$token_key} = [$token, @_];
-                $path_end[0][$token_key] = perl_array2($token, $lostparam);
+                $path_end[0][$token_key] = $this->_perl_array( array($token) , $lostparam);   //token をarrayで囲む必要あり
 //                splice( @$path, $offset, @$path_end, @$path_end );
                 array_splice( $path, $offset, count($path_end), $path_end ); //@$ なので array を重ねる必要なしかな・・
                 
@@ -3495,7 +3350,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                $debug and print "#   insert at $offset $token:@{[_dump(\@_)]} into @{[_dump($path_end)]}\n";
                 if ($debug) { echo "#   insert at $offset $token:".$this->_dump($lostparam)." into ".$this->_dump($path_end)."\n"; }
 //                $path_end = $self->_insert_path( $path_end, $debug, [$token, @_] );
-                $path_end = $this->_insert_path( $path_end, $debug, perl_array2($token, $lostparam) );
+                $path_end = $this->_insert_path( $path_end, $debug, $this->_perl_array( array($token) , $lostparam) );  //token をarrayで囲む必要あり
 //                $debug and print "#   got off=$offset s=@{[scalar @_]} path_add=@{[_dump($path_end)]}\n";
                 if ($debug) { echo "#   got off=$offset s=".count($lostparam)." path_add=".$this->_dump($path_end)."\n"; }
 //                splice( @$path, $offset, @$path - $offset, @$path_end );
@@ -3514,12 +3369,12 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //                };
                 $new = array(
                     ''         => 0,
-                    $token_key => perl_array2( $token, $lostparam ),
+                    $token_key => $this->_perl_array( array($token) , $lostparam ), //token をarrayで囲む必要あり
                 );
 //                $debug and print "#   convert opt @{[_dump($new)]}\n";
                 if ( $debug ) { echo "#   convert opt ".$this->_dump($new)."\n"; }
 //                push @$path, $new;
-////////                $path = perl_push($path , $new );
+////////                $path = $this->_perl_push($path , $new );
                 $path[] = $new;
 //            }
             }
@@ -3537,7 +3392,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //            };
             $new = array(
                 $path_end[0] => $path_end ,
-                $token_key   => perl_array2( $token, $lostparam )
+                $token_key   => $this->_perl_array( array($token), $lostparam ) //token をarrayで囲む必要あり
             );
 //            $debug and print "#   atom->node @{[_dump($new)]}\n";
             if ( $debug ){ echo "#   atom->node ".$this->_dump($new)."\n"; }
@@ -3552,20 +3407,15 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //        else {
         else {
 //            $debug and print "#   add opt @{[_dump([$token,@_])]} via $token_key\n";
-            if ( $debug ) { echo "#   add opt ".$this->_dump(perl_array2($token,$lostparam))." via $token_key\n"; }
+            if ( $debug ) { echo "#   add opt ".$this->_dump($this->_perl_array(array($token),$lostparam))." via $token_key\n"; }
 //            push @$path, {
 //                ''         => undef,
 //                $token_key => [ $token, @_ ],
 //            };
 
-////////            $path = perl_push( $path , array(
-////////                  '' => 0,
-////////                  $token_key => perl_array2( $token, $lostparam )
-////////                )
-////////            );
             $path[]=  array(
                   '' => 0,
-                  $token_key => perl_array2( $token, $lostparam )
+                  $token_key => $this->_perl_array( array($token), $lostparam ) //token をarrayで囲む必要あり
                   );
 //        }
         }
@@ -3623,7 +3473,7 @@ function _reduce() {
 //            @{_unrev_path( $tail, $context )},
 //            @{_unrev_path( $head, $context )},
 //        ];
-        $this->__path = perl_array(
+        $this->__path = $this->_perl_array(
             $this->_unrev_path( $tail, $context ),
             $this->_unrev_path( $head, $context )
         );
@@ -3706,15 +3556,13 @@ function _reduce_path($path, $ctx) {
             if ($debug) { echo "#$indent| head=", $this->_dump($node_head), " tail=", $this->_dump($node_tail), "\n"; }
 //            push @$head, @$node_head if scalar @$node_head;
             if ( count( $node_head) >= 1 ) {
-//////                 $head = perl_push2($head ,$node_head );
                  $head = array_merge($head , $node_head);
             }
 //            push @$tail, ref($node_tail) eq 'HASH' ? $node_tail : @$node_tail;
-             if (perl_is_hash($node_tail)) {
+             if ($this->_perl_is_hash($node_tail)) {
                  $tail[] = $node_tail;
              }
              else {
-////                 $tail = perl_push($tail , $node_tail);
                  $tail = array_merge($tail , $node_tail);   //push @tail , @node_tail なので混ぜる
              }
 
@@ -3754,12 +3602,10 @@ function _reduce_path($path, $ctx) {
 //    ) {
     if( count($tail) > 1
         && is_array($tail[0])
-        && count(array_keys($tail[0])) == 2
+        && count($tail[0]) == 2
     ) {
 //        my $opt;
-        $opt = NULL;
 //        my $fixed;
-        $fixed = NULL;
 //        while( my ($key, $path) = each %{$tail->[0]} ) {
         foreach( $tail[0] as $key => $path ) {
 //            $debug and print "#$indent| scan k=$key p=@{[_dump($path)]}\n";
@@ -3816,17 +3662,13 @@ function _reduce_node($node, $ctx) {
 //    $debug and print "#$indent _reduce_node $ctx->{depth} in @{[_dump($node)]} opt=$optional\n";
     if ($debug) { echo "#$indent _reduce_node {$ctx['depth']} in " . $this->_dump($node) ." opt=$optional\n"; }
 
-//        foreach(debug_backtrace() as $_) { 
-//            echo $_['function'] . ":" . $_['line']."\n";
-//        }
-
 //    if( $optional and scalar keys %$node == 1 ) {
     if( $optional and count($node) == 1 ) {
 //        my $path = (values %$node)[0];
         $path = array_values($node) ;
         $path = $path[0];
 //        if( not grep { ref($_) eq 'HASH' } @$path ) {
-        if( ! perl_grep(function($_) { return is_array($_); } ,$path ) ) {
+        if( ! $this->_perl_grep(function($_) { return is_array($_); } ,$path ) ) {
 //            # if we have removed an optional, and there is only one path
 //            # left then there is nothing left to compare. Because of the
 //            # optional it cannot participate in any further reductions.
@@ -3909,7 +3751,6 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
         if ( $debug ) { echo "#$indent| _reduce_fail1 path:" . $this->_dump($path)." key: " . $this->_dump($p) . "\n"; }
         
 //        if( scalar @$path == 1 ) {
-//        if( 1 ) { //とりあえずこれで勘弁して。
         if( count($path) <= 1 ) {
 
 //            $path = $path->[0];
@@ -3942,10 +3783,9 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
 //                ),
 //                @{_unrev_path($common, _descend($ctx) )}
 //            ];
-//これでいいんか・・・？
-            $path = perl_array(
+            $path = $this->_perl_array(
                 array(
-                    perl_is_hash($tail)
+                    $this->_perl_is_hash($tail)
                         ? $this->_unrev_node($tail, $this->_descend($ctx) )
                         : $this->_unrev_path($tail, $this->_descend($ctx) )
                 ),
@@ -4027,7 +3867,7 @@ function _scan_node( $node, $ctx ) {
 
           $_temp_map[] =  join( '|' ,
                array(
-                    count( perl_grep( function($__){ return is_array($__); } ,$node[$_]  ) ) , 
+                    count( $this->_perl_grep( function($__){ return is_array($__); } ,$node[$_]  ) ) , 
                     $this->_node_offset($node[$_]),
                     count($node[$_])
                )
@@ -4035,7 +3875,7 @@ function _scan_node( $node, $ctx ) {
       }
 
       $_temp_map2 = array();
-      foreach ( perl_sort($_temp_map) as $_ ) {
+      foreach ( $this->_perl_sort($_temp_map) as $_ ) {
           $_temp_separator = strpos($_, '#')+1;   //#の区切り文字を活用
           if (strlen($_) > $_temp_separator){
               $_temp_map2[] =  substr($_, $_temp_separator);
@@ -4048,7 +3888,7 @@ function _scan_node( $node, $ctx ) {
 
       foreach ($_temp_map2 as $n ) {
 //        my( $end, @path ) = reverse @{$node->{$n}};
-        $path = perl_reverse($node[$n]);
+        $path = $this->_perl_reverse($node[$n]);
         $end = array_shift($path);
         if ($debug) { echo "# $indent|_scan_node end:$end  path:".$this->_dump($path)."\n"; }
 
@@ -4058,9 +3898,9 @@ function _scan_node( $node, $ctx ) {
             if ($debug) { echo "# $indent|_scan_node push reduce ($end:".$this->_dump($path).")\n"; }
 //            push @{$reduce{$end}}, [ $end, @path ];
             if (!isset($reduce[$end])) $reduce[$end] = array();
-/////               $reduce[$end] = perl_push( $reduce[$end] , perl_array( $end, $path ) );
-/////               $reduce[$end] = perl_push( $reduce[$end] , [perl_array( $end, $path ) ] ); //配列がひとつネストするらしい？
-            $reduce[$end][] = perl_array( $end, $path ) ;
+/////               $reduce[$end] = $this->_perl_push( $reduce[$end] , $this->_perl_array( $end, $path ) );
+/////               $reduce[$end] = $this->_perl_push( $reduce[$end] , [$this->_perl_array( $end, $path ) ] ); //配列がひとつネストするらしい？
+            $reduce[$end][] = $this->_perl_array( $end, $path ) ;
 //        }
         }
 //        else {
@@ -4080,33 +3920,24 @@ function _scan_node( $node, $ctx ) {
                     list($key, $opt_path) = each($end);
                 }
 //                $opt_path = [reverse @{$opt_path}];
-                $opt_path =  perl_reverse($opt_path) ;
+                $opt_path =  $this->_perl_reverse($opt_path) ;
 //                $debug and print "# $indent| check=", _dump($opt_path), "\n";
                 if ($debug) { echo "# $indent| check=", $this->_dump($opt_path), "\n"; }
 //                my $end = { '' => undef, $opt_path->[0] => [@$opt_path] };
-////////////    $opt_path->[0]は、リファレンスなので直接表現できない。
-////////////                $end2 = [ '' => 0, $opt_path[0] => $opt_path ];
-//////////// このendは上のスコープにも同盟の変数がありますので end2 とします。
-                if ( is_array($opt_path[0]) ) {
-                     $end2 = array( '' => 0, '__ref:' .json_encode($opt_path[0]) => $opt_path );
-                }
-                else {
-                     $end2 = array( '' => 0, $opt_path[0] => $opt_path );
-                }
+                $end2 = array( '' => 0, $this->_perl_reference_to_key($opt_path[0]) => $opt_path );
 
                if ( $debug ) { echo "# $indent|_scan_node end=", $this->_dump($end2), ' path=', $this->_dump($path), "\n"; }
 
 //                my $head = [];
                 $head = array();
 //                my $path = [@path];
-//不要                $path = [ $path ];
-
+//不要
 //                ($head, my $slide, $path) = _slide_tail( $head, $end, $path, $ctx );
                 list($head, $slide, $path) = $this->_slide_tail( $head, $end2, $path, $ctx );
 //                if( @$head ) {
                 if( count($head) >= 1 ) {
 //                    $new_path = [ @$head, $slide, @$path ];
-                    $new_path = perl_array( $head, array($slide), $path );
+                    $new_path = $this->_perl_array( $head, array($slide), $path );
 //                }
                 }
 //            }
@@ -4117,7 +3948,7 @@ function _scan_node( $node, $ctx ) {
                 if ( $debug ) { echo "# $indent|_scan_node slid=", $this->_dump($new_path), "\n"; }
 //                push @{$reduce{$new_path->[0]}}, $new_path;
                 if (!isset($reduce[$new_path[0]])) $reduce[$new_path[0]] = array();
-/////                $reduce[$new_path[0]] = perl_push( $reduce[$new_path[0]], $new_path );
+/////                $reduce[$new_path[0]] = $this->_perl_push( $reduce[$new_path[0]], $new_path );
                 $reduce[$new_path[0]][] = $new_path;
 //            }
             }
@@ -4132,18 +3963,15 @@ function _scan_node( $node, $ctx ) {
                        if ( $debug ) { echo  "# $indent| +failed $n\n"; }
 //                       push @fail, [reverse(@path), $tail];
                        if ( $debug ) { echo "# $indent|_scan_node push before fail=", $this->_dump($fail), 
-                             " reversepath:" , $this->_dump(perl_reverse($path)) , " tail=" , $this->_dump($tail) , " pushdata:" , $this->_dump(perl_array( perl_reverse($path), array( $tail ) )) , "\n"; }
-///////                       $fail = perl_push( $fail, perl_array( perl_reverse($path), $tail ) );   //腑に落ちないが [$tail] とネストするらしい？
-
-//結局こうなった・・・うーん
-                       $fail[] = perl_array( perl_reverse($path), array( $tail ) ) ; 
+                             " reversepath:" , $this->_dump($this->_perl_reverse($path)) , " tail=" , $this->_dump($tail) , " pushdata:" , $this->_dump($this->_perl_array( $this->_perl_reverse($path), array( $tail ) )) , "\n"; }
+                       $fail[] = $this->_perl_array( $this->_perl_reverse($path), array( $tail ) ) ; 
                        if ( $debug ) { echo "# $indent|_scan_node push after fail=", $this->_dump($fail), "\n"; }
 //                }
                 }
 //                else {
                 else {
 //                    my $path = [@path];
-////////                    $path = [ $path ]; いらない？
+//不要
 //                    $debug and print "# $indent|_scan_node ++recovered common=@{[_dump($common)]} tail=",
 //                        _dump($tail), " path=@{[_dump($path)]}\n";
                     if ( $debug ) { echo  "# $indent|_scan_node ++recovered common=".$this->_dump($common)." tail=",
@@ -4168,8 +3996,8 @@ function _scan_node( $node, $ctx ) {
 //                        @$path
 //                    ];
                     if (!isset($reduce[$common[0]])) $reduce[$common[0]] = array();
-//                    $reduce[$common[0]] = perl_push( $reduce[$common[0]], 
-//                        perl_array(
+//                    $reduce[$common[0]] = $this->_perl_push( $reduce[$common[0]], 
+//                        $this->_perl_array(
 //                          $common , 
 //                          $tail , 
 //                          $path
@@ -4178,9 +4006,9 @@ function _scan_node( $node, $ctx ) {
                    if ( $debug ) { echo 
                            "#!$indent|_scan_node ++recovered dump reduce:" . $this->_dump($reduce)." dump fail:" . $this->_dump($fail)." dump common:" . $this->_dump($common)." dump tail:" . $this->_dump([$tail])." dump path:" . $this->_dump($path). "\n"; }
 
-                   if (perl_is_hash($tail)) {
+                   if ($this->_perl_is_hash($tail)) {
                        $reduce[$common[0]][] = 
-                           perl_array(
+                           $this->_perl_array(
                              $common , 
                              array( $tail ) , 
                              $path
@@ -4192,7 +4020,7 @@ function _scan_node( $node, $ctx ) {
                    $___temp = array_merge($___temp, $tail);
                    $___temp = array_merge($___temp, $path);
 //                       $reduce[$common[0]][] = 
-//                           perl_array2(
+//                           $this->_perl_array2(
 //                             $common , 
 //                             array( $tail ) , 
 //                             $path
@@ -4232,7 +4060,7 @@ function _do_reduce($path, $ctx) {
     $ra = new Regexp_Assemble( array( 'chomp' => 0 ) );
 //    $ra->debug($debug);
     $ra->__debug = $debug;
-$ra->__debug = 255;
+//$ra->__debug = 255;
 //    $debug and print "# $indent| do @{[_dump($path)]}\n";
     if ($debug) { echo "# $indent| do ".$this->_dump($path)."\n"; }
 //    $ra->_insertr( $_ ) for
@@ -4253,9 +4081,9 @@ $ra->__debug = 255;
 //        }
 //        @$path
 //    ;
-    $_temp_path = perl_sort( function($a,$b){
-            $scalar_count_a = count( perl_grep( function($_){ return is_array($_); } ,$a) );
-            $scalar_count_b = count( perl_grep( function($_){ return is_array($_); } ,$b) );
+    $_temp_path = $this->_perl_sort( function($a,$b){
+            $scalar_count_a = count( $this->_perl_grep( function($_){ return is_array($_); } ,$a) );
+            $scalar_count_b = count( $this->_perl_grep( function($_){ return is_array($_); } ,$b) );
 
             if ($scalar_count_a > $scalar_count_b) {
                  return 1;
@@ -4300,7 +4128,7 @@ $ra->__debug = 255;
 //    push @$common, shift @$path while( ref($path->[0]) ne 'HASH' );
 //これでいいんかな？
     while( count($path) > 0 && !is_array($path[0]) ) {
-//        $common = perl_push2($common, array_shift($path));
+//        $common = $this->_perl_push2($common, array_shift($path));
         $_temp_node = array_shift($path);
         if ( is_array($_temp_node) ) {
             $common = array_merge($common , $_temp_node );
@@ -4335,7 +4163,7 @@ function _node_offset($nr) {
     }
 
     //最初に終端を調べるらしい
-    $_temp_lastindex = perl_lastindex($nr);
+    $_temp_lastindex = $this->_perl_lastindex($nr);
     if ( is_array($nr[$_temp_lastindex]) ) {
         return $_temp_lastindex ;
     }
@@ -4385,10 +4213,10 @@ function _slide_tail($head,$tail,$path,$ctx) {
 //        shift @$slide_path;
         array_shift($slide_path);
 //        push @$slide_path, $slide;
-//        $slide_path = perl_push( $slide_path, $slide);
+//        $slide_path = $this->_perl_push( $slide_path, $slide);
         $slide_path[] = $slide;
 //        push @$head, $slide;
-//        $head = perl_push( $head, $slide);
+//        $head = $this->_perl_push( $head, $slide);
         $head[] = $slide;
 //    }
     }
@@ -4424,16 +4252,13 @@ function _unrev_path($path, $ctx) {
 //    my $new;
     $new = array();
 
-    //たぶん、PHPだと、すべてperl_reverseに流しても大丈夫だと思う。
-    //配列中にリファレンスが入っていると reverse できないからこうしてる？
-    //一応、オリジナルのように動くようには補正はする。
-    //配列の中に配列が入っている多次元配列でない場合 perl_reverse するようにしている。
-    if (!is_array($path) || count( perl_grep( function($_){ return is_array($_); } , $path ) ) <= 0 ) {
+    //配列の中に配列が入っている多次元配列でない場合 $this->_perl_reverse するようにしている。
+    if (!is_array($path) || count( $this->_perl_grep( function($_){ return is_array($_); } , $path ) ) <= 0 ) {
 
 //        $debug and print "# ${indent}_unrev path fast ", _dump($path);
         if ($debug){ echo "# {$indent}_unrev path fast ". $this->_dump($path) ; }
 //        $new = [reverse @$path];
-        $new = perl_reverse($path);
+        $new = $this->_perl_reverse($path);
 //        $debug and print "#  -> ", _dump($new), "\n";
         if ($debug){ echo "#  -> ". $this->_dump($new). "\n" ; }
 
@@ -4457,7 +4282,7 @@ function _unrev_path($path, $ctx) {
 //        ;
           $new[] = 
                      (  !is_array($p) ? $p 
-                       : ( perl_is_hash($p) ? $this->_unrev_node($p, $this->_descend($ctx)) 
+                       : ( $this->_perl_is_hash($p) ? $this->_unrev_node($p, $this->_descend($ctx)) 
                                             : $this->_unrev_path($p, $this->_descend($ctx)) 
                          )
                      )
@@ -4518,7 +4343,7 @@ function _node_key($node) {
     if ( !is_array($node) ){
        return (string)$node;
     }
-    if ( !perl_is_hash($node) ){
+    if ( !$this->_perl_is_hash($node) ){
        return (string)$this->_node_key($node[0]);
     }
 
@@ -4551,7 +4376,8 @@ function _node_key($node) {
 //    my $ctx = shift;
 function _descend($ctx) {
 //    return {%$ctx, depth => $ctx->{depth}+1};
-    return perl_array( $ctx , array('depth'=> $ctx['depth']+1) );
+//    return $this->_perl_array( $ctx , array('depth'=> $ctx['depth']+1) );
+    return array_merge( $ctx , array('depth'=> $ctx['depth']+1) );
 //}
 }
 
@@ -4563,7 +4389,7 @@ function _make_class() {
 //    my %set = map { ($_,1) } @_;
     $set = array();
 
-    foreach( perl_args_(func_get_args()) as $_ ) {
+    foreach( $this->_perl_args_(func_get_args()) as $_ ) {
         $set[$_] = 1;
     }
 
@@ -4603,7 +4429,7 @@ function _make_class() {
 //            $_ =~ /^$re$/ and push @delete, $_ for keys %set;
             foreach( array_keys($set) as $_) {
                  if ( preg_match("/^{$re}$/u" , $_) ) {
-//                      $delete = perl_push($delete , $_);
+//                      $delete = $this->_perl_push($delete , $_);
                       $delete[] = $_;
                  }
             }
@@ -4643,7 +4469,7 @@ function _make_class() {
         $caret = '^';
     }
 //    my $class = join( '' => sort keys %set );
-    $class = join('' , perl_sort(array_keys($set)) );
+    $class = join('' , $this->_perl_sort(array_keys($set)) );
 //    $class =~ s/0123456789/\\d/ and $class eq '\\d' and return $class;
     if ( preg_match('/0123456789/u',$class) ) {
         $class = preg_replace('/0123456789/u' , '\\\\d' , $class);
@@ -4695,16 +4521,16 @@ function _combine($type , $args) {
     }
 
     if( count($short) == 1 ) {
-        $long = perl_array( perl_sort_resort( $long )  , $short );
+        $long = $this->_perl_array( $this->_perl_sort_resort( $long )  , $short );
     }
     else if ( count($short) > 1 ) {
         //# yucky but true
-        $combine = perl_array( 
-               $this->_make_class($short),  perl_sort_resort( $long) );
+        $combine = $this->_perl_array( 
+               $this->_make_class($short),  $this->_perl_sort_resort( $long) );
         $long = $combine;
     }
     else {
-        $long = perl_sort_resort( $long);
+        $long = $this->_perl_sort_resort( $long);
     }
     $_temp_do = join( '|', $long );
     
@@ -4758,10 +4584,10 @@ function _combine_new($args) {
         return '(?:'
             . join( '|' ,
                 count($short) > 1
-                    ? perl_array( 
-                          $this->_make_class($short), perl_sort_resort( $long) )
-                    : perl_array( 
-                          perl_sort_resort( $long) , $short )
+                    ? $this->_perl_array( 
+                          $this->_make_class($short), $this->_perl_sort_resort( $long) )
+                    : $this->_perl_array( 
+                          $this->_perl_sort_resort( $long) , $short )
             )
         . ')';
 //    }
@@ -4786,44 +4612,45 @@ function _re_path(array $p1) {
         $skip = 0;
 
 //        for my $i (0..$#arr) {
-          for($i = 0 ; $i < count($arr)  ; ++$i) {
+/////          for($i = 0 ; $i < count($arr)  ; ++$i) {
+        foreach($arr as $i => $arri){
 //            if (ref($arr[$i]) eq 'ARRAY') {
 //                $str .= _re_path($self, $arr[$i]);
 //            }
 //            elsif (ref($arr[$i]) eq 'HASH') {
-              if (  is_array( $arr[$i] ) ) {
-                  if ( perl_is_hash($_) ) {
+              if (  is_array( $arri ) ) {
+                  if ( $this->_perl_is_hash($_) ) {
 //                    $str .= exists $arr[$i]->{''}
 //                        ? _combine_new( $self,
 //                            map { _re_path( $self, $arr[$i]->{$_} ) } grep { $_ ne '' } keys %{$arr[$i]}
 //                        ) . '?'
 //                        : _combine_new($self, map { _re_path( $self, $arr[$i]->{$_} ) } keys %{$arr[$i]})
 //                    ;
-                      if ( isset( $arr[$i][''] ) ){
+                      if ( isset( $arri[''] ) ){
                            $_temp_map = array();
-                           foreach( perl_grep( function($_){ return $_ !== ''; } , array_keys($arr[$i]) ) as $_ ){
-                              $_temp_map[] = is_array($arr[$i][$_]) ? $this->_re_path( $arr[$i][$_] ) : $arr[$i][$_];
+                           foreach( $this->_perl_grep( function($_){ return $_ !== ''; } , array_keys($arri) ) as $_ ){
+                              $_temp_map[] = is_array($arri[$_]) ? $this->_re_path( $arri[$_] ) : $arri[$_];
                            }
                            $str .= $this->_combine_new($_temp_map). '?';
                       }
                       else {
                            $_temp_map = array();
-                           foreach( array_keys($arr[$i]) as $_ ){
-                              $_temp_map[] = is_array($arr[$i][$_]) ? $this->_re_path( $arr[$i][$_] ) : $arr[$i][$_];
+                           foreach( array_keys($arri) as $_ ){
+                              $_temp_map[] = is_array($arri[$_]) ? $this->_re_path( $arri[$_] ) : $arri[$_];
                            }
                            $str .= $this->_combine_new($_temp_map);
                       }
                   }
                   else {
                        //'ARRAY'
-                       $str .= $this->_re_path($arr[$i]);
+                       $str .= $this->_re_path($arri);
                   }
 //            }
             }
 //            elsif ($i < $#arr and $arr[$i+1] =~ /\A$arr[$i]\*(\??)\Z/) {
-            else if ($i < (count($arr)-1) and preg_match('/\A'.$arr[$i].'\*(\??)\Z/u' , $arr[$i+1] , $pregNum)  ) {
+            else if ($i < (count($arr)-1) and preg_match('/\A'.$arri.'\*(\??)\Z/u' , $arr[$i+1] , $pregNum)  ) {
 //                $str .= "$arr[$i]+" . (defined $1 ? $1 : '');
-                $str .= "$arr[$i]+" . ($pregNum[1] ? $pregNum[1] : '');
+                $str .= "$arri+" . ($pregNum[1] ? $pregNum[1] : '');
 //                ++$skip;
                 ++$skip;
 //            }
@@ -4837,7 +4664,7 @@ function _re_path(array $p1) {
 //            else {
             else {
 //                $str .= $arr[$i];
-                $str .= $arr[$i];
+                $str .= $arri;
 //            }
             }
 //        }
@@ -4850,11 +4677,11 @@ function _re_path(array $p1) {
 //    return join( '', @_ ) unless grep { length ref $_ } @_;
 /*
     if (     ! isset( $p1['']) 
-         &&  ! count( perl_grep( function($_){ return is_array($_); } , $p1) )  ) {
+         &&  ! count( $this->_perl_grep( function($_){ return is_array($_); } , $p1) )  ) {
         return join( '', $p1 );
     }
 */
-    if ( ! count( perl_grep( function($_){ return is_array($_); } , $p1) )  ) {
+    if ( ! count( $this->_perl_grep( function($_){ return is_array($_); } , $p1) )  ) {
         return join( '', $p1 );
     }
 
@@ -4882,11 +4709,11 @@ function _re_path(array $p1) {
         if ( !is_array($_) ) {
             $_temp_join_array[] = $_;
         }
-        else if ( perl_is_hash($_) ) {
+        else if ( $this->_perl_is_hash($_) ) {
             $p = $_;
             if ( isset($p['']) ) {
                 $_temp_map = array();
-                foreach( perl_grep( function($__){ return $__ !== ''; } , array_keys($p) ) as $___ ){
+                foreach( $this->_perl_grep( function($__){ return $__ !== ''; } , array_keys($p) ) as $___ ){
                     $_temp_map[] = is_array($p[$___]) ? $this->_re_path( $p[$___] ) : $p[$___] ;
                 }
                 $_temp_join_array[] = $this->_combine_new($_temp_map) . '?';
@@ -4914,7 +4741,7 @@ function _lookahead(array $in) {
     $head = array();
 //    my $path;
     $path = NULL;
-    echo "look in ", $this->_dump($in), ".\n";
+////    echo "look in ", $this->_dump($in), ".\n";
 
 //    for $path( keys %$in ) {
     foreach( array_keys($in) as $path ) {
@@ -4924,13 +4751,13 @@ function _lookahead(array $in) {
         }
 
 //        # print "look $path: ", ref($in->{$path}[0]), ".\n";
-        echo "look $path: ", $this->_dump($in[$path][0]), ".\n";
+////        echo "look $path: ", $this->_dump($in[$path][0]), ".\n";
 
         $_temp_path0 = $in[$path][0];
 
 //        if( ref($in->{$path}[0]) eq 'HASH' ) {
         if ( is_array($_temp_path0) ) {
-           if (   perl_is_hash($_temp_path0) ) {
+           if (   $this->_perl_is_hash($_temp_path0) ) {
 //               my $next = 0;
                    $next = 0;
 //               while( ref($in->{$path}[$next]) eq 'HASH' and @{$in->{$path}} > $next + 1 ) {
@@ -4938,7 +4765,7 @@ function _lookahead(array $in) {
 //                   if( exists $in->{$path}[$next]{''} ) {
                        if( isset($in[$path][$next]['']) ) {
 //                       ++$head{$in->{$path}[$next+1]};
-                         perl_inclement($head[$in[$path][$next+1]]);
+                         $this->_perl_inclement($head[$in[$path][$next+1]]);
 //                   }
                        }
 //                   ++$next;
@@ -4956,15 +4783,15 @@ function _lookahead(array $in) {
 //               my $subpath = $in->{$path}[0]; 
                     $subpath = $in[$path][0]; 
 //                 for( my $sp = 0; $sp < @$subpath; ++$sp ) {
-                 for($sp = 0; $sp < count($subpath); ++$sp ) {
+                   foreach($subpath as $subpath_sp){
 //                     if( ref($subpath->[$sp]) eq 'HASH' ) {
-                    if( is_array($subpath[$sp]) ) {
+                    if( is_array($subpath_sp) ) {
 //                           my $follow = _lookahead( $subpath->[$sp] );
-                           $follow = $this->_lookahead( $subpath[$sp] );
+                           $follow = $this->_lookahead( $subpath_sp );
 //                           @head{ keys %$follow } = (values %$follow);
                            $head = array_merge($head , $follow);
 //                           last unless exists $subpath->[$sp]{''};
-                           if (! isset($subpath[$sp][''] ) ) {
+                           if (! isset($subpath_sp[''] ) ) {
                                 break;
                            }
 //                     }
@@ -4972,7 +4799,7 @@ function _lookahead(array $in) {
 //                   else {
                     else {
 //                       ++$head{$subpath->[$sp]};
-                       perl_inclement($head{$subpath[$sp]});
+                       $this->_perl_inclement($head{$subpath_sp});
 //                       last;
                        break;
 //                   }
@@ -4993,7 +4820,7 @@ function _lookahead(array $in) {
         }
 //    }
     }
-    echo  "_lookahead ", $this->_dump($in), '==>', $this->_dump(array_keys($head)), "\n";
+////    echo  "_lookahead ", $this->_dump($in), '==>', $this->_dump(array_keys($head)), "\n";
 //    return \%head;
     return $head;  //参照ではないけどたぶん大丈夫・・・？
 //}
@@ -5004,44 +4831,45 @@ function _lookahead(array $in) {
 //    my $in  = shift;
 function _re_path_lookahead($in) {
 //    # print "_re_path_la in ", _dump($in), "\n";
-    echo "_re_path_la in ", $this->_dump($in), "\n";
+////    echo "_re_path_la in ", $this->_dump($in), "\n";
 //    my $out = '';
     $out = '';
 //    for( my $p = 0; $p < @$in; ++$p ) {
-    for( $p = 0; $p < count($in) ; ++$p ) {
+////    for( $p = 0; $p < count($in) ; ++$p ) {
+    foreach($in as $p => $inp ) {
 //        if( ref($in->[$p]) eq '' ) {
-        if( !is_array( $in[$p]) ) {
+        if( !is_array( $inp ) ) {
 //            $out .= $in->[$p];
-            $out .= $in[$p];
+            $out .= $inp ;
 //            next;
             continue;
 //        }
         }
 //        elsif( ref($in->[$p]) eq 'ARRAY' ) {
-        else if ( ! perl_is_hash($in[$p]) ) {
+        else if ( ! $this->_perl_is_hash($inp) ) {
 //            $out .= _re_path_lookahead($self, $in->[$p]);
-            $out .= $this->_re_path_lookahead($in[$p]);
+            $out .= $this->_re_path_lookahead($inp);
 //            next;
             continue;
 //        }
         }
         # print "$p ", _dump($in->[$p]), "\n";
-        echo "$p ", $this->_dump($in[$p]), "\n";
+////        echo "$p ", $this->_dump($inp), "\n";
 //        my $path = [
 //            map { _re_path_lookahead($self, $in->[$p]{$_} ) }
 //            grep { $_ ne '' }
 //            keys %{$in->[$p]}
 //        ];
         $path = array();
-        foreach( perl_grep( function($_){ return $_ !== ''; } , array_keys($in[$p])) as $_ ) {
-             $path[] = $this->_re_path_lookahead( $in[$p][$_] );
+        foreach( $this->_perl_grep( function($_){ return $_ !== ''; } , array_keys($inp)) as $_ ) {
+             $path[] = $this->_re_path_lookahead( $inp[$_] );
         }
 //        my $ahead = _lookahead($in->[$p]);
-        $ahead = $this->_lookahead($in[$p]);
+        $ahead = $this->_lookahead($inp);
 //        my $more = 0;
         $more = 0;
 //        if( exists $in->[$p]{''} and $p + 1 < @$in ) {
-        if( isset( $in[$p][''] ) && $p + 1 < count($in) ) {
+        if( isset( $inp[''] ) && $p + 1 < count($in) ) {
 //            my $next = 1;
             $next = 1;
 //            while( $p + $next < @$in ) {
@@ -5057,7 +4885,7 @@ function _re_path_lookahead($in) {
 //                else {
                 else {
 //                    ++$ahead->{$in->[$p+$next]};
-                    perl_inclement($ahead[$in[$p+$next]]);
+                    $this->_perl_inclement($ahead[$in[$p+$next]]);
 //                    last;
                     break;
 //                }
@@ -5071,7 +4899,7 @@ function _re_path_lookahead($in) {
 //        }
         }
 //        my $nr_one = grep { /^$Single_Char$/ } @$path;
-        $nr_one = count(perl_grep( function($_){ return preg_match('/^'.$this->Single_Char .'$/u' , $_ ); }  , $path ));
+        $nr_one = count($this->_perl_grep( function($_){ return preg_match('/^'.$this->Single_Char .'$/u' , $_ ); }  , $path ));
 //        my $nr     = @$path;
         $nr     = count($path);
 //        if( $nr_one > 1 and $nr_one == $nr ) {
@@ -5079,7 +4907,7 @@ function _re_path_lookahead($in) {
 //            $out .= _make_class($self, @$path);
             $out .= $this->_make_class($path);
 //            $out .= '?' if exists $in->[$p]{''};
-            if ( isset($in[$p]['']) ) {
+            if ( isset($inp['']) ) {
                  $out .= '?';
             }
 //        }
@@ -5090,7 +4918,7 @@ function _re_path_lookahead($in) {
 //                ?  _combine($self, '?=', grep { s/\+$//; $_ } keys %$ahead )
 //                : '';
             $zwla = count($ahead) > 1
-                ?  $this->_combine('?=', perl_grep( function($_) {
+                ?  $this->_combine('?=', $this->_perl_grep( function($_) {
                              return preg_replace("/\+$/u" , '' , $_) != '';
                         }
                         , array_keys($ahead)) )
@@ -5098,9 +4926,9 @@ function _re_path_lookahead($in) {
 //            my $patt = $nr > 1 ? _combine($self, '?:', @$path ) : $path->[0];
             $patt = $nr > 1 ? $this->_combine('?:', $path ) : $path[0];
 //            # print "have nr=$nr n1=$nr_one n=", _dump($in->[$p]), ' a=', _dump([keys %$ahead]), " zwla=$zwla patt=$patt @{[_dump($path)]}\n";
-            echo "have nr=$nr n1=$nr_one n=", $this->_dump($in[$p]), ' a=', $this->_dump( array_keys($ahead) ), " zwla=$zwla patt=$patt ",$this->_dump($path) , "\n";
+////            echo "have nr=$nr n1=$nr_one n=", $this->_dump($inp), ' a=', $this->_dump( array_keys($ahead) ), " zwla=$zwla patt=$patt ",$this->_dump($path) , "\n";
 //            if( exists $in->[$p]{''} ) {
-            if( isset($in[$p]['']) ) {
+            if( isset($inp['']) ) {
 //                $out .=  $more ? "$zwla(?:$patt)?" : "(?:$zwla$patt)?";
                 $out .=  $more ? "$zwla(?:$patt)?" : "(?:$zwla$patt)?";
 //            }
@@ -5133,11 +4961,12 @@ function _re_path_track($in,$normal,$augmented) {
 //    my $augment = '';
     $augment = '';
 //    for( my $n = 0; $n < @$in; ++$n ) {
-    for( $n = 0; $n < count($in) ; ++$n ) {
+//    for( $n = 0; $n < count($in) ; ++$n ) {
+    foreach( $in as $n => $inn ) {
 //        if( ref($in->[$n]) eq '' ) {
-        if( ! is_array( $in[$n]) ) {
+        if( ! is_array( $inn) ) {
 //            $o = $in->[$n];
-            $o = $in[$n];
+            $o = $inn;
 //            $simple  .= $o;
             $simple  .= $o;
 //            $augment .= $o;
@@ -5155,7 +4984,7 @@ function _re_path_track($in,$normal,$augmented) {
                 || $n == count($in) - 1
             ) {
 //                push @{$self->{mlist}}, $normal . $simple ;
-//                $this->__mlist = perl_push( $this->__mlist, $normal . $simple );
+//                $this->__mlist = $this->_perl_push( $this->__mlist, $normal . $simple );
                 $this->__mlist[] = $normal . $simple;
 //                $augment .= $] < 5.009005
 //                    ? "(?{\$self->{m}=$self->{mcount}})"
@@ -5176,14 +5005,14 @@ function _re_path_track($in,$normal,$augmented) {
 //                keys %{$in->[$n]}
 //            ];
             $path = array();
-            foreach(  perl_grep( function($_){ return $_ !== ''; } , 
-                                                array_keys($in[$n]) ) as $_ )     {
-                 $path[] = $this->_re_path_track( $in[$n][$_], $normal.$simple , $augmented.$augment );
+            foreach(  $this->_perl_grep( function($_){ return $_ !== ''; } , 
+                                                array_keys($inn) ) as $_ )     {
+                 $path[] = $this->_re_path_track( $inn[$_], $normal.$simple , $augmented.$augment );
             }
 //            $o = '(?:' . join( '|' => sort _re_sort @$path ) . ')';
-            $o = '(?:' . join( '|' , perl_sort_resort( $path) ) . ')';
+            $o = '(?:' . join( '|' , $this->_perl_sort_resort( $path) ) . ')';
 //            $o .= '?' if exists $in->[$n]{''};
-            if ( isset( $in[$n][''] ) ) {
+            if ( isset( $inn[''] ) ) {
                  $o .= '?';
             }
 //            $simple  .= $o;
@@ -5229,7 +5058,7 @@ function _re_path_pretty(array $in,$arg) {
 //        }
         }
 //        elsif( ref($in->[$p]) eq 'ARRAY' ) {
-        else if(  !perl_is_hash($_val) ) {
+        else if(  !$this->_perl_is_hash($_val) ) {
 //            $out .= _re_path($self, $in->[$p]);
             $out .= $this->_re_path( $_val );
 //        }
@@ -5296,7 +5125,7 @@ function _re_path_pretty(array $in,$arg) {
 //                        sort _re_sort @$path
 //                    );
                     $_temp_map_array = array();
-                    foreach( perl_sort_resort( $path ) as $_ ) {
+                    foreach( $this->_perl_sort_resort( $path ) as $_ ) {
                             if ($r++) {
                                 $_ = preg_replace("/^\(\?:/u" ,"\n$indent(?:" , $_ );
                             }
@@ -5309,7 +5138,7 @@ function _re_path_pretty(array $in,$arg) {
 //                else {
                 else {
 //                    $out .= join( "\n$indent|" => ( (sort _re_sort @long), _make_class($self, @short) ));
-                    $out .= join( "\n$indent|" , perl_array( perl_sort_resort( $long) , $this->_make_class($short) ) );
+                    $out .= join( "\n$indent|" , $this->_perl_array( $this->_perl_sort_resort( $long) , $this->_make_class($short) ) );
 //                }
                 }
 //                $out .= "\n$pre)";
@@ -5364,9 +5193,9 @@ function _node_eq($p1 , $p2 = NULL) {
 //        _re_path(undef, [$_[0]] ) eq _re_path(undef, [$_[1]] );
         if ( count($p1) == count($p2) ) {
             if (
-                join('',perl_sort(array_keys($p1)) ) 
+                join('',$this->_perl_sort(array_keys($p1)) ) 
                  === 
-                join('',perl_sort(array_keys($p2)) 
+                join('',$this->_perl_sort(array_keys($p2)) 
             )) {
                 if ( $this->_re_path(  array($p1) ) === $this->_re_path(   array($p2) ) ) {
                       return true;
@@ -5466,10 +5295,10 @@ function _dump($path) {
     }
 
     //きれいに見せるために順番でソートする.
-    $keys = perl_sort(array_keys($path));
+    $keys = $this->_perl_sort(array_keys($path));
 
     //調査
-    if (perl_is_hash($path) ) {
+    if ($this->_perl_is_hash($path) ) {
        //たぶんハッシュ
          $nr   = 0;
          $dump = '{';
@@ -5854,24 +5683,167 @@ it under the same terms as Perl itself.
 'The Lusty Decadent Delights of Imperial Pompeii';
 __END__
 */
+
+//////////////////////////////////////////////////////////
+//// perl の動作をエミュレートするための機能
+//////////////////////////////////////////////////////////
+//最後の添字を取得する.
+static function _perl_lastindex(array $array)
+{
+    $p = array_keys($array);
+    return array_pop($p);
 }
 
+//perlのgrepに相当する関数.
+//array_filter って array_map とコールバックが逆なんで統一しておく。めんどいから。
+static function _perl_grep($function ,array $array) {
+    return array_filter($array , $function);
+}
 
-/*
-$a = new Regexp_Assemble();
-$a->debug = 255;
+//perl の sort phpのsort関数はC言語と同じ自己破壊のクソ仕様なんで・・・
+static function _perl_sort($function , $array = NULL)
+{
+    if ($array === NULL) {
+       //arrayが省略された場合、 第一引数が arrayになる。
+       usort($function , function($a,$b){ return strcmp($a,$b); } );
+       return $function;
+    }
+    else { 
+       usort($array , $function);
+       return $array;
+    }
+}
 
-$a->add("ABC");
-$a->add("DEX");
-$a->add("AAA");
-$a->add("123");
+//resort でソートする. 
+static function _perl_sort_resort(array $array) {
+   usort($array , 
+         //sub _re_sort {
+         function ( $a, $b) {
+         //    return length $b <=> length $a || $a cmp $b
+             $_temp_len_a = strlen($a);
+             $_temp_len_b = strlen($b);
 
-//$a->add( 'ab+c' );
-//$a->add( 'ab+-' );
-//$a->add( 'a\\w\\d+' );
-//$a->add( 'a\\d+' );
-//  print $ra->re; # prints a(?:\w?\d+|b+[-c])
+             if ( $_temp_len_b > $_temp_len_a ) {
+                 return 1;
+             }
+             else if ( $_temp_len_b < $_temp_len_a ) {
+                 return -1;
+             }
 
-$str = $a->re();
-var_dump($str);
-*/
+             // $a == $b
+             return strcmp( 
+                   $a 
+                   ,
+                   $b 
+             );
+         //}
+         }
+   );
+   return $array;
+}
+
+//perl の配列/Array定義のエミュレーション.
+static function _perl_array($a,$b = NULL ,$c = NULL){
+    if ( is_array($a) ) {
+        $r = $a;
+    }
+    else {
+        $r = array( $a );
+    }
+
+    if ( $b !== NULL ) {
+        if ( is_array($b) ) {
+            $r = array_merge($r,$b);
+        }
+        else {
+            $r[] = $b;
+        }
+    }
+
+    if ( $c !== NULL ) {
+        if ( is_array($c) ) {
+            $r = array_merge($r,$c);
+        }
+        else {
+            $r[] = $c;
+        }
+    }
+
+    return $r;
+}
+            
+static function _perl_reverse($p) {
+    if ( is_array($p) ){
+        return array_reverse($p);
+    }
+    else {
+        return strrev($p);
+    }
+}
+
+//ハッシュぽいか調べるみたいな・・・
+static function _perl_is_hash(array $array) {
+    //キーが0から連番で数字で入っていれば多分配列。
+    //そうでなければ、ハッシュとみなす.
+    $count = 0;
+    foreach(array_keys($array) as $n) {
+        if ($n !== $count++) {
+            //個数が違うのでハッシュだろう
+            return true;
+        }
+    }
+    
+    //文字列の数字の 0 ならばハッシュである.
+    if ( $count >= 1 ) {
+        if ($array[0] === '0') {
+            return true;
+        }
+        //なんか、もう一個下のレイヤーも調べないとだめらしい。
+        if ( isset($array[0][0]) && $array[0][0] === '0') {
+            return true;
+        }
+    }
+    return false;
+}
+
+//正規表現メタ文字エスケープ preg_meta だと @ とかが無視されるので、作る。
+static function _perl_quotemeta($str) {
+   foreach( array('\\' , '.', '+', '*', '?', '[', '^', ']', '$', '(', ')', '{', '}', '=', '!', '<', '>', '|', ':', '-', '/','@') 
+            as $meta) {
+       $str = str_replace($meta , "\\{$meta}" , $str  );
+   }
+   
+   return $str;
+}
+
+//@_ をエミュレーション
+static function _perl_args_($args)
+{
+   $arr = array();
+   foreach($args as $_) {
+      if ( is_array($_) ) {
+          $arr = array_merge($arr , $_);
+      }
+      else{
+         $arr[] = $_;
+      }
+   }
+   return $arr;
+}
+
+//未初期化警告を出さないインクリメント
+static function _perl_inclement(&$p) {
+    if ( isset($p) ) $p = 0;
+    return ++$p ;
+}
+
+//リファレンスをハッシュのキーに使うことがあるらしい・・・
+//PHPではそれはできないので、適当にごまかす.
+static function _perl_reference_to_key($p) {
+    if (is_array($p)){
+        return '__ref:' .json_encode($p);
+    }
+    return $p;
+}
+
+}

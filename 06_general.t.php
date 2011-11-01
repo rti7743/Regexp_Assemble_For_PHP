@@ -1,8 +1,26 @@
 <?php
 
-require_once("Assemble.pm.php");
+require_once("Regexp_Assemble.php");
 require_once("testutil.php");
 
+
+$ra = new Regexp_Assemble();
+
+$ra->reset()->filter( function($arr) {
+   $r = [];
+   foreach($arr as $_) {
+      if (! preg_match("/[\d ]/" , $_) ) {
+         $r[] = $_;
+      }
+   }
+var_dump($r);
+   return ! count($r);
+} );
+
+$ra->add( '1 2 4' );
+$ra->insert( '1', '2', '8*' );
+echo $ra;
+die;
 /*
 # 06_general.t
 #

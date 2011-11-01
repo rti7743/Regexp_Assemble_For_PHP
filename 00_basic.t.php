@@ -1,5 +1,5 @@
 <?php
-require_once("Assemble.pm.php");
+require_once("Regexp_Assemble.php");
 require_once("testutil.php");
 
 $r = new Regexp_Assemble();

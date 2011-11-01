@@ -1,5 +1,5 @@
 <?php
-require_once("Assemble.pm.php");
+require_once("Regexp_Assemble.php");
 require_once("testutil.php");
 //match_list( 'POSIX', ['X[0[:alpha:]%]','Y[1-4[:punct:]a-c]'] , ['X0','X%','Xa','Xf','Y1','Y;','Y!','yc'] );
 
@@ -90,7 +90,6 @@ function match($tag) {
     $args = func_get_args();
     array_shift($args); //$tag‚ğÁ‚·.
     foreach($args as $_) {
-    var_dump($_);
        $re->add($_);
        $rela->add($_);
     }

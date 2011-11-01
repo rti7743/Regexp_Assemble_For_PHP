@@ -1,7 +1,17 @@
 <?php
-require_once("Assemble.pm.php");
+require_once("Regexp_Assemble.php");
 require_once("testutil.php");
 
+//そもそも PHP では正規表現のトラッキングは使えません。
+die;
+
+
+
+    $re = new Regexp_Assemble();
+    $re->track(1)->add('dog');
+    var_dump($re->match('dog'));
+    ok( $re->match('dog'), 're pattern-0 dog match' );
+//    is( $re->source(0), 'dog', 'source is dog' );
 /*
 # 08_track.t
 #

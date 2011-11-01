@@ -1,5 +1,5 @@
 <?php
-require_once("Assemble.pm.php");
+require_once("Regexp_Assemble.php");
 require_once("testutil.php");
 
 
@@ -80,8 +80,12 @@ $_ = $fixed;
     is( is_array($r[1]), true, "'ab,ac' => ...and second is a node" );
     $r = $r[1];
     is( count($r), 2,  "'ab,ac' => ...node has two keys" );
-    is( join( '' , perl_sort( array_keys( $r) )  ), 'bc',
+
+    $keys = array_keys( $r);
+    sort($keys);
+    is( join( '' , $keys ), 'bc',
         "'ab,ac' => ...keys are 'b','c'" );
+
     ok( isset($r['b']) , "'ab,ac' => ... key 'b' exists" );
     is( is_array($r['b']), true, "'ab,ac' => ... and points to a path" );
     ok( isset($r['c']), "'ab,ac' => ... key 'c' exists" );
