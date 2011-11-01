@@ -4102,7 +4102,7 @@ function _scan_node( $node, $ctx ) {
 //                if( @$head ) {
                 if( count($head) >= 1 ) {
 //                    $new_path = [ @$head, $slide, @$path ];
-                    $new_path = perl_array( $head, $slide, $path );
+                    $new_path = perl_array( $head, array($slide), $path );
 //                }
                 }
 //            }

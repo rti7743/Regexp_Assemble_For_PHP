@@ -3,10 +3,6 @@ require_once("Assemble.pm.php");
 require_once("testutil.php");
 
 
-    $r = new Regexp_Assemble();
-    is( $r->add( '5', '\\d+' )->as_string(),
-        '\\d+', '\\d+ absorbs single char'
-    );
 
 
 $xism = 'xism:';
@@ -1033,6 +1029,23 @@ is( $r->add(
   |vil
 )
 ed', 'indent de.*ed' );
+
+
+//追加
+$r = new Regexp_Assemble();
+is( $r->add( 'unimped','unimpeded','unimpelled' )->as_string(),
+    'unimpe(?:(?:de)?|lle)d', 'unimped unimpeded unimpelled'
+);
+
+$r = new Regexp_Assemble();
+is( $r->add( 'tiao','tie','tien','tin','tine','tinea','tinean','tineine',
+    'tininess','tinnet','tinniness','tinosa','tinstone','tint','tinta','tintie','tintiness',
+    'tintist','tisane','tit','titanate','titania','titanite','titano','tite','titi','titian',
+    'titien','tittie' )->as_string(),
+    'ti(?:n(?:t(?:i(?:ness|st|e)|a)?|e(?:an?|ine)?|n(?:iness|et)|iness|stone|osa)?|t(?:an(?:i(?:te|a)|ate|o)|i(?:[ae]n)?|(?:ti)?e)?|sane|en?|ao)', 'tiao tie ....  titien tittie'
+);
+
+
 
 /*
 is( $_, $fixed, '$_ has not been altered' );
