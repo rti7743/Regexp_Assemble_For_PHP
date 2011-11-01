@@ -2,6 +2,13 @@
 require_once("Assemble.pm.php");
 require_once("testutil.php");
 
+
+    $r = new Regexp_Assemble();
+    is( $r->add( '5', '\\d+' )->as_string(),
+        '\\d+', '\\d+ absorbs single char'
+    );
+
+
 $xism = 'xism:';
 
 foreach (
@@ -53,7 +60,7 @@ use Regexp::Assemble;
 my $fixed = 'The scalar remains the same';
 $_ = $fixed;
 
-is( Regexp::Assemble->new->as_string, $Regexp::Assemble::Always_Fail, 'empty' );
+is( Regexp::Assemble->new->as_string(), $Regexp::Assemble::Always_Fail, 'empty' );
 */
 
 foreach( array(
@@ -266,171 +273,204 @@ foreach (
     is( $r->re() , $result, "add $args");
 }
 
-/*
+
 {
-    my $r = Regexp::Assemble->new->add( 'de' );
-    my $re = $r->re;
-    is( "$re", qq"(?{$xism}de)', 'de' );
-    my $re2 = $r->re;
-    is( "$re2", qq"(?{$xism}de)", 'de again' );
+    $r = new Regexp_Assemble();
+    $r->__flags = 'xism';
+    $r->add( 'de' );
+    $re = $r->re();
+    is( "$re", "(?{$xism}de)", 'de' );
+    $re2 = $r->re();
+    is( "$re2", "(?{$xism}de)", 'de again' );
 }
 
-is( Regexp::Assemble->new->lookahead->add( qw/
-    car cart card carp carion
-    / )->as_string,
+$r = new Regexp_Assemble(['lookahead' => 1]);
+is( $r->add( 
+    'car', 'cart', 'card', 'carp', 'carion'
+    )->as_string(),
     'car(?:(?=[dipt])(?:[dpt]|ion))?', 'lookahead car carp cart card carion' );
 
-is( Regexp::Assemble->new->anchor_word
-    ->add(qw(ab cd ce))
-    ->as_string, '\\b(?:c[de]|ab)\\b', 'implicit anchor word via method' );
+$r = new Regexp_Assemble(['anchor_word' => 1]);
+is( $r
+    ->add('ab', 'cd', 'ce')
+    ->as_string(), '\\b(?:c[de]|ab)\\b', 'implicit anchor word via method' );
 
-is( Regexp::Assemble->new->anchor_word_end
-    ->add(qw(ab cd ce))
-    ->as_string, '(?:c[de]|ab)\\b', 'implicit anchor word end via method' );
+$r = new Regexp_Assemble(['anchor_word_end' => 1]);
+is( $r
+    ->add('ab' ,'cd', 'ce')
+    ->as_string(), '(?:c[de]|ab)\\b', 'implicit anchor word end via method' );
 
-is( Regexp::Assemble->new->anchor_word(0)
-    ->add(qw(ab cd ce))
-    ->as_string, '(?:c[de]|ab)', 'no implicit anchor word' );
+$r = new Regexp_Assemble(['anchor_word' => 0]);
+is( $r
+    ->add('ab', 'cd', 'ce')
+    ->as_string(), '(?:c[de]|ab)', 'no implicit anchor word' );
 
-is( Regexp::Assemble->new( anchor_word => 1 )->anchor_word_end(0)
-    ->add(qw(ab cd ce))
-    ->as_string, '\\b(?:c[de]|ab)', 'implicit anchor word, no anchor word end' );
+$r = new Regexp_Assemble(['anchor_word' => 1]);
+is( $r->anchor_word_end(0)
+    ->add('ab', 'cd', 'ce')
+    ->as_string(), '\\b(?:c[de]|ab)', 'implicit anchor word, no anchor word end' );
 
-is( Regexp::Assemble->new->anchor_word_begin(1)
-    ->add(qw(ab cd ce))
-    ->as_string, '\\b(?:c[de]|ab)', 'implicit anchor word begin' );
+$r = new Regexp_Assemble();
+is( $r->anchor_word_begin(1)
+    ->add('ab', 'cd', 'ce')
+    ->as_string(), '\\b(?:c[de]|ab)', 'implicit anchor word begin' );
 
-is( Regexp::Assemble->new
-    ->add(qw(ab cd ce))
-    ->anchor_line
-    ->as_string, '^(?:c[de]|ab)$', 'implicit anchor line via new' );
+$r = new Regexp_Assemble();
+is( $r
+    ->add('ab', 'cd', 'ce')
+    ->anchor_line()
+    ->as_string(), '^(?:c[de]|ab)$', 'implicit anchor line via new' );
 
-is( Regexp::Assemble->new
-    ->add(qw(ab cd ce))
-    ->anchor_line_begin
-    ->as_string, '^(?:c[de]|ab)', 'implicit anchor line via method' );
 
-is( Regexp::Assemble->new->anchor_line_begin->anchor_line(0)
-    ->add(qw(ab cd ce))
-    ->as_string, '(?:c[de]|ab)', 'no implicit anchor line via method' );
+$r = new Regexp_Assemble();
+is( $r
+    ->add('ab', 'cd', 'ce')
+    ->anchor_line_begin()
+    ->as_string(), '^(?:c[de]|ab)', 'implicit anchor line via method' );
 
-is( Regexp::Assemble->new
-    ->add(qw(ab cd ce))
-    ->anchor_string
-    ->as_string, '\\A(?:c[de]|ab)\\Z', 'implicit anchor string via method' );
+$r = new Regexp_Assemble();
+is( $r->anchor_line_begin()->anchor_line(0)
+    ->add('ab', 'cd', 'ce')
+    ->as_string(), '(?:c[de]|ab)', 'no implicit anchor line via method' );
 
-is( Regexp::Assemble->new
-    ->add(qw(ab cd ce))
-    ->anchor_string_absolute
-    ->as_string, '\\A(?:c[de]|ab)\\z', 'implicit anchor string absolute via method' );
+$r = new Regexp_Assemble();
+is( $r
+    ->add('ab', 'cd', 'ce')
+    ->anchor_string()
+    ->as_string(), '\\A(?:c[de]|ab)\\Z', 'implicit anchor string via method' );
 
-is( Regexp::Assemble->new(anchor_string_absolute => 1)
-    ->add(qw(de df fe))
-    ->as_string, '\\A(?:d[ef]|fe)\\z', 'implicit anchor string absolute via new' );
+$r = new Regexp_Assemble();
+is( $r
+    ->add('ab', 'cd', 'ce')
+    ->anchor_string_absolute()
+    ->as_string(), '\\A(?:c[de]|ab)\\z', 'implicit anchor string absolute via method' );
 
-is( Regexp::Assemble->new(anchor_string_absolute => 1, anchor_string_begin => 0)
-    ->add(qw(de df))
-    ->as_string, 'd[ef]\\z', 'anchor string absolute and no anchor_string_begin via new' );
+$r = new Regexp_Assemble(['anchor_string_absolute' => 1]);
+is( $r
+    ->add('de', 'df', 'fe')
+    ->as_string(), '\\A(?:d[ef]|fe)\\z', 'implicit anchor string absolute via new' );
 
-is( Regexp::Assemble->new(anchor_word => 1, anchor_word_end => 0)
-    ->add(qw(ze zf zg))
-    ->as_string, '\bz[efg]', 'anchor word and no anchor_word_begin via new' );
+$r = new Regexp_Assemble(['anchor_string_absolute' => 1 , 'anchor_string_begin' => 0 ]);
+is( $r
+    ->add('de', 'df')
+    ->as_string(), 'd[ef]\\z', 'anchor string absolute and no anchor_string_begin via new' );
 
-is( Regexp::Assemble->new(anchor_string_absolute => 0)
-    ->add(qw(de df fe))
-    ->as_string, '(?:d[ef]|fe)', 'no implicit anchor string absolute via new' );
+$r = new Regexp_Assemble(['anchor_word' => 1 , 'anchor_word_end' => 0 ]);
+is( $r
+    ->add('ze', 'zf', 'zg')
+    ->as_string(), '\bz[efg]', 'anchor word and no anchor_word_begin via new' );
 
-is( Regexp::Assemble->new
-    ->add(qw(ab cd ce))
-    ->anchor_word_begin
-    ->anchor_string_end_absolute
-    ->as_string, '\\b(?:c[de]|ab)\\z',
+$r = new Regexp_Assemble(['anchor_string_absolute' => 0 ]);
+is( $r
+    ->add('de', 'df', 'fe')
+    ->as_string(), '(?:d[ef]|fe)', 'no implicit anchor string absolute via new' );
+
+$r = new Regexp_Assemble();
+is( $r
+    ->add('ab', 'cd', 'ce')
+    ->anchor_word_begin()
+    ->anchor_string_end_absolute()
+    ->as_string(), '\\b(?:c[de]|ab)\\z',
         'implicit anchor word begin/string absolute end via method'
 );
 
-is( Regexp::Assemble->new
-    ->add(qw(ab ad))
+$r = new Regexp_Assemble();
+is( $r
+    ->add('ab', 'ad')
     ->anchor_string(1)
     ->anchor_string_end(0)
-    ->as_string, '\\Aa[bd]',
+    ->as_string(), '\\Aa[bd]',
         'explicit anchor string/no end via method'
 );
 
-is( Regexp::Assemble->new
-    ->anchor_string_end
-    ->add(qw(ab ad))
-    ->as_string, 'a[bd]\\Z',
+$r = new Regexp_Assemble();
+is( $r
+    ->anchor_string_end()
+    ->add('ab', 'ad')
+    ->as_string(), 'a[bd]\\Z',
         'anchor string end via method'
 );
 
-is( Regexp::Assemble->new
+$r = new Regexp_Assemble();
+is( $r
     ->anchor_string_absolute(1)
-    ->add(qw(ab ad))
-    ->as_string, '\\Aa[bd]\\z',
+    ->add('ab', 'ad')
+    ->as_string(), '\\Aa[bd]\\z',
         'anchor string end via method'
 );
 
-is( Regexp::Assemble->new(anchor_word_begin => 1, anchor_string_end_absolute => 1)
-    ->add(qw(de ad be ef))
-    ->as_string, '\\b(?:[bd]e|ad|ef)\\z',
+$r = new Regexp_Assemble(['anchor_word_begin' => 1 , 'anchor_string_end_absolute' => 1 ]);
+is( $r
+    ->add('de', 'ad', 'be', 'ef')
+    ->as_string(), '\\b(?:[bd]e|ad|ef)\\z',
         'implicit anchor word begin/string absolute end via new'
 );
 
-is( Regexp::Assemble->new
-    ->add(qw(ab cd ce))
-    ->anchor_word_begin
-    ->anchor_string_begin
-    ->as_string, '\\b(?:c[de]|ab)',
+$r = new Regexp_Assemble();
+is( $r
+    ->add('ab', 'cd', 'ce')
+    ->anchor_word_begin()
+    ->anchor_string_begin()
+    ->as_string(), '\\b(?:c[de]|ab)',
         'implicit anchor word beats string'
 );
 
+/*
 TODO: {
-    use vars '$TODO';
-    local $TODO = "\\d+ does not absorb digits";
+//    use vars '$TODO';
+//    local $TODO = "\\d+ does not absorb digits";
 
-    is( Regexp::Assemble->new->add( '5', '\\d+' )->as_string,
-        '\\d+', '\\d+ absorbs single char',
+    $r = new Regexp_Assemble();
+    is( $r->add( '5', '\\d+' )->as_string(),
+        '\\d+', '\\d+ absorbs single char'
     );
 
-    is( Regexp::Assemble->new->add( '54321', '\\d+' )->as_string,
-        '\\d+', '\\d+ absorbs multiple chars',
+    $r = new Regexp_Assemble();
+    is( $r->add( '54321', '\\d+' )->as_string(),
+        '\\d+', '\\d+ absorbs multiple chars'
     );
 
-    is( Regexp::Assemble->new
-        ->add( qw/ abz acdez a5txz a7z /, 'a\\d+z', 'a\\d+-\\d+z' ) # 5.6.0 kluge
-        ->as_string, 'a(?:b|(?:\d+-)?\d+|5tx|cde)z',
+    $r = new Regexp_Assemble();
+    is( $r
+        ->add( 'abz', 'acdez', 'a5txz', 'a7z', 'a\\d+z', 'a\\d+-\\d+z' ) # 5.6.0 kluge
+        ->as_string(), 'a(?:b|(?:\d+-)?\d+|5tx|cde)z',
         'abz a\\d+z acdez a\\d+-\\d+z a5txz a7z'
     );
 }
+*/
 
-my $mute = Regexp::Assemble->new->mutable(1);
+$r = new Regexp_Assemble();
+$mute = $r->mutable(1);
 
 $mute->add( 'dog' );
-is( $mute->as_string, 'dog', 'mute dog' );
-is( $mute->as_string, 'dog', 'mute dog cached' );
+is( $mute->as_string(), 'dog', 'mute dog' );
+is( $mute->as_string(), 'dog', 'mute dog cached' );
 
 $mute->add( 'dig' );
-is( $mute->as_string, 'd(?:ig|og)', 'mute dog' );
+is( $mute->as_string(), 'd(?:ig|og)', 'mute dog' );
 
-my $red = Regexp::Assemble->new->reduce(0);
+$r = new Regexp_Assemble();
+$red = $r->reduce(0);
 
 $red->add( 'dog' );
 $red->add( 'dig' );
-is( $red->as_string, 'd(?:ig|og)', 'mute dig dog' );
+is( $red->as_string(), 'd(?:ig|og)', 'mute dig dog' );
 
 $red->add( 'dog' );
-is( $red->as_string, 'dog', 'mute dog 2' );
+is( $red->as_string(), 'dog', 'mute dog 2' );
 
 $red->add( 'dig' );
-is( $red->as_string, 'dig', 'mute dig 2' );
+is( $red->as_string(), 'dig', 'mute dig 2' );
 
-is( Regexp::Assemble->new->add(qw(ab cd))->as_string(indent => 0),
+$r = new Regexp_Assemble();
+is( $r->add('ab', 'cd')->as_string(['indent' => 0]),
     '(?:ab|cd)', 'indent 0'
 );
 
-is( Regexp::Assemble->new
-    ->add( qw/ dldrt dndrt dldt dndt dx / )
-    ->as_string(indent => 3),
+$r = new Regexp_Assemble();
+is( $r
+    ->add( 'dldrt', 'dndrt', 'dldt', 'dndt', 'dx' )
+    ->as_string(['indent' => 3]),
 'd
 (?:
    [ln]dr?t
@@ -438,29 +478,32 @@ is( Regexp::Assemble->new
 )'
 ,  'dldrt dndrt dldt dndt dx (indent 3)' );
 
-is( Regexp::Assemble->new( indent => 2 )
-    ->add( qw/foo bar/ )
-    ->as_string,
+$r = new Regexp_Assemble(['indent' => 2]);
+is( $r
+    ->add( 'foo', 'bar' )
+    ->as_string(),
 '(?:
   bar
   |foo
 )'
 , 'pretty foo bar' );
 
-is( Regexp::Assemble->new
+$r = new Regexp_Assemble();
+is( $r
     ->indent(2)
-    ->add( qw/food fool bar/ )
-    ->as_string,
+    ->add( 'food', 'fool', 'bar' )
+    ->as_string(),
 '(?:
   foo[dl]
   |bar
 )'
 , 'pretty food fool bar' );
 
-is( Regexp::Assemble->new
-    ->add( qw/afood afool abar/ )
+$r = new Regexp_Assemble();
+is( $r
+    ->add( 'afood', 'afool', 'abar' )
     ->indent(2)
-    ->as_string,
+    ->as_string(),
 'a
 (?:
   foo[dl]
@@ -468,32 +511,37 @@ is( Regexp::Assemble->new
 )'
 , 'pretty afood afool abar' );
 
-is( Regexp::Assemble->new
-    ->add( qw/dab dam day/ )
-    ->as_string(indent => 2),
+$r = new Regexp_Assemble();
+is( $r
+    ->add( 'dab', 'dam', 'day' )
+    ->as_string(['indent' => 2]),
 'da[bmy]', 'pretty dab dam day' );
 
-is( Regexp::Assemble->new(indent => 5)
-    ->add( qw/be bed/ )
-    ->as_string(indent => 2),
+$r = new Regexp_Assemble(['indent' => 5]);
+is( $r
+    ->add( 'be', 'bed' )
+    ->as_string(['indent' => 2]),
 'bed?'
 , 'pretty be bed' );
 
-is( Regexp::Assemble->new(indent => 5)
-    ->add( qw/b-d b\.d/ )
-    ->as_string(indent => 2),
+$r = new Regexp_Assemble(['indent' => 5]);
+is( $r
+    ->add( 'b-d', 'b\.d' )
+    ->as_string(['indent' => 2]),
 'b[-.]d'
 , 'pretty b-d b\.d' );
 
-is( Regexp::Assemble->new
-    ->add( qw/be bed beg bet / )
-    ->as_string(indent => 2),
+$r = new Regexp_Assemble();
+is( $r
+    ->add( 'be', 'bed', 'beg', 'bet' )
+    ->as_string(['indent' => 2]),
 'be[dgt]?'
 , 'pretty be bed beg bet' );
 
-is( Regexp::Assemble->new
-    ->add( qw/afoodle afoole abarle/ )
-    ->as_string(indent => 2),
+$r = new Regexp_Assemble();
+is( $r
+    ->add( 'afoodle', 'afoole', 'abarle' )
+    ->as_string(['indent' => 2]),
 'a
 (?:
   food?
@@ -502,9 +550,10 @@ is( Regexp::Assemble->new
 le'
 , 'pretty afoodle afoole abarle' );
 
-is( Regexp::Assemble->new
-    ->add( qw/afar afoul abate aback/ )
-    ->as_string(indent => 2),
+$r = new Regexp_Assemble();
+is( $r
+    ->add( 'afar', 'afoul', 'abate', 'aback' )
+    ->as_string(['indent' => 2]),
 'a
 (?:
   ba
@@ -521,9 +570,10 @@ is( Regexp::Assemble->new
 , 'pretty pretty afar afoul abate aback' );
 
 
-is( Regexp::Assemble->new
-    ->add( qw/stormboy steamboy saltboy sockboy/ )
-    ->as_string(indent => 5),
+$r = new Regexp_Assemble();
+is( $r
+    ->add( 'stormboy', 'steamboy', 'saltboy', 'sockboy' )
+    ->as_string(['indent' => 5]),
 's
 (?:
      t
@@ -538,9 +588,10 @@ is( Regexp::Assemble->new
 boy'
 , 'pretty stormboy steamboy saltboy sockboy' );
 
-is( Regexp::Assemble->new
-    ->add( qw/stormboy steamboy stormyboy steamyboy saltboy sockboy/ )
-    ->as_string(indent => 4),
+$r = new Regexp_Assemble();
+is( $r
+    ->add( 'stormboy', 'steamboy', 'stormyboy', 'steamyboy', 'saltboy', 'sockboy' )
+    ->as_string(['indent' => 4]),
 's
 (?:
     t
@@ -555,9 +606,10 @@ is( Regexp::Assemble->new
 boy'
 , 'pretty stormboy steamboy stormyboy steamyboy saltboy sockboy' );
 
-is( Regexp::Assemble->new
-    ->add( qw/stormboy steamboy stormyboy steamyboy stormierboy steamierboy saltboy/ )
-    ->as_string(indent => 1),
+$r = new Regexp_Assemble();
+is( $r
+    ->add( 'stormboy', 'steamboy', 'stormyboy', 'steamyboy', 'stormierboy', 'steamierboy', 'saltboy' )
+    ->as_string(['indent' => 1]),
 's
 (?:
  t
@@ -576,9 +628,10 @@ is( Regexp::Assemble->new
 boy'
 , 'pretty stormboy steamboy stormyboy steamyboy stormierboy steamierboy saltboy' );
 
-is( Regexp::Assemble->new
-    ->add( qw/showerless showeriness showless showiness show shows/ )
-    ->as_string(indent => 4),
+$r = new Regexp_Assemble();
+is( $r
+    ->add( 'showerless', 'showeriness', 'showless', 'showiness', 'show', 'shows' )
+    ->as_string(['indent' => 4]),
 'show
 (?:
     (?:
@@ -596,9 +649,9 @@ is( Regexp::Assemble->new
 )
 ?' , 'pretty showerless showeriness showless showiness show shows' );
 
-is( Regexp::Assemble->new->add( qw/
-    showerless showeriness showdeless showdeiness showless showiness show shows
-    / )->as_string(indent => 4),
+$r = new Regexp_Assemble();
+is( $r->add( 'showerless', 'showeriness', 'showdeless', 'showdeiness', 'showless', 'showiness', 'show', 'shows'
+    )->as_string(['indent' => 4]),
 'show
 (?:
     (?:
@@ -617,9 +670,9 @@ is( Regexp::Assemble->new->add( qw/
 )
 ?' , 'pretty showerless showeriness showdeless showdeiness showless showiness show shows' );
 
-is( Regexp::Assemble->new->add( qw/
-        convenient consort concert
-    / )->as_string(indent => 4),
+$r = new Regexp_Assemble();
+is( $r->add( 'convenient', 'consort', 'concert'
+    )->as_string(['indent' => 4]),
 'con
 (?:
     (?:
@@ -631,9 +684,8 @@ is( Regexp::Assemble->new->add( qw/
 )
 t', 'pretty convenient consort concert' );
 
-is( Regexp::Assemble->new->add( qw/
-        200.1 202.1 207.4 208.3 213.2
-    / )->as_string(indent => 4),
+$r = new Regexp_Assemble();
+is( $r->add( '200.1', '202.1', '207.4', '208.3', '213.2')->as_string(['indent' => 4]),
 '2
 (?:
     0
@@ -646,9 +698,8 @@ is( Regexp::Assemble->new->add( qw/
 )', 'pretty 200.1 202.1 207.4 208.3 213.2' );
 
 
-is( Regexp::Assemble->new->add( qw/
-        yammail\.com yanmail\.com yeah\.net yourhghorder\.com yourload\.com
-    / )->as_string(indent => 4),
+$r = new Regexp_Assemble();
+is( $r->add( 'yammail\.com', 'yanmail\.com', 'yeah\.net', 'yourhghorder\.com', 'yourload\.com')->as_string(['indent' => 4]),
 'y
 (?:
     (?:
@@ -664,9 +715,8 @@ is( Regexp::Assemble->new->add( qw/
 )'
 , 'pretty yammail.com yanmail.com yeah.net yourhghorder.com yourload.com' );
 
-is( Regexp::Assemble->new->add( qw/
-        convenient containment consort concert
-    / )->as_string(indent => 4),
+$r = new Regexp_Assemble();
+is( $r->add( 'convenient', 'containment', 'consort', 'concert')->as_string(['indent' => 4]),
 'con
 (?:
     (?:
@@ -684,9 +734,8 @@ is( Regexp::Assemble->new->add( qw/
 t'
 , 'pretty convenient containment consort concert' );
 
-is( Regexp::Assemble->new->add( qw/
-        sat sit bat bit sad sid bad bid
-    / )->as_string(indent => 5),
+$r = new Regexp_Assemble();
+is( $r->add( 'sat', 'sit', 'bat', 'bit', 'sad', 'sid', 'bad', 'bid')->as_string(['indent' => 5]),
 '(?:
      b
      (?:
@@ -701,10 +750,10 @@ is( Regexp::Assemble->new->add( qw/
 )'
 , 'pretty sat sit bat bit sad sid bad bid' );
 
-is( Regexp::Assemble->new->add( qw/
-        commercial\.net compuserve\.com compuserve\.net concentric\.net
-        coolmail\.com coventry\.com cox\.net
-    / )->as_string(indent => 5),
+$r = new Regexp_Assemble();
+is( $r->add( 'commercial\.net', 'compuserve\.com', 'compuserve\.net', 'concentric\.net',
+        'coolmail\.com', 'coventry\.com', 'cox\.net'
+     )->as_string(['indent' => 5]),
 'co
 (?:
      m
@@ -731,11 +780,12 @@ is( Regexp::Assemble->new->add( qw/
 )'
 , 'pretty c*.*' );
 
-is( Regexp::Assemble->new->add( qw/
-        ambient\.at agilent\.com americanexpress\.com amnestymail\.com
-        amuromail\.com angelfire\.com anya\.com anyi\.com aol\.com
-        aolmail\.com artfiles\.de arcada\.fi att\.net
-    / )->as_string(indent => 5),
+$r = new Regexp_Assemble();
+is( $r->add( 
+        'ambient\.at', 'agilent\.com', 'americanexpress\.com', 'amnestymail\.com',
+        'amuromail\.com', 'angelfire\.com', 'anya\.com', 'anyi\.com', 'aol\.com',
+        'aolmail\.com', 'artfiles\.de', 'arcada\.fi', 'att\.net'
+     )->as_string(['indent' => 5]),
 'a
 (?:
      m
@@ -774,9 +824,10 @@ is( Regexp::Assemble->new->add( qw/
      |tt\.net
 )' , 'pretty a*.*' );
 
-is( Regexp::Assemble->new->add( qw/
-    looked choked hooked stoked toked baked faked
-    / )->as_string(indent => 4),
+$r = new Regexp_Assemble();
+is( $r->add( 
+    'looked', 'choked', 'hooked', 'stoked', 'toked', 'baked', 'faked'
+     )->as_string(['indent' => 4]),
 '(?:
     (?:
         [hl]o
@@ -788,14 +839,15 @@ is( Regexp::Assemble->new->add( qw/
 )
 ked' , 'looked choked hooked stoked toked baked faked' );
 
-is( Regexp::Assemble->new->add( qw/
-arson bison brickmason caisson comparison crimson diapason disimprison empoison
-foison foreseason freemason godson grandson impoison imprison jettison lesson
-liaison mason meson midseason nonperson outreason parson person poison postseason
-precomparison preseason prison reason recomparison reimprison salesperson samson
-season stepgrandson stepson stonemason tradesperson treason unison venison vison
-whoreson
-    / )->as_string(indent => 4),
+$r = new Regexp_Assemble();
+is( $r->add( 
+'arson','bison','brickmason','caisson','comparison','crimson','diapason','disimprison','empoison',
+'foison','foreseason','freemason','godson','grandson','impoison','imprison','jettison','lesson',
+'liaison','mason','meson','midseason','nonperson','outreason','parson','person','poison','postseason',
+'precomparison','preseason','prison','reason','recomparison','reimprison','salesperson','samson',
+'season','stepgrandson','stepson','stonemason','tradesperson','treason','unison','venison','vison',
+'whoreson'
+     )->as_string(['indent' => 4]),
 '(?:
     p
     (?:
@@ -915,12 +967,13 @@ whoreson
 )
 son' , '.*son' );
 
-is( Regexp::Assemble->new->add( qw/
-    deathweed deerweed deeded detached debauched deboshed detailed
-    defiled deviled defined declined determined declared deminatured
-    debentured deceased decomposed demersed depressed dejected
-    deflected delighted
-/ )->as_string(indent => 2),
+$r = new Regexp_Assemble();
+is( $r->add( 
+    'deathweed','deerweed','deeded','detached','debauched','deboshed','detailed',
+    'defiled','deviled','defined','declined','determined','declared','deminatured',
+    'debentured','deceased','decomposed','demersed','depressed','dejected',
+    'deflected','delighted'
+ )->as_string(['indent' => 2]),
 'de
 (?:
   c
@@ -981,6 +1034,7 @@ is( Regexp::Assemble->new->add( qw/
 )
 ed', 'indent de.*ed' );
 
+/*
 is( $_, $fixed, '$_ has not been altered' );
 */
 echo "===OK===\n";

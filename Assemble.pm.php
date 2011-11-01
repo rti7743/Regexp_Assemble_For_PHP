@@ -168,9 +168,7 @@ function perl_args_($args)
    $arr = array();
    foreach($args as $_) {
       if ( is_array($_) ) {
-          foreach($_ as $___) {
-              $arr[] = $___;
-          }
+          $arr = array_merge($arr , $_);
       }
       else{
          $arr[] = $_;
@@ -1962,7 +1960,7 @@ function match($target) {
     $this->__mend = $this->_path_copy($pregNum[$lastindex][1]);
 //    my $n = 0;
     $n = 0;
-//kokokara
+
 //http://imawamukashi.web.fc2.com/Perl/TokushuHensu.html#array_last_match_start
 //    for( my $n = 0; $n < @-; ++$n ) {
     for($n = 0 ; $n < count($pregNum) ; $n ++ ) {
@@ -2439,10 +2437,10 @@ to 0 to disable.
 //sub anchor_line {
 //    my $self  = shift;
 //    my $state = shift;
-function anchor_line($state) {
+function anchor_line($p1 = 1) {
 //    $self->anchor_line_begin($state)->anchor_line_end($state);
-    $this->__anchor_line_begin = $state;
-    $this->__anchor_line_end = $state;
+    $this->__anchor_line_begin = $p1;
+    $this->__anchor_line_end = $p1;
 //    return $self;
     return $this;
 //}
@@ -2463,6 +2461,11 @@ to 0 to disable.
 //    $self->{anchor_string_begin} = defined($_[0]) ? $_[0] : 1;
 //    return $self;
 //}
+function anchor_string_begin ($p1 = 1) {
+    $this->__anchor_string_begin = $p1;
+    return $this;
+}
+
 
 /*
 =item anchor_string_end
@@ -4794,7 +4797,7 @@ function _re_path(array $p1) {
 //                    ;
                       if ( isset( $arr[$i][''] ) ){
                            $_temp_map = array();
-                           foreach( perl_grep( function($_){ return $_ != ''; } , array_keys($arr[$i]) ) as $_ ){
+                           foreach( perl_grep( function($_){ return $_ !== ''; } , array_keys($arr[$i]) ) as $_ ){
                               $_temp_map[] = is_array($arr[$i][$_]) ? $this->_re_path( $arr[$i][$_] ) : $arr[$i][$_];
                            }
                            $str .= $this->_combine_new($_temp_map). '?';
@@ -4879,7 +4882,7 @@ function _re_path(array $p1) {
             $p = $_;
             if ( isset($p['']) ) {
                 $_temp_map = array();
-                foreach( perl_grep( function($__){ return $__ != ''; } , array_keys($p) ) as $___ ){
+                foreach( perl_grep( function($__){ return $__ !== ''; } , array_keys($p) ) as $___ ){
                     $_temp_map[] = is_array($p[$___]) ? $this->_re_path( $p[$___] ) : $p[$___] ;
                 }
                 $_temp_join_array[] = $this->_combine_new($_temp_map) . '?';
@@ -5026,7 +5029,7 @@ function _re_path_lookahead($in) {
 //            keys %{$in->[$p]}
 //        ];
         $path = array();
-        foreach( perl_grep( function($_){ return $_ != ''; } , array_keys($in[$p])) as $_ ) {
+        foreach( perl_grep( function($_){ return $_ !== ''; } , array_keys($in[$p])) as $_ ) {
              $path[] = $this->_re_path_lookahead( $in[$p][$_] );
         }
 //        my $ahead = _lookahead($in->[$p]);
@@ -5169,7 +5172,7 @@ function _re_path_track($in,$normal,$augmented) {
 //                keys %{$in->[$n]}
 //            ];
             $path = array();
-            foreach(  perl_grep( function($_){ return $_ != ''; } , 
+            foreach(  perl_grep( function($_){ return $_ !== ''; } , 
                                                 array_keys($in[$n]) ) as $_ )     {
                  $path[] = $this->_re_path_track( $in[$n][$_], $normal.$simple , $augmented.$augment );
             }
@@ -5196,7 +5199,7 @@ function _re_path_track($in,$normal,$augmented) {
 //    my $self = shift;
 //    my $in  = shift;
 //    my $arg = shift;
-function _re_path_pretty($in,$arg) {
+function _re_path_pretty(array $in,$arg) {
 //    my $pre    = ' ' x (($arg->{depth}+0) * $arg->{indent});
     $pre    = str_repeat(' ' , (($arg['depth']+0) * $arg['indent']) );
 //    my $indent = ' ' x (($arg->{depth}+1) * $arg->{indent});
@@ -5208,23 +5211,23 @@ function _re_path_pretty($in,$arg) {
 //    my $prev_was_paren = 0;
     $prev_was_paren = 0;
 //    for( my $p = 0; $p < @$in; ++$p ) {
-    foreach( $in as $p ) {
+    foreach( $in as $p => $_val) {
 //        if( ref($in->[$p]) eq '' ) {
-        if ($p == '' ) {
+        if ( !is_array($_val) ) {
 //            $out .= "\n$pre" if $prev_was_paren;
             if ($prev_was_paren) {
                  $out .= "\n$pre";
             }
 //            $out .= $in->[$p];
-            $out .= $p;
+            $out .= $_val;
 //            $prev_was_paren = 0;
             $prev_was_paren = 0;
 //        }
         }
 //        elsif( ref($in->[$p]) eq 'ARRAY' ) {
-        else if( is_array($p) ) {
+        else if(  !perl_is_hash($_val) ) {
 //            $out .= _re_path($self, $in->[$p]);
-            $out .= $this->_re_path( $p );
+            $out .= $this->_re_path( $_val );
 //        }
         }
 //        else {
@@ -5235,13 +5238,14 @@ function _re_path_pretty($in,$arg) {
 //                keys %{$in->[$p]}
 //            ];
             $path = array();
-            foreach( array_keys($p) as $pp) {
-                 if ($pp != ''){
-                     $path[] = $this->_re_path_pretty($p, $arg );
+            foreach( array_keys($_val) as $_) {
+                 if ($_ !== ''){
+                     $path[] = $this->_re_path_pretty($_val[$_], $arg );
                  }
             }
 
 //            my $nr = @$path;
+            $nr = count($path);
 //            my( @short, @long );
 //            push @{/^$Single_Char$/ ? \@short : \@long}, $_ for @$path;
             $short = array();
@@ -5255,11 +5259,12 @@ function _re_path_pretty($in,$arg) {
                 }
             }
 //            if( @short == $nr ) {
-            if ( join('|',$path) == join('|',$short) ) {
+//            if ( join('|',$path) == join('|',$short) ) {
+            if ( count($short) == $nr ) {
 //                $out .=  $nr == 1 ? $path->[0] : _make_class($self, @short);
-                $out .=  $nr == 1 ? $path[0] : $this->_make_class($short);
+                $out .=  $nr === 1 ? $path[0] : $this->_make_class($short);
 //                $out .= '?' if exists $in->[$p]{''};
-                if ($p) {
+                if ( isset($_val['']) ) {
                      $out .= '?';
                 }
 //            }
@@ -5289,7 +5294,7 @@ function _re_path_pretty($in,$arg) {
                     $_temp_map_array = array();
                     foreach( perl_sort_resort( $path ) as $_ ) {
                             if ($r++) {
-                                $_ = preg_replace("/^\(\?:/u" ,"/\n$indent(?:/" , $_ );
+                                $_ = preg_replace("/^\(\?:/u" ,"\n$indent(?:" , $_ );
                             }
                             $_temp_map_array[] = $_;
                     }
@@ -5306,7 +5311,7 @@ function _re_path_pretty($in,$arg) {
 //                $out .= "\n$pre)";
                 $out .= "\n$pre)";
 //                if( exists $in->[$p]{''} ) {
-                if( isset($in[$p]['']) ) {
+                if( isset($_val['']) ) {
 //                    $out .= "\n$pre?";
                     $out .= "\n$pre?";
 //                    $prev_was_paren = 0;
