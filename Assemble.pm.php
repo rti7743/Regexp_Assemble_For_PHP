@@ -4110,7 +4110,7 @@ function _scan_node( $node, $ctx ) {
 //            if( $new_path ) {
             if( $new_path ) {
 //                $debug and print "# $indent|_scan_node slid=", _dump($new_path), "\n";
-                if ( $debug ) { echo "# $indent|_scan_node slid=", _dump($new_path), "\n"; }
+                if ( $debug ) { echo "# $indent|_scan_node slid=", $this->_dump($new_path), "\n"; }
 //                push @{$reduce{$new_path->[0]}}, $new_path;
                 if (!isset($reduce[$new_path[0]])) $reduce[$new_path[0]] = array();
 /////                $reduce[$new_path[0]] = perl_push( $reduce[$new_path[0]], $new_path );

@@ -13,6 +13,31 @@ function is($a , $b , $msg){
     }
     return true;
 }
+function like($a , $pattern , $msg){
+    if ( ! preg_match($pattern , $a) ) {
+              echo "失敗! {$msg}!!  a:{$a} pattern:{$pattern}\n";
+              var_dump($a);
+              var_dump($pattern);
+              foreach(debug_backtrace() as $_) { 
+                  echo $_['function'] . ":" . $_['line']."\n";
+              }
+              die;
+    }
+    return true;
+}
+function unlike($a , $pattern , $msg){
+    if ( preg_match($pattern , $a) ) {
+              echo "失敗! {$msg}!!  a:{$a} pattern:{$pattern}\n";
+              var_dump($a);
+              var_dump($pattern);
+              foreach(debug_backtrace() as $_) { 
+                  echo $_['function'] . ":" . $_['line']."\n";
+              }
+              die;
+    }
+    return true;
+}
+
 
 function ok($r , $msg) {
     if (!$r) {
