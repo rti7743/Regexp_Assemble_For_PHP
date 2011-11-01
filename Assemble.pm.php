@@ -303,6 +303,8 @@ var $__pre_filter ;
 var $__m;
 var $__mcount;
 var $__mlist;
+var $__mbegin;
+var $__mend;
 
 var $__re;
 var $__str;
@@ -518,6 +520,8 @@ function __construct($args = array() ) {
     $this->__mcount = 0;
     $this->__mlist  = array();
     $this->__stats_raw = 0;
+    $this->__mbegin = array();
+    $this->__mend = array();
 
 //    $args{flags} ||= delete $args{modifiers} || '';
     if (isset($args['modifiers'])) {
