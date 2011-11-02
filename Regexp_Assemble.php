@@ -99,25 +99,25 @@ L<http://cpan.uwinnipeg.ca/htdocs/Regexp-Assemble/README.html>.
 //use constant DEBUG_TAIL => 2;
 //use constant DEBUG_LEX  => 4;
 //use constant DEBUG_TIME => 8;
-var $DEBUG_ADD  = 1;
-var $DEBUG_TAIL = 2;
-var $DEBUG_LEX = 4;
-var $DEBUG_TIME = 8;
+const  DEBUG_ADD  = 1;
+const  DEBUG_TAIL = 2;
+const  DEBUG_LEX = 4;
+const  DEBUG_TIME = 8;
 
 //# The following patterns were generated with eg/naive
 //$Default_Lexer = qr/(?![[(\\]).(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\\(?:[bABCEGLQUXZ]|[lu].|(?:[^\w]|[aefnrtdDwWsS]|c.|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}})|N\{\w+\}|[Pp](?:\{\w+\}|.))(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?)|\[.*?(?<!\\)\](?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\(.*?(?<!\\)\)(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?/; # ]) restore equilibrium
-var $Default_Lexer = '(?![[(\\\\]).(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\\\\(?:[bABCEGLQUXZ]|[lu].|(?:[^\w]|[aefnrtdDwWsS]|c.|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}})|N\{\w+\}|[Pp](?:\{\w+\}|.))(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?)|\[.*?(?<!\\\\)\](?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\(.*?(?<!\\\\)\)(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?'; //# ]) restore equilibrium
+const Default_Lexer = '(?![[(\\\\]).(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\\\\(?:[bABCEGLQUXZ]|[lu].|(?:[^\w]|[aefnrtdDwWsS]|c.|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}})|N\{\w+\}|[Pp](?:\{\w+\}|.))(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?)|\[.*?(?<!\\\\)\](?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?|\(.*?(?<!\\\\)\)(?:[*+?]\??|\{\d+(?:,\d*)?\}\??)?'; //# ]) restore equilibrium
 
 //$Single_Char   = qr/^(?:\\(?:[aefnrtdDwWsS]|c.|[^\w\/{|}-]|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}}))|[^\$^])$/;
-var $Single_Char   = '(?:\\\\(?:[aefnrtdDwWsS]|c.|[^\w\/{|}-]|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}}))|[^\$^])';
+const Single_Char   = '(?:\\\\(?:[aefnrtdDwWsS]|c.|[^\w\/{|}-]|0\d{2}|x(?:[\da-fA-F]{2}|{[\da-fA-F]{4}}))|[^\$^])';
 
 //# the pattern to return when nothing has been added (and thus not match anything)
 //$Always_Fail = "^\\b\0";
-var $Always_Fail = '^\\\\b\0';
-var $__Current_Lexer;
+const Always_Fail = '^\\\\b\0';
 
 
 //変数
+var $__Current_Lexer;
 var $__path;
 var $__lex ;
 var $__debug;
@@ -149,6 +149,8 @@ var $__mcount;
 var $__mlist;
 var $__mbegin;
 var $__mend;
+var $__stats_add;
+var $__stats_cooked;
 
 var $__re;
 var $__str;
@@ -367,6 +369,10 @@ function __construct($args = array() ) {
     $this->__mbegin = array();
     $this->__mend = array();
     $this->__mvar = array();
+    $this->__stats_add = 0;
+    $this->__stats_cooked = 0;
+    $this->__stats_dup = 0;
+    $this->__dup_warn = NULL;
 
 //    $args{flags} ||= delete $args{modifiers} || '';
     if (isset($args['modifiers'])) {
@@ -380,7 +386,7 @@ function __construct($args = array() ) {
     }
 
     //これ追加. 
-    $this->Current_Lexer = $this->Default_Lexer;
+    $this->Current_Lexer = Regexp_Assemble::Default_Lexer;
 //    $args{lex}     = $Current_Lexer if defined $Current_Lexer;
     if (isset($args['lex'])) {
         $this->__lex = $args['lex'];
@@ -533,7 +539,7 @@ function _fastlex($record){
     $qm = '';
 
 //    my $debug       = $self->{debug} & DEBUG_LEX;
-    $debug       = $this->__debug & $this->DEBUG_LEX;
+    $debug       = $this->__debug & Regexp_Assemble::DEBUG_LEX;
 
 //    my $unroll_plus = $self->{unroll_plus};
     $unroll_plus = $this->__unroll_plus;
@@ -548,7 +554,7 @@ function _fastlex($record){
 
 //    my $modifier        = q{(?:[*+?]\\??|\\{(?:\\d+(?:,\d*)?|,\d+)\\}\\??)?};
 //    $modifier        = '(?:[*+?]\\??|\\{(?:\\d+(?:,\d*)?|,\d+)\\}\\??)?';
-    $modifier        = '(?:[*+?]\\\\??|\\\\{(?:\\\\d+(?:,\d*)?|,\d+)\\\\}\\\\??)?';
+    $modifier        = '(?:[*+?]\\??|\\\\{(?:\\\\d+(?:,\d*)?|,\d+)\\\\}\\\\??)?';
 //    my $class_matcher   = qr/\[(?:\[:[a-z]+:\]|\\?.)*?\]/;
 //    $class_matcher   = "\[(?:\[:[a-z]+:\]|\\?.)*?\]";
     $class_matcher   = "\[(?:\[:[a-z]+:\]|\\\\?.)*?\]";
@@ -605,7 +611,7 @@ function _fastlex($record){
 //            if ($qm) {
             if ($qm){
 //                $token = quotemeta($token);
-                $token = quotemeta($token);
+                $token = $this->_perl_quotemeta($token);
 //                $token =~ s/^\\([^\w$()*+.?@\[\\\]^|{}\/])$/$1/;
                 $token = preg_replace('/^\\\\([^\w$()*+.?@\[\\\\\]^|{}\/])$/u' , "\${1}" , $token);
 //            }
@@ -613,14 +619,13 @@ function _fastlex($record){
 //            else {
             else {
 //                $token =~ s{\A([][{}*+?@\\/])\Z}{\\$1};
-                  $token = preg_replace('#\A([][{}*+?@\\\\/])\Z#u' , '\\\\\${1}' , $token);
+                  $token = preg_replace('#\A([][{}*+?@\\\\/])\Z#u' , "\\\\\${1}" , $token);
 //            }
             }
-
 //            if ($unroll_plus and $qualifier =~ s/\A\+(\?)?\Z/*/) {
             if ($unroll_plus && preg_match('/\A\+(\?)?\Z/u',$qualifier,$pregNum)  ){
                 $qualifier = preg_replace('/\A\+(\?)?\Z/u','*' , $qualifier); //$qualifier =~ を一度にできないため
-                
+
 //                $1 and $qualifier .= $1;
                 if ( isset($pregNum[1]) ) $qualifier .= $pregNum[1];
 
@@ -680,7 +685,8 @@ function _fastlex($record){
 //                    : "\\$token$qualifier";
                 if ($unroll_plus && preg_match("/\A\+(\?)?\Z/u",$qualifier,$pregNum) ){
                      $qualifier = preg_replace('/\A\+(\?)?\Z/u','*' , $qualifier);
-                     $path[] = $this->_perl_array( "\\$token" , "\\$token$qualifier".(isset($pregNum[1]) ? $pregNum[1] : '') );
+                     $path[] = "\\$token";
+                     $path[] = "\\$token$qualifier".(isset($pregNum[1]) ? $pregNum[1] : '') ;
                 }
                 else{
                      $path[] = "\\$token$qualifier";
@@ -714,7 +720,8 @@ function _fastlex($record){
 //                    : "$token$qualifier";
                 if ($unroll_plus && preg_match("/\A\+(\?)?\Z/u",$qualifier,$pregNum)){
                      $qualifier = preg_replace('/\A\+(\?)?\Z/u','*' , $qualifier);
-                     $path[] = $this->_perl_array("$token" , "$token$qualifier" .  isset($pregNum[1]) ? $pregNum[1] : '' );
+                     $path[] = "$token";
+                     $path[] = "$token$qualifier" .  (isset($pregNum[1]) ? $pregNum[1] : '') ;
                 }
                 else{
                      $path[] = "$token$qualifier";
@@ -864,8 +871,9 @@ function _fastlex($record){
 //                ? ($class, "$class$qualifier" . (defined $1 ? $1 : ''))
 //                : "$class$qualifier";
             if ($unroll_plus && preg_match("/^\A\+(\?)?\Z/u",$qualifier,$pregNum)){
-                $qualifier = preg_replace("/^\A\+(\?)?\Z/u","/*/",$qualifier);
-                $path[] = $this->_perl_array($class , "$class$qualifier". (isset($pregNum[1]) ? $pregNum[1]  : ''));
+                $qualifier = preg_replace("/^\A\+(\?)?\Z/u","*",$qualifier);
+                $path[] = $class;
+                $path[] = "$class$qualifier". (isset($pregNum[1]) ? $pregNum[1]  : '');
             }
             else{
                 $path[] = "$class$qualifier";
@@ -894,7 +902,6 @@ function _fastlex($record){
 //     }
         break;
      } //redo に対抗するための擬似ループ
-
     return $path;
 }
 
@@ -915,11 +922,11 @@ function _lex($record){
 //        : defined $Current_Lexer ? $Current_Lexer
 //        : $Default_Lexer;
 
-    $re   = $this->__lex != NULL ? $this->__lex : 
-          (isset($this->Current_Lexer) ? $this->Current_Lexer : $this->Default_Lexer);
+    $re   = $this->__lex != NULL ? $this->__lex : $this->Current_Lexer;
+    //Current_Lexer は コンストラクタで Default_Lexer で初期化している。
 
 //    my $debug  = $self->{debug} & DEBUG_LEX;
-    $debug       = $this->__debug & $this->DEBUG_LEX;
+    $debug       = $this->__debug & Regexp_Assemble::DEBUG_LEX;
 
 //    $debug and print "# _lex <$record>\n";
     if ($debug){    echo "# _lex <$record>\n";    }
@@ -971,7 +978,7 @@ function _lex($record){
 //                            : defined $Current_Lexer ? $Current_Lexer
 //                            : $Default_Lexer;
                         if ($qm) {
-                             $re = $this->__lex != NULL ? $this->__lex : $this->Default_Lexer;
+                             $re = $this->__lex != NULL ? $this->__lex : $this->Current_Lexer;
                         }
 //                        $case = $qm = '';
                         $case = ''; $qm = '';
@@ -1110,7 +1117,7 @@ function add($p1){
 //    my $record;
     $record = NULL;
 //    my $debug  = $self->{debug} & DEBUG_LEX;
-    $debug       = $this->__debug & $this->DEBUG_LEX;
+    $debug       = $this->__debug & Regexp_Assemble::DEBUG_LEX;
 
 //    while( defined( $record = shift @_ )) {
     foreach( $this->_perl_args_(func_get_args()) as $record ) {
@@ -1119,7 +1126,7 @@ function add($p1){
         
 //        next if $self->{pre_filter} and not $self->{pre_filter}->($record);
         if ( is_callable($this->__pre_filter) 
-          && ! call_user_func_array($this->__pre_filter,$record) ) {
+          && ! call_user_func_array($this->__pre_filter,array($record) ) ) {
             continue;
         }
 
@@ -1313,21 +1320,21 @@ function insert() {
 //    my $self   = shift;
 function _insertr(array $p1) {
 //    my $dup    = $self->{stats_dup} || 0;
-    $dup    = isset($this->stats_dup) ? $this->stats_dup : 0;
+    $dup    = $this->__stats_dup; //常にコンストラクタで初期化する.
 
-   if ($this->__debug & $this->DEBUG_ADD) { echo "# _insertr p1:".$this->_dump($p1)."\n"; }
+   if ($this->__debug & Regexp_Assemble::DEBUG_ADD) { echo "# _insertr p1:".$this->_dump($p1)."\n"; }
 
 //    $self->{path} = $self->_insert_path( $self->_path, $self->_debug(DEBUG_ADD), $_[0] );
-    $this->__path = $this->_insert_path( $this->__path, ($this->__debug & $this->DEBUG_ADD), $p1 );
+    $this->__path = $this->_insert_path( $this->__path, ($this->__debug & Regexp_Assemble::DEBUG_ADD), $p1 );
 
 //    if( not defined $self->{stats_dup} or $dup == $self->{stats_dup} ) {
-    if ( !isset($this->stats_dup) || $dup == $this->stats_dup ) {
+    if ( $dup == $this->__stats_dup ) {
 //        ++$self->{stats_add};
-        ++$this->stats_add;
+        ++$this->__stats_add;
 
 //        $self->{stats_cooked} += defined($_) ? length($_) : 0 for @{$_[0]};
         foreach($p1 as $p){
-            $this->stats_cooked += is_string($p) ? strlen($p) : 0;
+            $this->__stats_cooked += is_string($p) ? strlen($p) : 0;
         }
 //    }
     }
@@ -1415,7 +1422,7 @@ This method is chainable.
 //    my $pre_filter = shift;
 function pre_filter($pre_filter = NULL) {
 //    if( defined $pre_filter and ref($pre_filter) ne 'CODE' ) {
-    if( !is_callable($pre_filter)) {
+    if( $pre_filter !== NULL && !is_callable($pre_filter)) {
 //        require Carp;
 //        Carp::croak("pre_filter method not passed a coderef");
         trigger_error("pre_filter method not passed a coderef");
@@ -1466,7 +1473,7 @@ This method is chainable.
 //    my $filter = shift;
 function filter($filter = NULL) {
 //    if( defined $filter and ref($filter) ne 'CODE' ) {
-    if( !is_callable($filter)) {
+    if( $filter !== NULL  && !is_callable($filter)) {
 //        require Carp;
 //        Carp::croak("filter method not passed a coderef");
         trigger_error("filter method not passed a coderef");
@@ -1570,7 +1577,7 @@ function as_string() {
         if (! strlen($this->__str) ) {
 //            # explicitly fail to match anything if no pattern was generated
 //            $self->{str} = $Always_Fail;
-            $this->__str = $this->Always_Fail;
+            $this->__str = Regexp_Assemble::Always_Fail;
 //        }
         }
 //        else {
@@ -1935,7 +1942,7 @@ reference to an array containing all captures.
 //    my $self = shift;
 function mvar($p1 = NULL) {
 //    return undef unless exists $self->{mvar};
-    if ( ! is_array($this->__mvar) ) {
+    if ( ! is_array($this->__mvar)  || count($this->__mvar) <= 0) {
         return NULL;
     }
 //    return defined($_[0]) ? $self->{mvar}[$_[0]] : $self->{mvar};
@@ -2016,7 +2023,7 @@ in this total.
 //    my $self = shift;
 function stats_add() {
 //    return $self->{stats_add} || 0;
-    return $this->stats_add || 0;
+    return $this->__stats_add;
 //}
 }
 /*
@@ -2034,7 +2041,7 @@ C<a-b>) which map to the same result.
 //    my $self = shift;
 function stats_dup() {
 //    return $self->{stats_dup} || 0;
-    return $this->stats_dup || 0;
+    return $this->__stats_dup;
 //}
 }
 /*
@@ -2051,7 +2058,7 @@ count as 4 bytes.
 //    my $self = shift;
 function stats_raw() {
 //    return $self->{stats_raw} || 0;
-    return $this->__stats_raw || 0;
+    return $this->__stats_raw;
 //}
 }
 /*
@@ -2071,7 +2078,7 @@ stored, for a total of 4 bytes.
 //    my $self = shift;
 function stats_cooked() {
 //    return $self->{stats_cooked} || 0;
-    return $this->stats_cooked || 0;
+    return $this->__stats_cooked;
 //}
 }
 /*
@@ -2089,7 +2096,7 @@ additional (C<(?-xism...>) fluff added by the compilation.
 //    my $self = shift;
 function stats_length() {
 //    return (defined $self->{str} and $self->{str} ne $Always_Fail) ? length $self->{str} : 0;
-    return ( isset($this->__str) && $this->__str < $this->Always_Fail) ? strlen($this->__str) : 0;
+    return ( $this->__str !== NULL && $this->__str != Regexp_Assemble::Always_Fail) ? strlen($this->__str) : 0;
 //}
 }
 /*
@@ -2845,7 +2852,7 @@ function Default_Lexer($p1) {
 //    }
     }
 //    return defined $Current_Lexer ? $Current_Lexer : $Default_Lexer;
-    return $this->__Current_Lexer ? $this->__Current_Lexer : $this->Default_Lexer;
+    return $this->__Current_Lexer ? $this->__Current_Lexer : Regexp_Assemble::Default_Lexer;
 //}
 }
 
@@ -2948,7 +2955,7 @@ function _insert_path($list , $debug , $in) {
 //        if( ref($list->[0]) ne 'HASH' ) {
         if ( !is_array($list[0]) ) {
 //            return [ { '' => undef, $list->[0] => $list } ];
-            return array( ''=> 0 , $list[0] => $list );
+            return array( array( ''=> 0 , $list[0] => $list ) );
 //        }
         }
 //        else {
@@ -3150,7 +3157,7 @@ function _insert_path($list , $debug , $in) {
             else {
 //                # already seen this pattern
 //                ++$self->{stats_dup};
-                ++$this->stats_dup;
+                ++$this->__stats_dup;
 //            }
             }
 //            last;
@@ -3429,11 +3436,11 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //    my $self    = shift;
 function _reduce() {
 //    my $context = { debug => $self->_debug(DEBUG_TAIL), depth => 0 };
-    $context = array( 'debug' => ($this->__debug & $this->DEBUG_TAIL), 'depth' => 0 );
+    $context = array( 'debug' => ($this->__debug & Regexp_Assemble::DEBUG_TAIL), 'depth' => 0 );
 /*
 //skip debug
 //    if ($self->_debug(DEBUG_TIME)) {
-     if ($this->__debug($this->DEBUG_TIME)) {
+     if ($this->__debug(Regexp_Assemble::DEBUG_TIME)) {
 //        $self->_init_time_func;
         $this->_init_time_func();
 //        my $now = $self->{_time_func}->();
@@ -4058,6 +4065,7 @@ function _do_reduce($path, $ctx) {
 //    my $ra = Regexp::Assemble->new(chomp=>0);
     $ra = new Regexp_Assemble( array( 'chomp' => 0 ) );
 //    $ra->debug($debug);
+
     $ra->__debug = $debug;
 //$ra->__debug = 255;
 //    $debug and print "# $indent| do @{[_dump($path)]}\n";
@@ -4512,7 +4520,7 @@ function _combine($type , $args) {
     $short = array();
     $long = array();
     foreach($args as $_) {
-        if (preg_match('/^'.$this->Single_Char.'$/u',$_)) {
+        if (preg_match('/^'.Regexp_Assemble::Single_Char.'$/u',$_)) {
             $short[] = $_;
         }
         else {
@@ -4552,7 +4560,7 @@ function _combine_new($args) {
     $short = array();
     $long = array();
     foreach( $args as $_) {
-        if (preg_match('/^'.$this->Single_Char.'$/u',$_)) {
+        if (preg_match('/^'.Regexp_Assemble::Single_Char.'$/u',$_)) {
             $short[] = $_;
         }
         else {
@@ -4619,7 +4627,7 @@ function _re_path(array $p1) {
 //            }
 //            elsif (ref($arr[$i]) eq 'HASH') {
               if (  is_array( $arri ) ) {
-                  if ( $this->_perl_is_hash($_) ) {
+                  if ( $this->_perl_is_hash($arri) ) {
 //                    $str .= exists $arr[$i]->{''}
 //                        ? _combine_new( $self,
 //                            map { _re_path( $self, $arr[$i]->{$_} ) } grep { $_ ne '' } keys %{$arr[$i]}
@@ -4648,7 +4656,9 @@ function _re_path(array $p1) {
 //            }
             }
 //            elsif ($i < $#arr and $arr[$i+1] =~ /\A$arr[$i]\*(\??)\Z/) {
-            else if ($i < (count($arr)-1) and preg_match('/\A'.$arri.'\*(\??)\Z/u' , $arr[$i+1] , $pregNum)  ) {
+            else if ($i < (count($arr)-1) 
+                  &&  !is_array($arr[$i+1]) 
+                  &&  preg_match('/\A'.$arri.'\*(\??)\Z/u' , $arr[$i+1] , $pregNum)  ) {
 //                $str .= "$arr[$i]+" . (defined $1 ? $1 : '');
                 $str .= "$arri+" . ($pregNum[1] ? $pregNum[1] : '');
 //                ++$skip;
@@ -4899,7 +4909,7 @@ function _re_path_lookahead($in) {
 //        }
         }
 //        my $nr_one = grep { /^$Single_Char$/ } @$path;
-        $nr_one = count($this->_perl_grep( function($_){ return preg_match('/^'.$this->Single_Char .'$/u' , $_ ); }  , $path ));
+        $nr_one = count($this->_perl_grep( function($_){ return preg_match('/^'.Regexp_Assemble::Single_Char .'$/u' , $_ ); }  , $path ));
 //        my $nr     = @$path;
         $nr     = count($path);
 //        if( $nr_one > 1 and $nr_one == $nr ) {
@@ -5084,7 +5094,7 @@ function _re_path_pretty(array $in,$arg) {
             $short = array();
             $long = array();
             foreach($path as $_) {
-                if (preg_match('/^'.$this->Single_Char.'$/u',$_)) {
+                if (preg_match('/^'.Regexp_Assemble::Single_Char.'$/u',$_)) {
                     $short[] = $_;
                 }
                 else {
@@ -5806,14 +5816,9 @@ static function _perl_is_hash(array $array) {
     return false;
 }
 
-//正規表現メタ文字エスケープ preg_meta だと @ とかが無視されるので、作る。
+//perlの quotemeta は、 英数字以外はすべてエスケープするらしい.
 static function _perl_quotemeta($str) {
-   foreach( array('\\' , '.', '+', '*', '?', '[', '^', ']', '$', '(', ')', '{', '}', '=', '!', '<', '>', '|', ':', '-', '/','@') 
-            as $meta) {
-       $str = str_replace($meta , "\\{$meta}" , $str  );
-   }
-   
-   return $str;
+   return preg_replace("/([^a-zA-Z0-9 !\"#_])/u","\\\\\${1}" , $str);
 }
 
 //@_ をエミュレーション
