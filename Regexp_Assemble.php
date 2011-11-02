@@ -2,7 +2,6 @@
 
 /*
 perl の regexp::Assemble を PHP に移植しています。
-まだまだ移植中です。動きません。
 
 perl のルーチンと1行づつ対訳をやっています。
 間違っている所、たくさんあると思うので、手助けをお願いします。
@@ -2982,7 +2981,7 @@ function _insert_path($list , $debug , $in) {
 //        if( ref($path->[$offset]) eq 'HASH' ) {
         if ( isset( $path[$offset] ) && is_array($path[$offset]) ) {
 //            $debug and print "#   at (off=$offset len=@{[scalar @$path]}) ", _dump($path->[$offset]), "\n";
-            if ($debug) { echo "#   at (off=$offset len=".count($path).",". $this->_dump([$path[$offset]]). "\n"; }
+            if ($debug) { echo "#   at (off=$offset len=".count($path).",". $this->_dump(array($path[$offset])). "\n"; }
 //            my $node = $path->[$offset];
             $node = $path[$offset];
 //            if( exists( $node->{$token} )) {
@@ -3333,7 +3332,7 @@ function _insert_node($path,$offset,$token,$debug,$lostparam = NULL) {
 //            while( @$path_end and _node_eq( $path_end->[0], $token )) {
             while( count($path_end) >= 1 && $this->_node_eq( $path_end[0], $token )) {
 //                $debug and print "#  identical nodes @{[_dump([$token])]}\n";
-                if ($debug) { echo "#  identical nodes ".$this->_dump([$token])."\n"; }
+                if ($debug) { echo "#  identical nodes ".$this->_dump(array($token))."\n"; }
 
 //                shift @$path_end;
                 array_shift( $path_end );
@@ -4004,7 +4003,7 @@ function _scan_node( $node, $ctx ) {
 //                        )
 //                    );
                    if ( $debug ) { echo 
-                           "#!$indent|_scan_node ++recovered dump reduce:" . $this->_dump($reduce)." dump fail:" . $this->_dump($fail)." dump common:" . $this->_dump($common)." dump tail:" . $this->_dump([$tail])." dump path:" . $this->_dump($path). "\n"; }
+                           "#!$indent|_scan_node ++recovered dump reduce:" . $this->_dump($reduce)." dump fail:" . $this->_dump($fail)." dump common:" . $this->_dump($common)." dump tail:" . $this->_dump(array($tail))." dump path:" . $this->_dump($path). "\n"; }
 
                    if ($this->_perl_is_hash($tail)) {
                        $reduce[$common[0]][] = 
@@ -4015,10 +4014,10 @@ function _scan_node( $node, $ctx ) {
                            );
                    }
                    else {
-                   $___temp = [];
-                   $___temp = array_merge($___temp, $common);
-                   $___temp = array_merge($___temp, $tail);
-                   $___temp = array_merge($___temp, $path);
+                         $___temp = array();
+                         $___temp = array_merge($___temp, $common);
+                         $___temp = array_merge($___temp, $tail);
+                         $___temp = array_merge($___temp, $path);
 //                       $reduce[$common[0]][] = 
 //                           $this->_perl_array2(
 //                             $common , 
@@ -4042,7 +4041,7 @@ function _scan_node( $node, $ctx ) {
 //    $debug and print
 //        "# $indent|_scan_node counts: reduce=@{[scalar keys %reduce]} fail=@{[scalar @fail]}\n";
     if ( $debug ) { echo 
-        "# $indent|_scan_node counts: reduce=". count($reduce) ." fail=" . count($fail) . " dump reduce:" . $this->_dump($reduce)." dump fail:" . $this->_dump($fail)." dump fail2:" . $this->_dump([$fail]). "\n"; }
+        "# $indent|_scan_node counts: reduce=". count($reduce) ." fail=" . count($fail) . " dump reduce:" . $this->_dump($reduce)." dump fail:" . $this->_dump($fail)." dump fail2:" . $this->_dump(array($fail)). "\n"; }
 //    return( \@fail, \%reduce );
 /////////    return array( $fail , $reduce );
     return array( $fail , $reduce );  
@@ -4081,9 +4080,10 @@ function _do_reduce($path, $ctx) {
 //        }
 //        @$path
 //    ;
-    $_temp_path = $this->_perl_sort( function($a,$b){
-            $scalar_count_a = count( $this->_perl_grep( function($_){ return is_array($_); } ,$a) );
-            $scalar_count_b = count( $this->_perl_grep( function($_){ return is_array($_); } ,$b) );
+    $self = $this; //php5.4からは thisは暗黙なのだが・・ php5.3で動かしたいので、一度代入して自分で束縛する.
+    $_temp_path = $this->_perl_sort( function ($a,$b) use($self){ 
+            $scalar_count_a = count( $self->_perl_grep( function($_){ return is_array($_); } ,$a) );
+            $scalar_count_b = count( $self->_perl_grep( function($_){ return is_array($_); } ,$b) );
 
             if ($scalar_count_a > $scalar_count_b) {
                  return 1;
@@ -4091,8 +4091,8 @@ function _do_reduce($path, $ctx) {
                  return -1;
             }
 
-            $temp_b = $this->_node_offset($b);
-            $temp_a = $this->_node_offset($a);
+            $temp_b = $self->_node_offset($b);
+            $temp_a = $self->_node_offset($a);
 
             if ($temp_b > $temp_a) {
                  return 1;
