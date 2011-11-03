@@ -553,8 +553,7 @@ function _fastlex($record){
     if ( $debug ) { echo "# _fastlex <$record>\n"; } 
 
 //    my $modifier        = q{(?:[*+?]\\??|\\{(?:\\d+(?:,\d*)?|,\d+)\\}\\??)?};
-//    $modifier        = '(?:[*+?]\\??|\\{(?:\\d+(?:,\d*)?|,\d+)\\}\\??)?';
-    $modifier        = '(?:[*+?]\\??|\\\\{(?:\\\\d+(?:,\d*)?|,\d+)\\\\}\\\\??)?';
+    $modifier        = '(?:[*+?]\\??|\\{(?:\\d+(?:,\d*)?|,\d+)\\}\\??)?';
 //    my $class_matcher   = qr/\[(?:\[:[a-z]+:\]|\\?.)*?\]/;
 //    $class_matcher   = "\[(?:\[:[a-z]+:\]|\\?.)*?\]";
     $class_matcher   = "\[(?:\[:[a-z]+:\]|\\\\?.)*?\]";
@@ -577,7 +576,7 @@ function _fastlex($record){
 //    {
       while(1){
 //        if ($record =~ /\G$matcher/gc) {
-          if ( preg_match("/^{$matcher}/u",$stripRecord,$pregNum)  ){
+          if ( preg_match('/^'.$matcher.'/u',$stripRecord,$pregNum)  ){
              $stripRecord = substr($stripRecord , strlen($pregNum[0]) ); // \G なので削る
 
 //           # neither a \\ nor [ nor ( followed by a modifer
@@ -670,7 +669,7 @@ function _fastlex($record){
 
 //            # backslash
 //            if ($record =~ /\G([sdwSDW])($modifier)/gc) {
-            if (preg_match("/^([sdwSDW])($modifier)/u",$stripRecord,$pregNum)){
+            if (preg_match('/^([sdwSDW])('.$modifier.')/u',$stripRecord,$pregNum)){
                 $stripRecord = substr($stripRecord , strlen($pregNum[0]) ); // \G なので削る
 
 //                ($token, $qualifier) = ($1, $2);
@@ -683,7 +682,7 @@ function _fastlex($record){
 //                push @path, ($unroll_plus and $qualifier =~ s/\A\+(\?)?\Z/*/)
 //                    ? ("\\$token", "\\$token$qualifier" . (defined $1 ? $1 : ''))
 //                    : "\\$token$qualifier";
-                if ($unroll_plus && preg_match("/\A\+(\?)?\Z/u",$qualifier,$pregNum) ){
+                if ($unroll_plus && preg_match('/\A\+(\?)?\Z/u',$qualifier,$pregNum) ){
                      $qualifier = preg_replace('/\A\+(\?)?\Z/u','*' , $qualifier);
                      $path[] = "\\$token";
                      $path[] = "\\$token$qualifier".(isset($pregNum[1]) ? $pregNum[1] : '') ;
@@ -694,7 +693,7 @@ function _fastlex($record){
 //            }
             }
 //            elsif ($record =~ /\Gx([\da-fA-F]{2})($modifier)/gc) {
-            else if (preg_match("/^x([\da-fA-F]{2})($modifier)/u",$stripRecord,$pregNum)){
+            else if (preg_match('/^x([\da-fA-F]{2})('.$modifier.')/u',$stripRecord,$pregNum)){
                 $stripRecord = substr($stripRecord , strlen($pregNum[0]) ); // \G なので削る
 
 //                $debug and print "#   x $1\n";
@@ -710,7 +709,7 @@ function _fastlex($record){
                 if ($debug){    echo "#  cooked <$token>\n";    }
 
 //                $token =~ s/^\\([^\w$()*+.?\[\\\]^|{\/])$/$1/; # } balance
-                $token = preg_replace("/^\\\\([^\w$()*+.?\[\\\\\]^|{\/])$/u","\${1}", $token);    // } balance
+                $token = preg_replace('/^\\\\([^\w$()*+.?\[\\\\\]^|{\/])$/u',"\${1}", $token);    // } balance
 
 //                $debug and print "#   giving <$token>\n";
                 if ($debug){    echo "#   giving <$token>\n";    }
@@ -718,7 +717,7 @@ function _fastlex($record){
 //                push @path, ($unroll_plus and $qualifier =~ s/\A\+(\?)?\Z/*/)
 //                    ? ($token, "$token$qualifier" . (defined $1 ? $1 : ''))
 //                    : "$token$qualifier";
-                if ($unroll_plus && preg_match("/\A\+(\?)?\Z/u",$qualifier,$pregNum)){
+                if ($unroll_plus && preg_match('/\A\+(\?)?\Z/u',$qualifier,$pregNum)){
                      $qualifier = preg_replace('/\A\+(\?)?\Z/u','*' , $qualifier);
                      $path[] = "$token";
                      $path[] = "$token$qualifier" .  (isset($pregNum[1]) ? $pregNum[1] : '') ;
@@ -729,7 +728,7 @@ function _fastlex($record){
 //            }
             }
 //            elsif ($record =~ /\GQ/gc) {
-            else if (preg_match("/^Q/u" ,$stripRecord , $pregNum) ){
+            else if (preg_match('/^Q/u' ,$stripRecord , $pregNum) ){
                 $stripRecord = substr($stripRecord , strlen($pregNum[0]) ); // \G なので削る
 
 //                $debug and print "#   Q\n";
@@ -741,7 +740,7 @@ function _fastlex($record){
 //            }
             }
 //            elsif ($record =~ /\G([LU])/gc) {
-            else if (preg_match("/^([LU])/u" ,$stripRecord ,$pregNum ) ){
+            else if (preg_match('/^([LU])/u' ,$stripRecord ,$pregNum ) ){
                 $stripRecord = substr($stripRecord , strlen($pregNum[0]) ); // \G なので削る
 
 //                $debug and print "#   case $1\n";
@@ -751,7 +750,7 @@ function _fastlex($record){
 //            }
             }
 //            elsif ($record =~ /\GE/gc) {
-            else if (preg_match("/^E/u" ,$stripRecord ,$pregNum)){
+            else if (preg_match('/^E/u' ,$stripRecord ,$pregNum)){
                 $stripRecord = substr($stripRecord , strlen($pregNum[0]) ); // \G なので削る
 
 //                $debug and print "#   E\n";
@@ -763,7 +762,7 @@ function _fastlex($record){
 //            }
             }
 //            elsif ($record =~ /\G([lu])(.)/gc) {
-            else if (preg_match("/^([lu])(.)/u" ,$stripRecord ,$pregNum)){
+            else if (preg_match('/^([lu])(.)/u' ,$stripRecord ,$pregNum)){
                 $stripRecord = substr($stripRecord , strlen($pregNum[0]) ); // \G なので削る
 
 //                $debug and print "#   case $1 to <$2>\n";
@@ -773,7 +772,7 @@ function _fastlex($record){
 //            }
             }
 //            elsif (my @arg = grep {defined} $record =~ /\G$misc_matcher/gc) {
-            else if ( preg_match("/^$misc_matcher/u",$stripRecord , $pregNum) ){
+            else if ( preg_match('/^'.$misc_matcher.'/u',$stripRecord , $pregNum) ){
                 $stripRecord = substr($stripRecord , strlen($pregNum[0]) ); // \G なので削る
 
                 $arg = $this->_perl_grep( function($_){ return $_ !== ''; }  , array_slice($pregNum , 1) );
@@ -788,8 +787,8 @@ function _fastlex($record){
                 $directive = array_shift($arg);
 //                if ($directive eq 'c') {
                 if ($directive == 'c'){
-//                    $debug and print "#  ctrl <@arg>\n";
-                    if ($debug){    echo "#  ctrl <@arg>\n";    }
+//                    $debug and print "#  ctrl <>\n";
+                    if ($debug){    echo "#  ctrl <" . $this->_dump($arg) . ">\n";    }
 //                    push @path, "\\c" . uc(shift @arg);
                     $path[] = "\\c". strtoupper(array_shift($arg));
 //                }
@@ -797,10 +796,10 @@ function _fastlex($record){
 //                else { # elsif ($directive eq '0') {
                 else{ // elsif ($directive eq '0') 
 //                    $debug and print "#  octal <@arg>\n";
-                    if ($debug){    echo "#  octal <@arg>\n";    }
+                    if ($debug){    echo "#  octal <".$this->_dump($arg).">\n";    }
 
 //                    my $ascii = oct(shift @arg);
-                    $ascii = decoct(array_shift($arg));
+                     $ascii = $this->_perl_oct(array_shift($arg));
 
 //                    push @path, ($ascii < 32)
 //                        ? "\\c" . chr($ascii+64)
@@ -819,7 +818,7 @@ function _fastlex($record){
                 continue;
             }
 //            elsif ($record =~ /\G(.)/gc) {
-            else if ( preg_match("/^(.)/u" , $stripRecord, $pregNum) ){
+            else if ( preg_match('/^(.)/u' , $stripRecord, $pregNum) ){
                 $stripRecord = substr($stripRecord , strlen($pregNum[0]) ); // \G なので削る
 
 //                $token = $1;
@@ -843,7 +842,7 @@ function _fastlex($record){
 //        }
         }
 //        elsif ($record =~ /\G($class_matcher)($modifier)/gc) {
-        else if ( preg_match("/^($class_matcher)($modifier)/u",$stripRecord,$pregNum) ){
+        else if ( preg_match('/^('.$class_matcher.')('.$modifier.')/u',$stripRecord,$pregNum) ){
              $stripRecord = substr($stripRecord , strlen($pregNum[0]) ); // \G なので削る
 
 //            # [class] followed by a modifer
@@ -856,7 +855,7 @@ function _fastlex($record){
             if ($debug){    echo "#  class begin <$class> <$qualifier>\n";    }
 
 //            if ($class =~ /\A\[\\?(.)]\Z/) {
-            if (preg_match("/\A\[\\\\?(.)]\Z/u" , $class , $pregNum ) ){
+            if (preg_match('/\A\[\\\\?(.)]\Z/u' , $class , $pregNum ) ){
 //                $class = quotemeta $1;
                 $class = $this->_perl_quotemeta($pregNum[1]);
 //                $class =~ s{\A\\([!@%])\Z}{$1};
@@ -870,7 +869,7 @@ function _fastlex($record){
 //            push @path, ($unroll_plus and $qualifier =~ s/\A\+(\?)?\Z/*/)
 //                ? ($class, "$class$qualifier" . (defined $1 ? $1 : ''))
 //                : "$class$qualifier";
-            if ($unroll_plus && preg_match("/^\A\+(\?)?\Z/u",$qualifier,$pregNum)){
+            if ($unroll_plus && preg_match('/^\A\+(\?)?\Z/u',$qualifier,$pregNum)){
                 $qualifier = preg_replace("/^\A\+(\?)?\Z/u","*",$qualifier);
                 $path[] = $class;
                 $path[] = "$class$qualifier". (isset($pregNum[1]) ? $pregNum[1]  : '');
@@ -883,7 +882,7 @@ function _fastlex($record){
 //        }
         }
 //        elsif ($record =~ /\G($paren_matcher)/gc) {
-        else if (preg_match("/^({$paren_matcher})/u",$stripRecord , $pregNum) ){
+        else if (preg_match('/^('.$paren_matcher.')/u',$stripRecord , $pregNum) ){
              $stripRecord = substr($stripRecord , strlen($pregNum[0]) ); // \G なので削る
 
 //            $debug and print "#  paren <$1>\n";
@@ -937,29 +936,32 @@ function _lex($record){
     $diff = '';
     $token_len = '';
     $pregNum = array();    //$1 とかのために使う.
-    $stripRecord = $record;  //削ってく.
-
+    $stripRecord = $record;//削ってく.
+    $lastOffset = 0;       //削っただけ増やす.
 
 //    while( $record =~ /($re)/g ) {
-      while( preg_match("/($re)/u" , $stripRecord , $pregNum,PREG_OFFSET_CAPTURE) ){
-
+      while( preg_match('/('.$re.')/u' , $stripRecord , $pregNum,PREG_OFFSET_CAPTURE) ){
 //        $token = $1;
-        $stripRecord = substr($stripRecord , strlen($pregNum[0][0]) ); // 正規表現でマッチしたところを削る.
-        $token = $pregNum[1][0];
-        $_temp_record_pos = $pregNum[1][1];
+        $token = $pregNum[1][0] ;
+        $_temp_record_pos = $pregNum[1][1] + $lastOffset + 1;
 
 //        $token_len = length($token);
         $token_len = strlen($token);
-//        $debug and print "# lexed <$token> len=$token_len\n";
-        if ($debug){    echo "# lexed <$token> len=$token_len\n"; }
+
+        $stripRecord = substr($stripRecord , $pregNum[0][1] + strlen($pregNum[0][0]) ); // 正規表現でマッチしたところを削る.
+                                                                                        //削るときに \G (ようするに^) ではないので、マッチした部分の前の部分($pregNum[0][1])を足すのを忘れずに。
+        $lastOffset += $pregNum[0][1] + strlen($pregNum[0][0]);                         //削った分だけ増やしとく.
+
+//        $debug and print "# lexed <$token> token_len=$token_len pos:" , pos($record) , " len:" , $len ,"\n";
+        if ($debug){    echo "# lexed <$token> token_len=$token_len pos:" , $_temp_record_pos , " len:" , $len , "\n"; }
 //        if( pos($record) - $len > $token_len ) {
         if ( $_temp_record_pos - $len > $token_len ){
 //            $next_token = $token;
             $next_token = $token;
 //            $token = substr( $record, $len, $diff = pos($record) - $len - $token_len );
-            $token = substr( $stripRecord, $len, $diff = $_temp_record_pos - $len - $token_len );
+            $token = substr( $record, $len, $diff = $_temp_record_pos - $len - $token_len );
 //            $debug and print "#  recover <", substr( $record, $len, $diff ), "> as <$token>, save <$next_token>\n";
-            if ($debug){ echo "#  recover <", substr( $stripRecord, $len, $diff ), "> as <$token>, save <$next_token>\n"; }
+            if ($debug){ echo "#  recover <", substr( $record, $len, $diff ), "> as <$token>, save <$next_token>\n"; }
 //            $len += $diff;
             $len += $diff;
 //        }
@@ -971,7 +973,7 @@ function _lex($record){
 //            if( substr( $token, 0, 1 ) eq '\\' ) {
             if ( substr( $token, 0, 1 ) == '\\' ){
 //                if( $token =~ /^\\([ELQU])$/ ) {
-                if ( preg_match("/^\\\\([ELQU])$/u" , $token , $pregNum) ){
+                if ( preg_match('/^\\\\([ELQU])$/u' , $token , $pregNum) ){
 //                    if( $1 eq 'E' ) {
                      if( $pregNum[1] == 'E' ) {
 //                        $qm and $re = defined $self->{lex} ? $self->{lex}
@@ -1006,7 +1008,7 @@ function _lex($record){
 //                }
                 }
 //                elsif( $token =~ /^\\([lu])(.)$/ ) {
-                else if ( preg_match("/^\\\\([lu])(.)$/u",$token , $pregNum) ) {
+                else if ( preg_match('/^\\\\([lu])(.)$/u',$token , $pregNum) ) {
 //                    $debug and print "#  apply case=<$1> to <$2>\n";
                     if ($debug){    echo "#  apply case=<{$pregNum[1]}> to <{$pregNum[2]}>\n";    }
 //                    push @path, $1 eq 'l' ? lc($2) : uc($2);
@@ -1017,7 +1019,7 @@ function _lex($record){
 //                }
                 }
 //                elsif( $token =~ /^\\x([\da-fA-F]{2})$/ ) {
-                else if ( preg_match("/^\\\\x([\da-fA-F]{2})$/u",$token , $pregNum) ) {
+                else if ( preg_match('/^\\\\x([\da-fA-F]{2})$/u',$token , $pregNum) ) {
 //                    $token = quotemeta(chr(hex($1)));
                     $token = $this->_perl_quotemeta(chr(hexdec($pregNum[1])));
 //                    $debug and print "#  cooked <$token>\n";
@@ -1142,7 +1144,7 @@ function add($p1){
 //        ;
 
           $list = 
-              preg_match("/[+*?(\\\\\[{]/u" ,$record ) ? //# }]) restore equilibrium
+              preg_match('/[+*?(\\\\\[{]/u' ,$record ) ? //# }]) restore equilibrium
               ($this->__lex != NULL ? $this->_lex($record) : $this->_fastlex($record) )
               : preg_split("//u" ,$record , -1 , PREG_SPLIT_NO_EMPTY);
 
@@ -4436,7 +4438,7 @@ function _make_class() {
             $delete = array();
 //            $_ =~ /^$re$/ and push @delete, $_ for keys %set;
             foreach( array_keys($set) as $_) {
-                 if ( preg_match("/^{$re}$/u" , $_) ) {
+                 if ( preg_match('/^'.$re.'$/u' , $_) ) {
 //                      $delete = $this->_perl_push($delete , $_);
                       $delete[] = $_;
                  }
@@ -5849,6 +5851,24 @@ static function _perl_reference_to_key($p) {
         return '__ref:' .json_encode($p);
     }
     return $p;
+}
+//perlのoct 
+static function _perl_oct($p) {
+   $p1 = substr($p,1);
+   $p2 = substr($p,2,1);
+   if ($p1 == '0') {
+       if ($p2 == 'x') { //0x  16進数
+           return hexdec( substr($p , 2) );
+       }
+       else if ($p2 == 'b') { //0b 2進数
+           return bindec( substr($p , 2) );
+       }
+       else { //0  8進数
+           return octdec( substr($p , 1) );
+       }
+   }
+   //8新数
+   return octdec( $p );
 }
 
 }

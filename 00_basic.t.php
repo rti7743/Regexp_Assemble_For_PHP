@@ -5,6 +5,7 @@ require_once("testutil.php");
 $r = new Regexp_Assemble();
 $context = [ 'debug' => 255, 'depth' => 0 ];
 
+
 /*
 # 00_basic.t
 #
@@ -744,19 +745,17 @@ lcmp( '\\|{2,4}?', __LINE__ );
     is_deeply( $r->reset()->add( $str )->__path,
         [ 'a', '\\+', 'x', '\\*', 'b', '\\+' ], "add $str" );
 
-//保留
-//    $str = 'X\\LK+L{2,4}M\\EY';
-//    is_deeply( $r->reset()->add( $str )->__path,
-//        [ 'X', 'k+', 'l{2,4}', 'm', 'Y' ], "add $str" ) ;
+    $str = 'X\\LK+L{2,4}M\\EY';
+    is_deeply( $r->reset()->add( $str )->__path,
+        [ 'X', 'k+', 'l{2,4}', 'm', 'Y' ], "add $str" ) ;
 
     $str = 'p\\Q\\L\\Eq';
     is_deeply( $r->reset()->add( $str )->__path,
         [ 'p', 'q' ], "add $str" );
 
-//保留
-//    $str = 'q\\U\\Qh{7,9}\\Ew';
-//    is_deeply( $r->reset()->add( $str )->__path,
-//        [ 'q', 'H', '\{', '7', ',', '9', '\}', 'w' ], "add $str" );
+    $str = 'q\\U\\Qh{7,9}\\Ew';
+    is_deeply( $r->reset()->add( $str )->__path,
+        [ 'q', 'H', '\{', '7', ',', '9', '\}', 'w' ], "add $str" );
 
     $str = 'a\\Ubc\\ldef\\Eg';
     is_deeply( $r->reset()->add( $str )->__path,
@@ -984,8 +983,8 @@ is_deeply( $rt->_unrev_path(
 //{
 //    my $r = $r;
 
-//    is_deeply( $r->lexstr( 'ab' ), ['a', 'b'], "lexstr('ab')" );
-//    is_deeply( $r->lexstr( 'a\\,b' ), ['a', ',', 'b'], "lexstr('a\\,b')" );
+    is_deeply( $r->lexstr( 'ab' ), ['a', 'b'], "lexstr('ab')" );
+    is_deeply( $r->lexstr( 'a\\,b' ), ['a', ',', 'b'], "lexstr('a\\,b')" );
 
 
 //}
@@ -1000,32 +999,31 @@ is_deeply( $rt->_unrev_path(
 //    'Default_Lexer die'
 //);
 
-//保留
-//is_deeply( $r->_fastlex('ab+c{2,4}'),
-//    ['a', 'b+', 'c{2,4}'],
-//    '_fastlex reg plus min-max'
-//);
+$r = new Regexp_Assemble();
+is_deeply( $r->_fastlex('ab+c{2,4}'),
+    ['a', 'b+', 'c{2,4}'],
+    '_fastlex reg plus min-max'
+);
 
-/*
-これらも保留。ネストするには unroll_plus が必要。
+
 //my $x;
 is_deeply( $x = $r->_fastlex('\\d+\\s{3,4}?\\Qa+\\E\\lL\\uu\\Ufoo\\E\\Lbar\\x40'),
-    ['\\d+', '\\s{3,4}?', 'a', '\\+', ['l','U','F','O','O','b','a','r','@']],
+    ['\\d+', '\\s{3,4}?', 'a', '\\+', 'l','U','F','O','O','b','a','r','@'],
     '_fastlex backslash'
-) || diag("@$x");
+) ;
 
 is_deeply( $x = $r->_fastlex('\\Q\\L\\Ua+\\E\\Ub?\\Ec'),
-    [['a','\\+','B?','c']], '_fastlex in and out of quotemeta'
-) || diag("@$x");
+    ['a','\\+','B?','c'], '_fastlex in and out of quotemeta'
+) ;
 
 is_deeply( $x = $r->_fastlex('\\A\\a\\e\\f\\r\\n\\t\\Z'),
-    [['\\A','\\a','\\e','\\f','\\r','\\n','\\t','\\Z']], '_fastlex backslash letter'
-) || diag("@$x");
+    ['\\A','\\a','\\e','\\f','\\r','\\n','\\t','\\Z'], '_fastlex backslash letter'
+) ;
 
 is_deeply( $x = $r->_fastlex('\\cG\\cd\\007*?\\041\\z'),
-    [['\\cG','\\cD','\\cG*?','!','\\z']], '_fastlex backslash misc'
-) || diag("@$x");
-*/
+    ['\\cG','\\cD','\\cG*?','!','\\z'], '_fastlex backslash misc'
+) ;
+
 
 /*
 package Regexp::Assemble;

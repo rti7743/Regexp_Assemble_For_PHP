@@ -2,7 +2,8 @@
 require_once("Regexp_Assemble.php");
 require_once("testutil.php");
 
-
+    $r = new Regexp_Assemble(['lex' => '\\d']);
+    $r->debug(255);
 /*
 # 01_insert.t
 #
@@ -163,14 +164,13 @@ $_ = $fixed;
     );
 //}
 
-//•Û—¯
-//{
-//    $r = new Regexp_Assemble(['lex' => '\\d']);
-//    is_deeply( $r->add( '0\Q0C,+' )->__path,
-//        [ '0', '0', 'C', ',', '\\+' ],
-//        '0\\Q0C,+ with \\d lexer'
-//    );
-//}
+{
+    $r = new Regexp_Assemble(['lex' => '\\d']);
+    is_deeply( $r->add( '0\Q0C,+' )->__path,
+        [ '0', '0', 'C', ',', '\\+' ],
+        '0\\Q0C,+ with \\d lexer'
+    );
+}
 
 //{
     $ra = new Regexp_Assemble();
