@@ -2,8 +2,10 @@
 require_once("Regexp_Assemble.php");
 require_once("testutil.php");
 
-    $r = new Regexp_Assemble(['lex' => '\\d']);
+
+    $r = new Regexp_Assemble();
     $r->debug(255);
+
 /*
 # 01_insert.t
 #
@@ -573,37 +575,36 @@ permute(
         [ 'a','m','u','s','e' ]
     ]
 );
-/*
-Regexp::Assemble::Default_Lexer( '\([^(]*(?:\([^)]*\))?[^)]*\)|.' );
 
 {
-    my $r = Regexp::Assemble->new;
+    $r = new Regexp_Assemble();
+    $r->Default_Lexer( '\([^(]*(?:\([^)]*\))?[^)]*\)|.' );
 
-    $r->reset->add( 'ab(cd)ef' );
-    is_deeply( $r->_path,
+    $r->reset()->add( 'ab(cd)ef' );
+    is_deeply( $r->__path,
         [ 'a', 'b', '(cd)', 'e', 'f' ],
         'ab(cd)ef (with Default parenthetical lexer)'
-    ) or diag("lex = $r->{lex}");
+    ) ;
 
-    $r->reset->add( 'ab((ef)gh)ij' );
-    is_deeply( $r->_path,
+    $r->reset()->add( 'ab((ef)gh)ij' );
+    is_deeply( $r->__path,
         [ 'a', 'b', '((ef)gh)', 'i', 'j' ],
         'ab((ef)gh)ij (with Default parenthetical lexer)'
     );
 
-    $r->reset->add( 'ab(ef(gh))ij' );
-    is_deeply( $r->_path,
+    $r->reset()->add( 'ab(ef(gh))ij' );
+    is_deeply( $r->__path,
         [ 'a', 'b', '(ef(gh))', 'i', 'j' ],
         'ab(ef(gh))ij (with Default parenthetical lexer)'
     );
 
-    eval { $r->filter('choke') };
-    ok( $@, 'die on non-CODE filter' );
+//    eval { $r->filter('choke') };
+//    ok( $@, 'die on non-CODE filter' );
 
-    eval { $r->pre_filter('choke') };
-    ok( $@, 'die on non-CODE pre_filter' );
+//    eval { $r->pre_filter('choke') };
+//    ok( $@, 'die on non-CODE pre_filter' );
 }
-
+/*
 is( $_, $fixed, '$_ has not been altered' );
 */
 echo "===OK===\n";

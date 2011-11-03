@@ -386,7 +386,7 @@ function __construct($args = array() ) {
     }
 
     //これ追加. 
-    $this->Current_Lexer = Regexp_Assemble::Default_Lexer;
+    $this->__Current_Lexer = Regexp_Assemble::Default_Lexer;
 //    $args{lex}     = $Current_Lexer if defined $Current_Lexer;
     if (isset($args['lex'])) {
         $this->__lex = $args['lex'];
@@ -921,7 +921,7 @@ function _lex($record){
 //        : defined $Current_Lexer ? $Current_Lexer
 //        : $Default_Lexer;
 
-    $re   = $this->__lex != NULL ? $this->__lex : $this->Current_Lexer;
+    $re   = $this->__lex != NULL ? $this->__lex : $this->__Current_Lexer;
     //Current_Lexer は コンストラクタで Default_Lexer で初期化している。
 
 //    my $debug  = $self->{debug} & DEBUG_LEX;
@@ -980,7 +980,7 @@ function _lex($record){
 //                            : defined $Current_Lexer ? $Current_Lexer
 //                            : $Default_Lexer;
                         if ($qm) {
-                             $re = $this->__lex != NULL ? $this->__lex : $this->Current_Lexer;
+                             $re = $this->__lex != NULL ? $this->__lex : $this->__Current_Lexer;
                         }
 //                        $case = $qm = '';
                         $case = ''; $qm = '';
@@ -2842,15 +2842,13 @@ function Default_Lexer($p1) {
 //    if( $_[0] ) {
     if ($p1) {
 //        if( my $refname = ref($_[0]) ) {
-        $refname = gettype($p1);
-        if ($refname) {
 //            require Carp;
 //            Carp::croak("Cannot pass a $refname to Default_Lexer");
-            trigger_error("Cannot pass a $refname to Default_Lexer");
 //        }
-        }
 //        $Current_Lexer = $_[0];
         $this->__Current_Lexer = $p1;
+        $this->__lex = $p1;          //ちゃんと初期化するようになってしまったので、 コンストラクタで lex には defualt_lexer が入っている。
+                                     //そのため、 Default_Lexer を変更する時はここで __lex を上書きしないといけない。
 //    }
     }
 //    return defined $Current_Lexer ? $Current_Lexer : $Default_Lexer;
