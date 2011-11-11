@@ -800,7 +800,7 @@ function _fastlex($record){
                       }
                 }
 //                $path[-1] .= join( '', @arg ); # if @arg;
-                $path[$this->_perl_lastindex($path)] .= join( '', $arg ); // if @arg;
+                  $path[count($path)-1] .= join( '', $arg ); // if @arg;
 //                redo;
                 continue;
             }
@@ -1805,7 +1805,7 @@ function match($target) {
     
     
 //    $self->{m}      = $^R if $] >= 5.009005;
-    $lastindex = $this->_perl_lastindex($pregNum);
+    $lastindex = count($pregNum) - 1;
     $this->__m = $pregNum[$lastindex][0];
 //    $self->{mbegin} = _path_copy([@-]);
     $this->__mbegin = $this->_path_copy($pregNum[0][1]);
@@ -2981,7 +2981,7 @@ function _insert_path($list , $debug , $in) {
 //            if( exists( $node->{$token} )) {
             if( isset( $node[$token] ) ) {
 //                if ($offset < $#$path) {
-                if ($offset < $this->_perl_lastindex($path) ) { 
+                if ($offset < count($path) - 1 ) { 
 //                    my $new = {
 //                        $token => [$token, @in],
 //                        _re_path($self, [$node]) => [@{$path}[$offset..$#$path]],
@@ -3013,13 +3013,13 @@ function _insert_path($list , $debug , $in) {
 //            else {
             else {
 //                $debug and print "#   add path ($token:@{[_dump(\@in)]}) into @{[_dump($path)]} at off=$offset to end=@{[scalar $#$path]}\n";
-                if ($debug) { echo "#   add path ($token:".$this->_dump($in).") into ".$this->_dump($path)." at off=$offset to end=".$this->_perl_lastindex($path)."\n"; }
+                if ($debug) { echo "#   add path ($token:".$this->_dump($in).") into ".$this->_dump($path)." at off=$offset to end=".(count($path)-1)."\n"; }
 
 //                if( $offset == $#$path ) {
-                if ( $offset == $this->_perl_lastindex($path)  ) {
+                if ( $offset == count($path)-1  ) {
 //                    $node->{$token} = [ $token, @in ];
                       $path[$offset][$token] = $this->_perl_array(array($token),$in); //nodeを参照にしていないため $path で受ける. token をarrayで囲む必要あり
-                    if ($debug) { echo "#   offset({$offset}) eq lastindex=".$this->_perl_lastindex($path)." path=".$this->_dump($path)."\n"; }
+                    if ($debug) { echo "#   offset({$offset}) eq lastindex=".(count($path)-1)." path=".$this->_dump($path)."\n"; }
 //                }
                 }
 //                else {
@@ -3737,9 +3737,10 @@ function _reduce_fail($reduce, $fail, $optional, $ctx) {
 
 //    my $p;
 //    for $p (keys %$reduce) {
-    foreach(array_keys($reduce) as $p ){
+//    foreach(array_keys($reduce) as $p ){
+    foreach($reduce as $p => $path){
 //        my $path = $reduce->{$p};
-        $path = $reduce[$p];
+//        $path = $reduce[$p];
 
         if ( $debug ) { echo "#$indent| _reduce_fail1 path:" . $this->_dump($path)." key: " . $this->_dump($p) . "\n"; }
         
@@ -3856,15 +3857,16 @@ function _scan_node( $node, $ctx ) {
 //    keys %$node ) {
 
       $_temp_map = array();
-      foreach ( array_keys($node) as $_ ) {
+////      foreach ( array_keys($node) as $_ ) {
+      foreach($node as $_temp_key => $_temp_val ) {
 
           $_temp_map[] =  join( '|' ,
                array(
-                    count( $this->_perl_grep( function($__){ return is_array($__); } ,$node[$_]  ) ) , 
-                    $this->_node_offset($node[$_]),
-                    count($node[$_])
+                    count( $this->_perl_grep( function($__){ return is_array($__); } ,$_temp_val  ) ) , 
+                    $this->_node_offset($_temp_val),
+                    count($_temp_val)
                )
-          ) . '#'. $_;   //#は区切り文字 マークする。  いわいる番兵的存在
+          ) . '#'. $_temp_key;   //#は区切り文字 マークする。  いわいる番兵的存在
       }
 
       $_temp_map2 = array();
@@ -3875,7 +3877,7 @@ function _scan_node( $node, $ctx ) {
           }
           else {
               $_temp_map2[] = '';
-              assert(isset($node['']));
+//              assert(isset($node['']));
           }
       }
 
@@ -4158,7 +4160,7 @@ function _node_offset($nr) {
     }
 
     //最初に終端を調べるらしい
-    $_temp_lastindex = $this->_perl_lastindex($nr);
+    $_temp_lastindex = count($nr) - 1;
     if ( is_array($nr[$_temp_lastindex]) ) {
         return $_temp_lastindex ;
     }
@@ -4310,9 +4312,10 @@ function _unrev_node($node, $ctx ) {
     }
 //    my $n;
 //    for $n( keys %$node ) {
-    foreach( array_keys($node) as $n ){
+/////    foreach( array_keys($node) as $n ){
+    foreach($node as $_temp_val){
 //        my $path = _unrev_path($node->{$n}, _descend($ctx) );
-        $path = $this->_unrev_path($node[$n], $this->_descend($ctx) );
+        $path = $this->_unrev_path($_temp_val, $this->_descend($ctx) );
 
 //        $new->{_node_key($path->[0])} = $path;
         if ( is_array($path) ) {
@@ -4762,7 +4765,8 @@ function _lookahead(array $in) {
 //                   if( exists $in->{$path}[$next]{''} ) {
                        if( isset($in[$path][$next]['']) ) {
 //                       ++$head{$in->{$path}[$next+1]};
-                         $this->_perl_inclement($head[$in[$path][$next+1]]);
+                         if (! isset($head[$in[$path][$next+1]]) ) $head[$in[$path][$next+1]] = 0;
+                         $head[$in[$path][$next+1]] ++;
 //                   }
                        }
 //                   ++$next;
@@ -4796,7 +4800,8 @@ function _lookahead(array $in) {
 //                   else {
                     else {
 //                       ++$head{$subpath->[$sp]};
-                       $this->_perl_inclement($head{$subpath_sp});
+                         if (! isset($head[$subpath_sp]) ) $head[$subpath_sp] = 0;
+                         $head[$subpath_sp] ++;
 //                       last;
                        break;
 //                   }
@@ -4882,7 +4887,8 @@ function _re_path_lookahead($in) {
 //                else {
                 else {
 //                    ++$ahead->{$in->[$p+$next]};
-                    $this->_perl_inclement($ahead[$in[$p+$next]]);
+                    if ( ! isset($ahead[$in[$p+$next]]) )  $ahead[$in[$p+$next]] = 0;
+                    $ahead[$in[$p+$next]] ++;
 //                    last;
                     break;
 //                }
@@ -5684,13 +5690,6 @@ __END__
 //////////////////////////////////////////////////////////
 //// perl の動作をエミュレートするための機能
 //////////////////////////////////////////////////////////
-//最後の添字を取得する.
-static function _perl_lastindex(array $array)
-{
-    $p = array_keys($array);
-    return array_pop($p);
-}
-
 //perlのgrepに相当する関数.
 //array_filter って array_map とコールバックが逆なんで統一しておく。めんどいから。
 static function _perl_grep($function ,array $array) {
@@ -5702,7 +5701,8 @@ static function _perl_sort($function , $array = NULL)
 {
     if ($array === NULL) {
        //arrayが省略された場合、 第一引数が arrayになる。
-       usort($function , function($a,$b){ return strcmp($a,$b); } );
+//       usort($function , function($a,$b){ return strcmp($a,$b); } );
+       sort($function,SORT_STRING);
        return $function;
     }
     else { 
@@ -5821,12 +5821,6 @@ static function _perl_args_($args)
       }
    }
    return $arr;
-}
-
-//未初期化警告を出さないインクリメント
-static function _perl_inclement(&$p) {
-    if ( isset($p) ) $p = 0;
-    return ++$p ;
 }
 
 //リファレンスをハッシュのキーに使うことがあるらしい・・・
