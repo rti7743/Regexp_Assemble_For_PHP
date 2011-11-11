@@ -3661,6 +3661,7 @@ function _reduce_node($node, $ctx) {
         $path = array_values($node) ;
         $path = $path[0];
 //        if( not grep { ref($_) eq 'HASH' } @$path ) {
+
         if( ! $this->_perl_grep(function($_) { return is_array($_); } ,$path ) ) {
 //            # if we have removed an optional, and there is only one path
 //            # left then there is nothing left to compare. Because of the
@@ -4374,8 +4375,9 @@ function _node_key($node) {
 //    my $ctx = shift;
 function _descend($ctx) {
 //    return {%$ctx, depth => $ctx->{depth}+1};
-//    return $this->_perl_array( $ctx , array('depth'=> $ctx['depth']+1) );
-    return array_merge( $ctx , array('depth'=> $ctx['depth']+1) );
+//    return array_merge( $ctx , array('depth'=> $ctx['depth']+1) );
+      $ctx['depth'] = $ctx['depth']+1;
+      return $ctx;
 //}
 }
 
@@ -4684,7 +4686,6 @@ function _re_path(array $p1) {
     if ( ! count( $this->_perl_grep( function($_){ return is_array($_); } , $p1) )  ) {
         return join( '', $p1 );
     }
-
 //    my $p;
 //    return join '', map {
 //        ref($_) eq '' ? $_
