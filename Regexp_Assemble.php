@@ -1696,7 +1696,7 @@ function _build_re($str) {
 //        ;
         $this->__re = strlen($this->__flags)
              ? "(?{$this->__flags}:{$str})"
-             : "{$str}"
+             : "(?-xism:{$str})"
              ;
 //    }
     }
@@ -1709,7 +1709,7 @@ function _build_re($str) {
 //        ;
         $this->__re = strlen($this->__flags)
             ? "(?{$this->__flags}:{$str})"
-            : "{$str}";
+            : "(?-xism:{$str})";
         ;
 //    }
     }

@@ -5,7 +5,7 @@ require_once("testutil.php");
 
 
 
-$xism = 'xism:';
+$xism = '-xism:';
 
 foreach (
 [
@@ -17,9 +17,9 @@ foreach (
 
     $r = new Regexp_Assemble($param);
     $r->add($test);
-    if (! isset($param['flags']) ) {
-        $r->__flags = 'xism';
-    }
+//    if (! isset($param['flags']) ) {
+//        $r->__flags = 'xism';
+//    }
 
     $args = '(' . join( ') (', $test ) . ')';
     if ( count( $param ) ) {
@@ -138,7 +138,7 @@ foreach( array(
 
 
 //my {$xism} = ($] < 5.013) ? '-xism' : '^:';
-$xism = 'xism:';
+//$xism = '-xism:';
 
 foreach (
 [
@@ -254,7 +254,7 @@ foreach (
     $r = new Regexp_Assemble($param);
     $r->add($test);
     if (! isset($param['flags']) ) {
-        $r->__flags = 'xism';
+//        $r->__flags = '-xism';
     }
 
     $args = '(' . join( ') (', $test ) . ')';
@@ -272,7 +272,7 @@ foreach (
 
 {
     $r = new Regexp_Assemble();
-    $r->__flags = 'xism';
+    $r->__flags = '-xism';
     $r->add( 'de' );
     $re = $r->re();
     is( "$re", "(?{$xism}de)", 'de' );
