@@ -3912,7 +3912,7 @@ function _scan_node( $node, $ctx ) {
 //                my ($key, $opt_path) = each %$end;
                 list($key, $opt_path) = each($end);
 //                ($key, $opt_path) = each %$end if $key eq '';
-                if ($key == '') {
+                if ($key === '') {
                     list($key, $opt_path) = each($end);
                 }
 //                $opt_path = [reverse @{$opt_path}];
